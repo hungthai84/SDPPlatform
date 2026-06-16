@@ -270,7 +270,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             {/* Logo image with a blue border 'Logo tạo viền xanh dương như hình trong logo' */}
             <div className="w-16 h-16 flex items-center justify-center mb-3">
               <img 
-                src="https://i.ibb.co/5xGR71B5/e8d96cef-7540-4105-ae6c-8342dfaf5152-removebg-preview.png" 
+                src="https://i.ibb.co/VcwGhfRp/Logo-mau-xanh-Lark-CV-Nguyen-H-ng-Th-i.png" 
                 alt="Power Service SDP Platfrom" 
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"

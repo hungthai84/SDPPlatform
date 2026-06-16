@@ -96,7 +96,7 @@ const TopSidebar: React.FC<TopSidebarProps> = ({ user, onNotificationClick, onNa
             {/* Logo image with a blue border 'Logo tạo viền xanh dương như hình trong logo' */}
             <div className="w-10 h-10 flex items-center justify-center">
               <img 
-                src="https://i.ibb.co/5xGR71B5/e8d96cef-7540-4105-ae6c-8342dfaf5152-removebg-preview.png" 
+                src="https://i.ibb.co/VcwGhfRp/Logo-mau-xanh-Lark-CV-Nguyen-H-ng-Th-i.png" 
                 alt="Power Service" 
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
@@ -193,7 +193,7 @@ const TopSidebar: React.FC<TopSidebarProps> = ({ user, onNotificationClick, onNa
          <div className="flex items-center gap-2 select-none">
             <div className="w-10 h-10 flex items-center justify-center shrink-0">
               <img 
-                src="https://i.ibb.co/5xGR71B5/e8d96cef-7540-4105-ae6c-8342dfaf5152-removebg-preview.png" 
+                src="https://i.ibb.co/VcwGhfRp/Logo-mau-xanh-Lark-CV-Nguyen-H-ng-Th-i.png" 
                 alt="Power Service" 
                 className="w-full h-full object-contain"
                 referrerPolicy="no-referrer"
