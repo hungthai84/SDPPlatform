@@ -201,12 +201,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       icon: <ChatIcon className="w-5 h-5 text-green-500 fill-current" />,
       view: 'chat'
     },
-    ...(user.role === 'superadmin' || user.role === 'admin' ? [{
-      id: 'website-data',
-      label: 'Quản trị website',
-      icon: <GlobeIcon className="w-5 h-5 text-sky-500" />,
-      view: 'website-data' as View
-    }] : []),
     {
       id: 'training',
       label: t('training') || 'Đào tạo',

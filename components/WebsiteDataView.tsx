@@ -434,10 +434,6 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
 
   return (
     <div className="flex-1 overflow-y-auto no-scrollbar p-[3px] pb-24 md:pb-8 flex flex-col gap-3">
-      <div className="shrink-0">
-        <WebsiteBanner />
-      </div>
-
       <div className="flex border-b border-[--color-border-secondary] px-2 shrink-0 gap-6">
         <button
           onClick={() => setActiveTab('pages')}

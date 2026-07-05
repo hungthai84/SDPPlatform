@@ -5,7 +5,7 @@ import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { getOrCreateUser, getUserProfile } from './src/db/users.ts';
 import { db } from './src/db/index.ts';
-import { tasks } from './src/db/schema.ts';
+import { users, tasks } from './src/db/schema.ts';
 import { eq, desc } from 'drizzle-orm';
 
 dotenv.config();
@@ -111,6 +111,16 @@ async function startServer() {
       console.error("Get Profile Error:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to fetch user profile";
       res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  app.get("/api/users", async (req, res) => {
+    try {
+      const allUsers = await db.select().from(users);
+      res.status(200).json(allUsers);
+    } catch (error) {
+      console.error("Get Users Error:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
     }
   });
 

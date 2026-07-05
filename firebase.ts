@@ -1,13 +1,11 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, User } from 'firebase/auth';
-import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from './firebase-applet-config.json';
 
 export const app = initializeApp(firebaseConfig);
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true
-}, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
+// Firestore database initialization removed as requested.
+export const db = null; 
 
 const provider = new GoogleAuthProvider();
 // Add all requested scopes
@@ -100,14 +98,3 @@ export const logOut = async () => {
   cachedAccessToken = null;
 };
 
-async function testConnection() {
-  try {
-    // Try to get a document to check connection
-    await getDocFromServer(doc(db, 'system', 'config'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Firebase client is currently offline or connectivity is restricted.");
-    }
-  }
-}
-testConnection();

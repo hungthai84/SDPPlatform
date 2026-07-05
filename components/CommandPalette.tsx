@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../firebase';
-import { collection, query, limit, getDocs } from 'firebase/firestore';
 import { Task } from './TasklistView';
 import { User, View } from '../types';
 import { CalendarEvent } from './CalendarView';
@@ -58,11 +57,10 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, onNavi
                 .slice(0, 5);
 
             // Search Users
-            const usersQ = query(collection(db, 'users'), limit(20));
-            const usersSnap = await getDocs(usersQ);
-            const users = usersSnap.docs
-                .map(d => ({ id: d.id, ...d.data() } as User))
-                .filter(u => u.name.toLowerCase().includes(lowerVal) || u.email.toLowerCase().includes(lowerVal))
+            const usersRes = await fetch('/api/users');
+            const allUsers = await usersRes.json();
+            const users = allUsers
+                .filter((u: User) => u.name.toLowerCase().includes(lowerVal) || u.email.toLowerCase().includes(lowerVal))
                 .slice(0, 5);
 
             // Search Events

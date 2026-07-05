@@ -66,35 +66,35 @@ const AppContent: React.FC = () => {
 
   // Listen for all users
   React.useEffect(() => {
-    // We can still listen for users if needed, but we don't block the app
-    const q = query(collection(db, 'users'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersFromDb = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
-      if (usersFromDb.length > 0) {
-        setAllUsers(prev => {
-            const merged = [...prev];
-            let hasChanges = false;
-            usersFromDb.forEach(dbUser => {
-                const idx = merged.findIndex(u => u.id === dbUser.id || u.email.toLowerCase() === dbUser.email.toLowerCase());
-                if (idx !== -1) {
-                    // Check if actually changed to avoid unnecessary re-renders
-                    const existing = merged[idx];
-                    if (existing.role !== dbUser.role || existing.name !== dbUser.name || existing.avatar !== dbUser.avatar) {
-                        merged[idx] = { ...existing, ...dbUser };
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch('/api/users');
+        const usersFromDb = await response.json();
+        if (usersFromDb.length > 0) {
+            setAllUsers(prev => {
+                const merged = [...prev];
+                let hasChanges = false;
+                usersFromDb.forEach((dbUser: User) => {
+                    const idx = merged.findIndex(u => u.id === dbUser.id || u.email.toLowerCase() === dbUser.email.toLowerCase());
+                    if (idx !== -1) {
+                        const existing = merged[idx];
+                        if (existing.role !== dbUser.role || existing.name !== dbUser.name || existing.avatar !== dbUser.avatar) {
+                            merged[idx] = { ...existing, ...dbUser };
+                            hasChanges = true;
+                        }
+                    } else {
+                        merged.push(dbUser);
                         hasChanges = true;
                     }
-                } else {
-                    merged.push(dbUser);
-                    hasChanges = true;
-                }
+                });
+                return hasChanges ? merged : prev;
             });
-            return hasChanges ? merged : prev;
-        });
+        }
+      } catch (error) {
+        console.error("Failed to fetch users", error);
       }
-    }, (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'users');
-    });
-    return () => unsubscribe();
+    };
+    fetchUsers();
   }, [user?.id]);
 
   const [isLeftSidebarCollapsed, setLeftSidebarCollapsed] = useState(true);
@@ -643,8 +643,6 @@ const AppContent: React.FC = () => {
         return <CheckInView user={user} log={checkInLog} activityLog={activityLog} onCheckIn={handleCheckIn} onCheckOut={handleCheckOut} />;
       case 'requests':
         return <RequestsView user={user} users={allUsers} onSaveEvent={handleSaveEvent} />;
-      case 'website-data':
-        return <WebsiteDataView user={user} allUsers={allUsers} onUsersChange={handleUsersChange} />;
       case 'projects':
         return <ProjectManagementView user={user} onNavigateToTasks={handleNavigateToTasks} onSendNotification={handleSendNotification} />;
       case 'user-management':

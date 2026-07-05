@@ -12,6 +12,7 @@ import {
 } from './icons';
 import UserManagementView from './UserManagementView';
 import AccountSettingsBanner from './AccountSettingsBanner';
+import WebsiteDataView from './WebsiteDataView';
 
 enum OperationType {
   CREATE = 'create',
@@ -619,6 +620,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         { id: 'effects', label: t('effectsAndSound'), icon: <ZapIcon className="w-5 h-5"/>, description: t('manageEffects') },
         { id: 'ai_voice', label: t('aiVoiceSettings'), icon: <RobotIcon className="w-5 h-5"/>, description: t('configureAiAssistant') },
         { id: 'zimbra', label: t('zimbraSettings'), icon: <MailIcon className="w-5 h-5"/>, description: t('zimbraSettingsDesc') },
+        { id: 'website-admin', label: 'Quản trị website', icon: <GlobeIcon className="w-5 h-5"/>, description: 'Cấu hình website, trang tĩnh và email' },
     ];
 
     const renderSectionContent = () => {
@@ -1247,21 +1249,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     )}
                 </div>
             );
-            case 'administration':
+            case 'website-admin':
                 return (
-                    <div className="bg-[--color-surface-secondary] p-8 rounded-2xl border border-[--color-border-primary] shadow-sm text-center space-y-4">
-                        <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center mx-auto mb-2">
-                            <GlobeIcon className="w-8 h-8"/>
-                        </div>
-                        <h3 className="text-xl font-bold text-[--color-text-primary]">{t('websiteDataManagement')}</h3>
-                        <p className="text-[--color-text-secondary] max-w-sm mx-auto">Chuyển đến trang Quản trị hệ thống để quản lý nội dung website và phân quyền người dùng.</p>
-                        <button 
-                            onClick={() => onNavigate('website-data')}
-                            className="mt-4 px-8 py-3 bg-[--color-accent-600] text-white rounded-xl font-bold hover:bg-[--color-accent-700] transition-all shadow-lg shadow-[--color-accent-500]/20"
-                        >
-                            Truy cập Quản trị
-                        </button>
-                    </div>
+                    <WebsiteDataView user={user} allUsers={allUsers} onUsersChange={onUsersChange} />
                 );
             case 'user-management':
                 return (

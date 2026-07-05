@@ -1,22 +1,21 @@
-import { drizzle } from 'drizzle-orm/node-postgres';
-import pkg from 'pg';
-const { Pool } = pkg;
-import * as schema from './schema.ts';
-
-export const createPool = () => {
-  return new Pool({
-    host: process.env.SQL_HOST,
-    user: process.env.SQL_USER,
-    password: process.env.SQL_PASSWORD,
-    database: process.env.SQL_DB_NAME,
-    connectionTimeoutMillis: 15000,
-  });
+// Database connection is disabled as requested by the user.
+// Mock database interface to prevent crashes while maintaining the expected API structure.
+const mockDbCall = {
+    from: () => mockDbCall,
+    where: () => mockDbCall,
+    orderBy: () => mockDbCall,
+    limit: () => mockDbCall,
+    insert: () => mockDbCall,
+    update: () => mockDbCall,
+    set: () => mockDbCall,
+    values: () => mockDbCall,
+    onConflictDoUpdate: () => mockDbCall,
+    returning: () => Promise.resolve([]),
+    then: (resolve: any) => resolve([]),
 };
 
-const pool = createPool();
-
-pool.on('error', (err) => {
-  console.error('Unexpected error on idle SQL pool client:', err);
-});
-
-export const db = drizzle(pool, { schema });
+export const db = {
+    select: () => mockDbCall,
+    insert: () => mockDbCall,
+    update: () => mockDbCall,
+} as any;
