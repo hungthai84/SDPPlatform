@@ -1,10 +1,8 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
-import { Resend } from "resend";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
-import { requireAuth, AuthRequest } from './middleware/auth.ts';
 import { getOrCreateUser, getUserProfile } from './src/db/users.ts';
 import { db } from './src/db/index.ts';
 import { tasks } from './src/db/schema.ts';
@@ -12,7 +10,9 @@ import { eq, desc } from 'drizzle-orm';
 
 dotenv.config();
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_123456789');
+// Default User ID for non-authenticated access
+const DEFAULT_USER_UID = 'user-1';
+const DEFAULT_USER_EMAIL = 'hungthai84@gmail.com';
 
 async function startServer() {
   const app = express();
@@ -54,23 +54,12 @@ async function startServer() {
     try {
       const { to, subject, html } = req.body;
       
-      if (!process.env.RESEND_API_KEY) {
-        // If no API key is provided, log mock sending
-        console.log("Mock Email Sent:");
-        console.log("To:", to);
-        console.log("Subject:", subject);
-        console.log("Body:", html);
-        return res.json({ success: true, mock: true, message: "Email simulated successfully (add RESEND_API_KEY to send real emails)" });
-      }
-
-      const data = await resend.emails.send({
-        from: 'Acme <onboarding@resend.dev>',
-        to: [to],
-        subject: subject,
-        html: html,
-      });
-
-      res.status(200).json({ success: true, data });
+      // Mock sending since RESEND_API_KEY is removed
+      console.log("Mock Email Sent (Feature is now in mock mode):");
+      console.log("To:", to);
+      console.log("Subject:", subject);
+      console.log("Body:", html);
+      return res.json({ success: true, mock: true, message: "Email simulated successfully (RESEND_API_KEY was removed)" });
     } catch (error) {
       console.error(error);
       res.status(500).json({ success: false, error: "Failed to send email" });
@@ -78,24 +67,20 @@ async function startServer() {
   });
 
   // User Profile Synchronization & Lookup Endpoint
-  app.post("/api/users/sync", requireAuth, async (req: AuthRequest, res) => {
+  app.post("/api/users/sync", async (req, res) => {
     try {
-      const decodedUser = req.user;
-      if (!decodedUser) {
-        return res.status(401).json({ error: "Invalid auth" });
-      }
-
-      const { name, avatar, phoneNumber, role } = req.body;
-      const email = decodedUser.email || "";
-      const uid = decodedUser.uid;
+      const { name, avatar, phoneNumber, role, uid: providedUid, email: providedEmail } = req.body;
+      
+      const uid = providedUid || DEFAULT_USER_UID;
+      const email = providedEmail || DEFAULT_USER_EMAIL;
 
       const user = await getOrCreateUser({
         uid,
-        name: name || decodedUser.name || email.split("@")[0] || "User",
+        name: name || email.split("@")[0] || "User",
         email,
-        avatar: avatar || decodedUser.picture || undefined,
+        avatar,
         phoneNumber,
-        role,
+        role: role || 'superadmin',
       });
 
       res.status(200).json({ success: true, user });
@@ -106,12 +91,20 @@ async function startServer() {
     }
   });
 
-  app.get("/api/users/me", requireAuth, async (req: AuthRequest, res) => {
+  app.get("/api/users/me", async (req, res) => {
     try {
-      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-      const user = await getUserProfile(req.user.uid);
+      // Use provided UID or default
+      const uid = req.query.uid as string || DEFAULT_USER_UID;
+      const user = await getUserProfile(uid);
       if (!user) {
-        return res.status(404).json({ error: "User not found" });
+        // Create default user if not found
+        const newUser = await getOrCreateUser({
+            uid: DEFAULT_USER_UID,
+            name: "Hung Thai",
+            email: DEFAULT_USER_EMAIL,
+            role: 'superadmin'
+        });
+        return res.status(200).json({ success: true, user: newUser });
       }
       res.status(200).json({ success: true, user });
     } catch (error) {
@@ -122,12 +115,12 @@ async function startServer() {
   });
 
   // Cloud SQL Tasks APIs
-  app.get("/api/tasks", requireAuth, async (req: AuthRequest, res) => {
+  app.get("/api/tasks", async (req, res) => {
     try {
-      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+      const uid = req.query.uid as string || DEFAULT_USER_UID;
       const userTasks = await db.select()
         .from(tasks)
-        .where(eq(tasks.ownerId, req.user.uid))
+        .where(eq(tasks.ownerId, uid))
         .orderBy(desc(tasks.updatedAt));
       res.status(200).json(userTasks);
     } catch (error) {
@@ -137,10 +130,10 @@ async function startServer() {
     }
   });
 
-  app.post("/api/tasks", requireAuth, async (req: AuthRequest, res) => {
+  app.post("/api/tasks", async (req, res) => {
     try {
-      if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-      const { id, title, description, completed, status, priority, recurring, dueDate, taskListId, order } = req.body;
+      const { id, title, description, completed, status, priority, recurring, dueDate, taskListId, order, uid: providedUid } = req.body;
+      const uid = providedUid || DEFAULT_USER_UID;
 
       if (!title) {
         return res.status(400).json({ error: "Title is required" });
@@ -177,7 +170,7 @@ async function startServer() {
             dueDate,
             taskListId,
             order: order || 0,
-            ownerId: req.user.uid,
+            ownerId: uid,
             createdAt: new Date(),
             updatedAt: new Date(),
           })

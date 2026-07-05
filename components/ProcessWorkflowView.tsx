@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { User, View } from '../App';
 import { XIcon, WorkflowIcon, UserIcon, ClockIcon, ChecklistIcon, LightningIcon, CheckIcon, PencilIcon } from './icons';
+import StandardPageLayout from './StandardPageLayout';
+import PageBanner from './PageBanner';
 import Xarrow, { Xwrapper } from 'react-xarrows';
 
 interface ProcessNode {
@@ -177,41 +179,41 @@ const ProcessWorkflowView: React.FC<ProcessWorkflowViewProps> = ({ user }) => {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-[--color-surface-primary]/50 p-6 h-full overflow-hidden">
-      <div className="mb-6 shrink-0 flex justify-between items-center bg-white/40 p-6 rounded-2xl border border-[--color-border-secondary] backdrop-blur-md shadow-sm xl:flex-row flex-col gap-4 xl:gap-0">
-        <div className="w-full xl:w-auto">
-          <input 
-            value={processName}
-            onChange={(e) => setProcessName(e.target.value)}
-            className="text-2xl font-bold bg-transparent border-b-2 border-transparent focus:border-[--color-accent-500] hover:border-[--color-border-secondary] focus:outline-none transition-colors mb-1 text-[--color-text-primary] pb-1 w-full xl:w-96"
-            placeholder="Nhập tên quy trình..."
-          />
-          <p className="text-[--color-text-secondary] text-sm font-medium">Thiết kế và quản lý các luồng quy trình công việc, {user.name}.</p>
-        </div>
-        <div className="flex gap-3 w-full xl:w-auto justify-end">
-           <button 
-             onClick={handleSaveProcess}
-             className="bg-white text-[--color-text-primary] border border-[--color-border-secondary] px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-[--color-surface-hover] transition-all flex items-center gap-2">
-             {isSaved ? <CheckIcon className="w-4 h-4 text-emerald-500" /> : null}
-             {isSaved ? 'Đã lưu' : 'Lưu quy trình'}
-           </button>
-           <button 
-             onClick={handleOpenCreateModal}
-             className="bg-[--color-accent-600] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-[--color-accent-700] hover:shadow-md transition-all flex items-center gap-2">
-             <WorkflowIcon className="w-4 h-4" />
-             Tạo thẻ quy trình mới
-           </button>
-        </div>
-      </div>
-      
-      {/* Designer Canvas Area */}
-      <div 
-        ref={containerRef}
-        className="flex-1 relative bg-white/40 border border-[--color-border-secondary] backdrop-blur-md rounded-2xl shadow-inner overflow-auto cursor-crosshair diagram-bg"
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
+    <StandardPageLayout>
+      <PageBanner 
+        title={processName}
+        subtitle={`Thiết kế và cấu trúc hóa luồng quy trình nghiệp vụ thông minh cho doanh nghiệp của ${user.name}.`}
+        icon={<WorkflowIcon className="w-full h-full text-white" />}
+        gradient="from-indigo-600 to-cyan-500"
+        titleEditable={true}
+        onTitleChange={setProcessName}
+        actions={
+          <div className="flex gap-2">
+             <button 
+               onClick={handleSaveProcess}
+               className="bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all flex items-center gap-1.5 border border-indigo-100">
+               {isSaved ? <CheckIcon className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : null}
+               {isSaved ? 'Đã lưu' : 'Lưu quy trình'}
+             </button>
+             <button 
+               onClick={handleOpenCreateModal}
+               className="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+               <WorkflowIcon className="w-3.5 h-3.5 shrink-0" />
+               Tạo thẻ mới
+             </button>
+          </div>
+        }
+      />
+
+      <div className="flex flex-col gap-6 mt-6">
+        {/* Designer Canvas Area */}
+        <div 
+          ref={containerRef}
+          className="h-[650px] min-h-[650px] relative bg-white/40 border border-[--color-border-secondary] backdrop-blur-md rounded-2xl shadow-inner overflow-auto cursor-crosshair diagram-bg"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
         {nodes.length === 0 ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
               <div className="w-20 h-20 bg-[--color-accent-100] text-[--color-accent-600] rounded-full flex items-center justify-center mb-6 shadow-sm border border-[--color-accent-200]">
@@ -506,7 +508,8 @@ const ProcessWorkflowView: React.FC<ProcessWorkflowViewProps> = ({ user }) => {
            background-size: 24px 24px;
         }
       `}</style>
-    </div>
+      </div>
+    </StandardPageLayout>
   );
 }
 

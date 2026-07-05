@@ -1,13 +1,14 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-
-import CreatePostModal from './CreatePostModal';
+import PageBanner from './PageBanner';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import { User } from '../App';
 import { useLanguage } from './LanguageContext';
 import { 
     SearchIcon, FileTextIcon, GiftIcon, ImageIcon, 
-    PinIcon, BookmarkIcon, MessageSquareIcon, MoreHorizontalIcon,
-    ListIcon, EyeOffIcon, XIcon, SyncIcon
+    MessageSquareIcon, MoreHorizontalIcon,
+    ListIcon, SyncIcon, RssIcon, FilterIcon
 } from './icons';
+import CreatePostModal from './CreatePostModal';
 import { 
   Sparkles as SparklesIcon,
   MessageSquare as MessageSquareIconLc,
@@ -21,7 +22,6 @@ import {
   Bookmark as BookmarkIconLc,
   Pin as PinIconLc,
   Check as CheckIconLc,
-  Users as UsersIconLc,
   Trophy as TrophyIconLc,
   UserPlus as UserPlusIconLc,
   Zap as ZapIconLc
@@ -237,7 +237,7 @@ const PostCard: React.FC<{
     };
 
     return (
-        <div className="bg-[--color-surface-secondary] border border-[--color-border-secondary] backdrop-blur-md rounded-2xl shadow-sm p-5 transition-all duration-300 hover:shadow-md">
+        <div className="bg-[--color-surface-secondary]/60 border border-[--color-border-secondary] backdrop-blur-md rounded-2xl shadow-sm p-5 transition-all duration-300 hover:shadow-md">
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -254,11 +254,11 @@ const PostCard: React.FC<{
                             {post.author.name}
                             {buildHeaderText()}
                         </p>
-                        <p className="text-[11px] text-[--color-text-secondary] font-semibold">{post.timestamp}</p>
+                        <p className="text-xs text-[--color-text-secondary] font-semibold">{post.timestamp}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className={`flex items-center gap-1 text-[10px] font-bold text-white px-2.5 py-1 rounded-full ${config.color}`}>
+                    <div className={`flex items-center gap-1 text-xs font-bold text-white px-2.5 py-1 rounded-full ${config.color}`}>
                         {config.icon}
                         <span>{config.label}</span>
                     </div>
@@ -355,7 +355,7 @@ const PostCard: React.FC<{
                                         {hasVoted && <CheckIconLc className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />}
                                         {opt.text}
                                     </span>
-                                    <span className="relative text-[10px] font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full shrink-0">
+                                    <span className="relative text-xs font-extrabold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full shrink-0">
                                         {opt.votes} vote ({percent}%)
                                     </span>
                                 </button>
@@ -369,14 +369,14 @@ const PostCard: React.FC<{
             {post.type === 'event' && post.event && (
                 <div className="mt-4 p-4 bg-emerald-50/20 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-950/40 rounded-xl flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="bg-emerald-500 text-white rounded-xl py-2 px-3 flex flex-col items-center justify-center shadow-md shrink-0 text-center min-w-[70px]">
-                        <span className="text-[9px] uppercase font-black tracking-wider opacity-90">Hội Thảo</span>
+                        <span className="text-xs uppercase font-black tracking-wider opacity-90">Hội Thảo</span>
                         <span className="text-xl font-bold">EVENT</span>
                     </div>
                     <div className="flex-1 space-y-1">
-                        <h4 className="font-bold text-slate-800 dark:text-white text-xs sm:text-sm">
+                        <h4 className="font-bold text-slate-800 dark:text-white text-sm">
                             {post.event.title}
                         </h4>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5 font-semibold">
+                        <div className="text-xs text-slate-500 dark:text-slate-400 space-y-0.5 font-semibold">
                             <p>🕒 Thời gian: {post.event.time} ({post.event.date})</p>
                             <p>📍 Địa điểm: {post.event.location}</p>
                         </div>
@@ -402,11 +402,11 @@ const PostCard: React.FC<{
                         <TrophyIconLc className="w-5 h-5" />
                     </div>
                     <div className="space-y-0.5 relative z-10">
-                        <span className="text-[9px] bg-rose-500 text-white rounded-full px-2.5 py-0.5 font-extrabold uppercase tracking-wide">KHEN THƯỞNG BIỂU DƯƠNG</span>
-                        <h4 className="font-extrabold text-slate-800 dark:text-white text-xs sm:text-sm pt-1">
+                        <span className="text-xs bg-rose-500 text-white rounded-full px-2.5 py-0.5 font-extrabold uppercase tracking-wide">KHEN THƯỞNG BIỂU DƯƠNG</span>
+                        <h4 className="font-extrabold text-slate-800 dark:text-white text-sm pt-1">
                             Chúc mừng vinh quang đồng hương: <span className="text-xl text-rose-600 dark:text-rose-400 font-black block sm:inline">{post.kudos.recipient}</span>
                         </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
                             Tuyên dương danh hiệu: <span className="underline decoration-pink-500 font-bold text-slate-700 dark:text-slate-200">{post.kudos.badgeLabel}</span>
                         </p>
                     </div>
@@ -420,11 +420,11 @@ const PostCard: React.FC<{
                         <UserPlusIconLc className="w-5 h-5 animate-pulse" />
                     </div>
                     <div className="space-y-0.5">
-                        <span className="text-[9px] bg-teal-500 text-white rounded-full px-2 py-0.5 font-bold uppercase tracking-wider">CHÀO ĐÓN THÀNH VIÊN MỚI</span>
-                        <h4 className="font-extrabold text-slate-800 dark:text-white text-xs sm:text-sm pt-1">
+                        <span className="text-xs bg-teal-500 text-white rounded-full px-2 py-0.5 font-bold uppercase tracking-wider">CHÀO ĐÓN THÀNH VIÊN MỚI</span>
+                        <h4 className="font-extrabold text-slate-800 dark:text-white text-sm pt-1">
                             Chào mừng đồng đội: <span className="text-teal-600 dark:text-teal-400 font-black">{post.welcome.name}</span>
                         </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
                             Chức vụ / Phòng ban: <span className="font-bold text-slate-700 dark:text-slate-200">{post.welcome.role}</span>
                         </p>
                     </div>
@@ -436,8 +436,8 @@ const PostCard: React.FC<{
                 <div className="mt-4 p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 rounded-xl flex items-center gap-3">
                     <FileTextIcon className="w-7 h-7 text-slate-400 shrink-0"/>
                     <div>
-                        <p className="font-bold text-xs text-slate-700 dark:text-slate-200">{post.document.name}</p>
-                        <p className="text-[10px] text-slate-400 font-semibold">{post.document.size}</p>
+                        <p className="font-bold text-sm text-slate-700 dark:text-slate-200">{post.document.name}</p>
+                        <p className="text-xs text-slate-400 font-semibold">{post.document.size}</p>
                     </div>
                 </div>
             )}
@@ -542,99 +542,58 @@ const PostComposer: React.FC<{
     }, []);
 
     const composerActions: { type: PostType; label: string; icon: React.ReactNode; color: string }[] = [
-        { type: 'quick', label: 'Cập nhật nhanh', icon: <MessageSquareIconLc className="w-4 h-4 text-cyan-500" />, color: 'hover:bg-cyan-50 dark:hover:bg-cyan-950/20' },
-        { type: 'announcement', label: 'Thông báo mới', icon: <MegaphoneIconLc className="w-4 h-4 text-orange-500" />, color: 'hover:bg-orange-50 dark:hover:bg-orange-950/20' },
-        { type: 'poll', label: 'Bình chọn', icon: <BarChartIconLc className="w-4 h-4 text-indigo-500" />, color: 'hover:bg-indigo-50 dark:hover:bg-indigo-950/20' },
-        { type: 'event', label: 'Sự kiện', icon: <CalendarIconLc className="w-4 h-4 text-emerald-500" />, color: 'hover:bg-emerald-50 dark:hover:bg-emerald-950/20' },
-    ];
-
-    const dropdownActions: { type: PostType; label: string; icon: React.ReactNode }[] = [
-        { type: 'quick', label: 'Cập nhật nhanh', icon: <MessageSquareIconLc className="w-4 h-4 text-cyan-500" /> },
-        { type: 'announcement', label: 'Thông báo mới', icon: <MegaphoneIconLc className="w-4 h-4 text-orange-500" /> },
-        { type: 'welcome', label: 'Chào đón thành viên', icon: <HeartIconLc className="w-4 h-4 text-rose-500" /> },
-        { type: 'idea', label: 'Chia sẻ một ý tưởng', icon: <LightbulbIconLc className="w-4 h-4 text-yellow-500" /> },
-        { type: 'poll', label: 'Bình chọn', icon: <BarChartIconLc className="w-4 h-4 text-indigo-500" /> },
-        { type: 'discussion', label: 'Thảo luận mới', icon: <MessageCircleIconLc className="w-4 h-4 text-sky-500" /> },
-        { type: 'event', label: 'Sự kiện', icon: <CalendarIconLc className="w-4 h-4 text-emerald-500" /> },
-        { type: 'kudos', label: 'Khen thưởng', icon: <TrophyIconLc className="w-4 h-4 text-red-500" /> },
-        { type: 'styled', label: 'Cập nhật Styled', icon: <SparklesIcon className="w-4 h-4 text-pink-500" /> },
+        { type: 'quick', label: 'Cập nhật', icon: <MessageSquareIconLc className="w-4 h-4 text-cyan-500" />, color: 'hover:bg-cyan-50' },
+        { type: 'announcement', label: 'Thông báo', icon: <MegaphoneIconLc className="w-4 h-4 text-orange-500" />, color: 'hover:bg-orange-50' },
+        { type: 'poll', label: 'Bình chọn', icon: <BarChartIconLc className="w-4 h-4 text-indigo-500" />, color: 'hover:bg-indigo-50' },
+        { type: 'event', label: 'Sự kiện', icon: <CalendarIconLc className="w-4 h-4 text-emerald-500" />, color: 'hover:bg-emerald-50' },
     ];
 
     return (
-        <div className="bg-[--color-surface-secondary] border border-[--color-border-secondary] p-4.5 rounded-2xl shadow-sm mb-6 transition-all duration-300">
-            {/* Input Row */}
+        <div className="bg-gray-50 border border-gray-100 p-4 rounded-2xl mb-8">
             <div 
-                className="flex items-center gap-3.5 cursor-pointer pb-3.5 border-b border-[--color-border-secondary]" 
+                className="flex items-center gap-4 cursor-pointer pb-4 border-b border-gray-100" 
                 onClick={() => onOpenComposerWithType('quick')}
             >
-                <div className="w-11 h-11 bg-amber-100 text-amber-800 dark:bg-slate-850 dark:text-slate-350 flex items-center justify-center p-2 rounded-full w-11 h-11 shrink-0 ring-2 ring-[--color-border-secondary]">
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm border border-gray-100 overflow-hidden">
                     <img 
                         src={user.avatar || undefined} 
                         alt={user.name} 
-                        className="w-full h-full rounded-full object-cover" 
+                        className="w-full h-full object-cover" 
                         onError={(e) => {
                             e.currentTarget.style.display = 'none';
                         }}
                     />
-                    <span className="font-bold text-xs">HT</span>
                 </div>
-                <div className="w-full">
-                    <div className="w-full bg-[--color-surface-primary] hover:bg-[--color-surface-tertiary] rounded-full py-2.8 px-5 text-left text-xs sm:text-sm font-semibold text-[--color-text-secondary] transition border border-[--color-border-secondary]">
-                        Chia sẻ với đồng nghiệp...
+                <div className="flex-1">
+                    <div className="w-full bg-white hover:bg-white rounded-xl py-2 px-4 text-left text-xs font-bold text-slate-400 transition border border-gray-100 shadow-sm">
+                        Bạn đang nghĩ gì thế? Chia sẻ với đồng nghiệp nhé...
                     </div>
                 </div>
             </div>
 
-            {/* Action Buttons Row */}
-            <div className="mt-3.5 flex justify-between items-center gap-1.5 relative" ref={dropdownRef}>
-                <div className="flex flex-wrap items-center gap-1">
+            <div className="mt-3 flex justify-between items-center relative" ref={dropdownRef}>
+                <div className="flex items-center gap-1">
                     {composerActions.map((act) => (
                         <button 
                             key={act.type}
                             type="button"
                             onClick={() => onOpenComposerWithType(act.type)}
-                            className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-[--color-text-secondary] transition-colors ${act.color}`}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[10px] font-bold text-slate-600 transition-colors uppercase tracking-wider ${act.color}`}
                         >
                             {act.icon}
-                            <span className="hidden sm:inline">{act.label}</span>
+                            <span className="hidden md:inline">{act.label}</span>
                         </button>
                     ))}
                 </div>
 
-                {/* More / Additional Trigger */}
                 <button 
                     type="button"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
-                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-bold text-[--color-text-secondary] hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold text-slate-500 hover:bg-gray-100 transition-all shrink-0 uppercase tracking-wider"
                 >
-                    <span>Thêm</span>
-                    <MoreHorizontalIconLc className="w-4 h-4 text-slate-500" />
+                    <span>Xem thêm</span>
+                    <MoreHorizontalIconLc className="w-4 h-4" />
                 </button>
-
-                {/* Beautiful Dropdown Portal */}
-                {isDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-2 w-56 bg-[--color-surface-tertiary] border border-[--color-border-secondary] rounded-2xl shadow-xl z-50 py-2.5 px-2 animate-fade-in-down">
-                        {dropdownActions.map((dAct, idx) => {
-                            const isDivider = idx === 5;
-                            return (
-                                <React.Fragment key={dAct.type + idx}>
-                                    {isDivider && <div className="h-px bg-slate-100 dark:bg-slate-800 my-1 px-1" />}
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            onOpenComposerWithType(dAct.type);
-                                            setIsDropdownOpen(false);
-                                        }}
-                                        className="w-full text-left flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition"
-                                    >
-                                        <div className="shrink-0">{dAct.icon}</div>
-                                        <span>{dAct.label}</span>
-                                    </button>
-                                </React.Fragment>
-                            );
-                        })}
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -648,6 +607,7 @@ interface NewsfeedViewProps {
 type FilterType = 'all' | 'pinned' | 'saved' | 'unread';
 
 const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
+    const { t } = useLanguage();
     const [posts, setPosts] = useState<Post[]>([]);
     const [filter, setFilter] = useState<FilterType>('all');
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -655,7 +615,6 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
     const [searchResults, setSearchResults] = useState<string[] | null>(null);
     const [isSearchingAI, setIsSearchingAI] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     
     // To feed pre-selected custom types directly from action buttons into CreatePostModal
     const [composerInitialType, setComposerInitialType] = useState<PostType>('quick');
@@ -941,165 +900,118 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
         setIsCreateModalOpen(true);
     };
 
-    const FilterButton: React.FC<{ type: FilterType, icon: React.ReactNode, label: string }> = ({ type, icon, label }) => (
-        <button 
-            onClick={() => setFilter(type)} 
-            className={`w-full flex items-center rounded-xl font-bold transition-all ${
-                isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3.5 py-2.5'
-            } ${
-                filter === type 
-                    ? 'bg-[--color-accent-500]/10 text-[--color-accent-600] dark:text-[--color-accent-400] shadow-sm' 
-                    : 'text-[--color-text-secondary] hover:bg-white/60 dark:hover:bg-slate-800/40'
-            }`}
-            title={label}
-        >
-            <div className="shrink-0 flex items-center justify-center w-5 h-5">{icon}</div>
-            {!isSidebarCollapsed && <span className="text-xs whitespace-nowrap">{label}</span>}
-        </button>
-    );
-
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] pb-24 md:pb-8">
-            <div className="flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
-                
-                
-                <div className="flex-1 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-xl shadow-lg overflow-hidden flex min-h-0 border border-slate-100 dark:border-slate-800">
-                    {/* Left Sidebar for Filters (Default Collapsed Icon-only) */}
-                    <aside className={`hidden lg:flex flex-col border-r border-slate-100 dark:border-slate-800/80 bg-white/20 dark:bg-slate-900/10 shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'w-16' : 'w-64'}`}>
-                        {/* Collapse/Expand Toggle */}
-                        <div className="p-3 border-b border-slate-100 dark:border-slate-800/80 flex justify-center">
-                            <button 
-                                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 transition-colors"
-                                title={isSidebarCollapsed ? "Mở rộng danh mục" : "Thu gọn chỉ hiện icon"}
-                            >
-                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                                    {isSidebarCollapsed ? (
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                                    ) : (
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-                                    )}
-                                </svg>
-                            </button>
-                        </div>
+        <StandardPageLayout>
+            <PageBanner 
+                title={t('newsfeed')}
+                subtitle="Cập nhật tin tức mới nhất, chia sẻ ý tưởng và kết nối với đồng nghiệp trong công ty."
+                icon={<RssIcon className="w-full h-full" />}
+                gradient="from-orange-500 to-red-600"
+                actions={
+                    <>
+                        <button onClick={handleManualRefresh} className={`flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isRefreshing ? 'animate-spin' : ''}`}>
+                            <SyncIcon className="w-4 h-4" /> Làm mới
+                        </button>
+                        <button className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                            <FilterIcon className="w-4 h-4" /> {t('filter')}
+                        </button>
+                    </>
+                }
+            />
 
-                        <div className="p-3 flex flex-col gap-4 overflow-y-auto no-scrollbar">
-                            <button 
-                                onClick={handleManualRefresh}
-                                disabled={isRefreshing}
-                                className={`flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 ${
-                                    isSidebarCollapsed ? 'p-3 w-10 h-10 mx-auto' : 'w-full px-4 py-2.5 text-xs gap-2'
-                                }`}
-                                title={isSidebarCollapsed ? "Làm mới bảng tin" : undefined}
-                            >
-                                <SyncIcon className={`w-4 h-4 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                {!isSidebarCollapsed && <span>{isRefreshing ? 'Đang tải...' : 'Làm mới bảng tin'}</span>}
-                            </button>
-                            
-                            <div className="w-full border-t border-slate-200/50 dark:border-slate-800/80"></div>
-                            
-                            <div className="flex flex-col gap-1">
-                                <FilterButton type="all" icon={<ListIcon className="w-4.5 h-4.5"/>} label="Tất cả bài viết" />
-                                <FilterButton type="unread" icon={<EyeOffIcon className="w-4.5 h-4.5"/>} label="Chưa xem" />
-                                <FilterButton type="pinned" icon={<PinIcon className="w-4.5 h-4.5"/>} label="Đã ghim" />
-                                <FilterButton type="saved" icon={<BookmarkIcon className="w-4.5 h-4.5"/>} label="Đã lưu" />
-                            </div>
-                            
-                            <div className="w-full border-t border-slate-200/50 dark:border-slate-800/80"></div>
-                            {!isSidebarCollapsed ? (
-                                <p className="px-2.5 text-[10px] font-extrabold uppercase tracking-widest text-[--color-text-subtle] opacity-75">Không gian làm việc</p>
-                            ) : (
-                                <div className="h-px bg-slate-200/50 dark:bg-slate-800/80 mx-2" />
-                            )}
-                            <div className="flex flex-col gap-1">
-                                <FilterButton type="all" icon={<UsersIconLc className="w-4 h-4 text-cyan-500" />} label="Toàn công ty" />
-                                <FilterButton type="all" icon={<UsersIconLc className="w-4 h-4 text-indigo-500" />} label="Team Marketing" />
-                            </div>
-                        </div>
-                    </aside>
+            <ContentCard>
+                <div className="flex flex-col lg:flex-row gap-8">
+                    {/* Main Feed Content */}
+                    <div className="flex-1 space-y-6">
+                        <PostComposer user={user} onOpenComposerWithType={handleOpenComposerWithType} />
 
-                    {/* Main Feed */}
-                    <div className="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar p-6 min-h-0 bg-slate-50/10 dark:bg-slate-950/10">
-                        {/* Search Bar - Encapsulated nicely inside a card */}
-                        <div className="bg-[--color-surface-secondary] backdrop-blur-md rounded-2xl p-3 shadow-sm border border-[--color-border-secondary] sticky top-0 z-20">
-                            <form onSubmit={handleAISearch} className="flex items-center gap-3">
-                                <div className="relative flex-1">
-                                    <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input 
-                                        type="text" 
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder="Tìm kiếm thông minh với AI (Vd: 'Công ty nghỉ hè', 'Bài đăng của Bình')..."
-                                        className="w-full font-semibold bg-[--color-surface-primary] text-[--color-text-primary] border border-[--color-border-secondary] rounded-xl py-2 pl-10 pr-4 text-xs focus:ring-1 focus:ring-[--color-accent-500] outline-none transition-all"
-                                    />
-                                    {searchTerm && (
-                                        <button 
-                                            type="button"
-                                            onClick={clearSearch}
-                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                        >
-                                            <XIcon className="w-4 h-4" />
-                                        </button>
-                                    )}
+                        {filteredPosts.length > 0 ? (
+                            <div className="columns-1 sm:columns-2 xl:columns-3 gap-6 [column-fill:_balance] w-full">
+                                {filteredPosts.map(post => (
+                                    <div key={post.id} className="break-inside-avoid mb-6">
+                                        <PostCard 
+                                            post={post} 
+                                            user={user}
+                                            onTogglePin={handleTogglePin} 
+                                            onToggleSave={handleToggleSave} 
+                                            onUpdatePost={handleUpdatePost}
+                                            onVotePoll={handleVotePoll}
+                                            onJoinEvent={handleJoinEvent}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-20 bg-gray-50 rounded-2xl border border-gray-100 border-dashed">
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                                    <SearchIcon className="w-8 h-8" />
                                 </div>
-                                <button 
-                                    type="submit"
-                                    disabled={isSearchingAI || !searchTerm.trim()}
-                                    className="bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white font-bold px-4.5 py-2.5 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm shadow-cyan-600/10"
-                                >
-                                    {isSearchingAI ? (
-                                        <SyncIcon className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <SparklesIcon className="w-4 h-4" />
-                                    )}
-                                    <span>{isSearchingAI ? 'Đang tìm...' : 'AI Search'}</span>
-                                </button>
+                                <h3 className="text-lg font-bold text-slate-800">Không tìm thấy bài viết nào</h3>
+                                <p className="text-sm text-slate-500 mt-2">Thử thay đổi bộ lọc hoặc tìm kiếm theo từ khóa khác nhé.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sidebar Sidebar - Filters & Search */}
+                    <aside className="w-full lg:w-72 space-y-6">
+                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <form onSubmit={handleAISearch} className="relative">
+                                <input 
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Tìm kiếm bài viết..."
+                                    className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                                />
+                                <SearchIcon className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                                {isSearchingAI && <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />}
                             </form>
                             {searchResults !== null && (
-                                <div className="mt-2.5 px-1 flex items-center justify-between">
-                                    <p className="text-[10px] font-black uppercase text-cyan-600 dark:text-cyan-400">
-                                        {searchResults.length > 0 ? `Đã tìm thấy ${searchResults.length} kết quả phù hợp` : 'Không tìm thấy kết quả phù hợp nào'}
-                                    </p>
-                                    <button onClick={clearSearch} className="text-[10px] uppercase tracking-wider font-extrabold text-red-500 hover:text-red-650">Xóa kết quả</button>
+                                <div className="mt-3">
+                                    <button onClick={clearSearch} className="text-[10px] font-bold text-red-500 uppercase tracking-wider hover:underline">Xóa kết quả ({searchResults.length})</button>
                                 </div>
                             )}
                         </div>
 
-                        {/* Highly responsive Composition Widget */}
-                        <PostComposer 
-                            user={user} 
-                            onOpenComposerWithType={handleOpenComposerWithType} 
-                        />
-                        
-                        {/* Create Modal with pre-seed option support */}
-                        <CreatePostModal 
-                            user={user} 
-                            isOpen={isCreateModalOpen} 
-                            onClose={() => setIsCreateModalOpen(false)} 
-                            onSubmit={handleAddPost} 
-                            initialType={composerInitialType}
-                        />
-
-                        {/* Pinterest Masonry Layout */}
-                        <div className="columns-1 sm:columns-2 xl:columns-3 gap-5 [column-fill:_balance] w-full pb-8">
-                           {filteredPosts.map(post => (
-                               <div key={post.id} className="break-inside-avoid mb-5">
-                                   <PostCard 
-                                       post={post} 
-                                       user={user}
-                                       onTogglePin={handleTogglePin} 
-                                       onToggleSave={handleToggleSave} 
-                                       onUpdatePost={handleUpdatePost} 
-                                       onVotePoll={handleVotePoll}
-                                       onJoinEvent={handleJoinEvent}
-                                   />
-                               </div>
-                           ))}
+                        <div className="space-y-1">
+                            <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Bộ lọc</h3>
+                            {[
+                                { id: 'all', label: 'Tất cả bài viết', icon: <ListIcon className="w-4 h-4" /> },
+                                { id: 'pinned', label: 'Tin tức đã ghim', icon: <PinIconLc className="w-4 h-4" /> },
+                                { id: 'saved', label: 'Mục đã lưu', icon: <BookmarkIconLc className="w-4 h-4" /> },
+                            ].map(item => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => setFilter(item.id as FilterType)}
+                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${filter === item.id ? 'bg-orange-50 text-orange-600 shadow-sm border border-orange-100' : 'text-slate-600 hover:bg-gray-100'}`}
+                                >
+                                    {item.icon}
+                                    {item.label}
+                                </button>
+                            ))}
                         </div>
-                    </div>
+
+                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-5 rounded-2xl text-white">
+                            <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center mb-4">
+                                <SparklesIcon className="w-6 h-6 text-orange-400" />
+                            </div>
+                            <h4 className="font-bold text-sm mb-2">Trợ lý AI</h4>
+                            <p className="text-[11px] text-slate-300 leading-relaxed font-medium">Bạn có thể dùng AI để tóm tắt các bài viết dài hoặc tìm kiếm thông minh hơn.</p>
+                        </div>
+                    </aside>
                 </div>
-            </div>
-        </main>
+            </ContentCard>
+
+            {isCreateModalOpen && (
+                <CreatePostModal 
+                    isOpen={isCreateModalOpen}
+                    onClose={() => setIsCreateModalOpen(false)}
+                    user={user}
+                    onAddPost={handleAddPost}
+                    initialType={composerInitialType}
+                />
+            )}
+        </StandardPageLayout>
     );
 };
 

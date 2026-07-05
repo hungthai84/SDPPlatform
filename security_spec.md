@@ -1,27 +1,28 @@
-# Security Spec
+# Firestore Security Specification
 
 ## Data Invariants
-- User: `users/{userId}` can only be written by the user themselves.
-- Notification: `notifications/{notificationId}` belongs to `userId` and can only be read/updated by that user.
-- Project: `projects/{projectId}`. We don't have project members in the schema, but typically we want it to be readable by anyone, modifiable by anyone since there's no ownerId. Let's make it signed in users only for simplify.
-- Page: `pages/{pageId}`. Readable by anyone, writable by signed in users.
-- SiteSettings: `settings/global`. Readable by anyone, writable by signed in users.
-- Task: `tasks/{taskId}`. Restricted to `ownerId`. 
-- Note: `notes/{noteId}`. Restricted to `ownerId`.
-- Post: `posts/{postId}`. Readable by signed in users, writable by signed in users (must match authorId).
-- Channel: `channels/{channelId}`. Readable by members. Writable if creating and adding oneself as member, or updating if member.
-- ChatMessage: `channels/{channelId}/messages/{messageId}`. Readable by channel members, writable by channel members (must match authorId).
+1. A task must belong to its owner or be part of a valid project.
+2. Only authenticated users can create or modify documents.
+3. System fields like `createdAt` and `ownerId` cannot be updated after creation.
+4. Users cannot modify another user's PII or notifications.
+5. Notes, Tasks, and Notifications are restricted to `ownerId` / `userId`.
+6. Blog Articles and Posts can only be modified or deleted by their author.
+7. Users can only read channels they are a member of.
+8. Messages can only be created by members of the channel.
 
-## "Dirty Dozen" Payloads
-1. User updating another user's email.
-2. Notification access without correct userId.
-3. Task with missing text.
-4. Note with ownerId set to another user.
-5. Post with no content.
-6. Channel dm creation with no members.
-7. ChatMessage creation in a channel user is not a member of.
-8. Updating a Project status to an invalid enum string.
-9. Writing a massive string to a Task text field (Resource Poisoning).
-10. Shadow Update: Adding `isAdmin: true` to a User object.
-11. Querying tasks without where clause to scrape data.
-12. Creating a message with an authorId matching someone else's ID.
+## The "Dirty Dozen" Payloads
+1. **Unauthenticated Write**: Creating a project without authentication.
+2. **Identity Spoofing (Create)**: Creating a post with `authorId` set to a different user's UID.
+3. **Identity Spoofing (Update)**: Updating another user's blog article.
+4. **State Shortcutting**: Updating a kanban task status with arbitrary unapproved fields (Ghost Field).
+5. **Resource Poisoning**: Using a document ID of 2000 characters to crash the database.
+6. **Denial of Wallet**: Passing a string of 1MB for a blog post title.
+7. **Role Escalation**: Updating a user document to set `role: 'superadmin'`.
+8. **The PII Blanket**: Reading another user's private notification list.
+9. **The Orphaned Record**: Creating a comment for a blog article that doesn't exist (if checked).
+10. **Terminal State Break**: Attempting to change a project's fields without permissions.
+11. **Type Poisoning**: Sending an object instead of a string for an event title.
+12. **The "Immortal Field" Violation**: Trying to update `createdAt` or `ownerId` on an existing record.
+
+## The Test Runner
+Refer to `firestore.rules.test.ts` for the test implementation.

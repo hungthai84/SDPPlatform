@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import LeftSidebar from './components/LeftSidebar';
 import RightSidebar from './components/RightSidebar';
 import MainContent from './components/MainContent';
-import Auth from './components/Auth';
 import EmailClient from './components/EmailClient';
 import CalendarView, { CalendarEvent, mockEvents } from './components/CalendarView';
 import ChatView from './components/ChatView';
@@ -29,7 +28,7 @@ import WebsiteDataView from './components/WebsiteDataView';
 import ProjectManagementView from './components/ProjectManagementView';
 import ProcessWorkflowView from './components/ProcessWorkflowView';
 import CommandPalette from './components/CommandPalette';
-import { FolderIcon, StickyNoteIcon, ChecklistIcon, MailIcon, CalendarIcon, GraduationCapIcon, BloggerIcon, ChatIcon, VideoIcon, BellIcon } from './components/icons';
+import { FolderIcon, StickyNoteIcon, ChecklistIcon, MailIcon, CalendarIcon, GraduationCapIcon, BloggerIcon, ChatIcon, VideoIcon } from './components/icons';
 import EventModal from './components/EventModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import { motion, AnimatePresence } from 'motion/react';
@@ -62,13 +61,12 @@ const mockActivityLog: ActivityItem[] = [
 
 
 const AppContent: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(mockUsers[1]);
   const [allUsers, setAllUsers] = useState<User[]>(mockUsers);
 
   // Listen for all users
   React.useEffect(() => {
-    if (!user || user.id.startsWith('user-')) return;
-
+    // We can still listen for users if needed, but we don't block the app
     const q = query(collection(db, 'users'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const usersFromDb = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
@@ -99,41 +97,9 @@ const AppContent: React.FC = () => {
     return () => unsubscribe();
   }, [user?.id]);
 
-  const [isLeftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [isLeftSidebarCollapsed, setLeftSidebarCollapsed] = useState(true);
   
-  // Auth listener
-  React.useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        // Initial setup of user object from Firebase
-        const newUser: User = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || 'Người dùng',
-          email: firebaseUser.email || '',
-          role: 'member', // Default, will be updated by profile listener
-          avatar: firebaseUser.photoURL || undefined
-        };
-
-        setUser(newUser);
-
-        // Sync basic info to Firestore
-        try {
-          const userDocRef = doc(db, 'users', firebaseUser.uid);
-          await setDoc(userDocRef, {
-            name: newUser.name,
-            email: newUser.email,
-            avatar: newUser.avatar,
-            lastLogin: Date.now()
-          }, { merge: true });
-        } catch (error) {
-          console.warn("Could not sync user profile to Firestore:", error);
-        }
-      } else {
-        setUser(null);
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  // Auth listener disabled as login is bypassed
 
   // Current User Profile Listener
   React.useEffect(() => {
@@ -285,6 +251,43 @@ const AppContent: React.FC = () => {
   const [recentlyViewed, setRecentlyViewed] = useState<RecentItem[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>((localStorage.getItem('theme') as 'light' | 'dark' | 'system') || 'system');
   const [accentColor, setAccentColor] = useState(localStorage.getItem('accentColor') || 'cyan');
+  const [wallpaper, setWallpaper] = useState<{ type: string; value: string }>(
+      JSON.parse(localStorage.getItem('wallpaperSettings') || '{"type":"none","value":""}')
+  );
+
+  const [sidebarOpacity, setSidebarOpacity] = useState<number>(() => {
+    return Number(localStorage.getItem('sidebarOpacity') || '90');
+  });
+  const [cardOpacity, setCardOpacity] = useState<number>(() => {
+    return Number(localStorage.getItem('cardOpacity') || '95');
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('sidebarOpacity', sidebarOpacity.toString());
+  }, [sidebarOpacity]);
+
+  React.useEffect(() => {
+    localStorage.setItem('cardOpacity', cardOpacity.toString());
+  }, [cardOpacity]);
+
+  const borderColors = [
+    'border-[#4f46e5]', // Indigo
+    'border-[#06b6d4]', // Cyan
+    'border-[#ec4899]', // Pink
+    'border-[#f97316]', // Orange
+    'border-[#10b981]', // Emerald
+    'border-[#8b5cf6]', // Purple
+    'border-[#eab308]', // Yellow
+    'border-[#3b82f6]', // Blue
+  ];
+  const [borderColorIndex, setBorderColorIndex] = useState(0);
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setBorderColorIndex((prev) => (prev + 1) % borderColors.length);
+    }, 60000); // 1 minute
+    return () => clearInterval(timer);
+  }, []);
 
   React.useEffect(() => {
     localStorage.setItem('theme', theme);
@@ -300,6 +303,58 @@ const AppContent: React.FC = () => {
     localStorage.setItem('accentColor', accentColor);
     document.documentElement.setAttribute('data-accent-color', accentColor);
   }, [accentColor]);
+
+  React.useEffect(() => {
+    localStorage.setItem('wallpaperSettings', JSON.stringify(wallpaper));
+    const body = document.body;
+    
+    // Clear previous background styles
+    body.style.backgroundImage = '';
+    body.style.backgroundColor = '';
+    body.style.background = '';
+    body.style.backgroundSize = '';
+    body.style.backgroundPosition = '';
+    body.style.backgroundAttachment = '';
+    body.style.backgroundRepeat = '';
+    
+    // Remove old video background if it exists
+    const oldVideo = document.getElementById('wallpaper-video');
+    if (oldVideo) {
+      oldVideo.remove();
+    }
+    
+    if (wallpaper.type === 'image') {
+        body.style.backgroundImage = `url(${wallpaper.value})`;
+        body.style.backgroundSize = 'cover';
+        body.style.backgroundPosition = 'center';
+        body.style.backgroundAttachment = 'fixed';
+    } else if (wallpaper.type === 'gradient' || wallpaper.type === 'pattern') {
+        body.style.background = wallpaper.value;
+        if (wallpaper.type === 'pattern' && wallpaper.bgColor) {
+             body.style.backgroundColor = wallpaper.bgColor;
+             body.style.backgroundSize = wallpaper.size || 'auto';
+        }
+    } else if (wallpaper.type === 'video') {
+        // Create a video element behind everything
+        const video = document.createElement('video');
+        video.id = 'wallpaper-video';
+        video.src = wallpaper.value;
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.style.position = 'fixed';
+        video.style.top = '0';
+        video.style.left = '0';
+        video.style.width = '100vw';
+        video.style.height = '100vh';
+        video.style.objectFit = 'cover';
+        video.style.zIndex = '-1';
+        if (wallpaper.thumbnail) {
+            video.poster = wallpaper.thumbnail;
+        }
+        document.body.appendChild(video);
+    }
+  }, [wallpaper]);
 
   const handleItemViewed = React.useCallback((item: RecentItem) => {
     setRecentlyViewed(prev => {
@@ -502,16 +557,6 @@ const AppContent: React.FC = () => {
     setEventModalOpen(true);
   };
 
-
-  const handleLogin = (loggedInUser: User) => {
-    const userFromDb = allUsers.find(u => u.email.toLowerCase() === loggedInUser.email.toLowerCase());
-    if (userFromDb) {
-      setUser(userFromDb);
-    } else {
-      setUser(loggedInUser);
-    }
-  };
-  
   const handleLogout = () => {
     setUser(null);
     signOut(auth).catch((err) => console.error("Sign out error:", err));
@@ -581,9 +626,7 @@ const AppContent: React.FC = () => {
     }
   }, [user?.id]);
 
-  if (!user) {
-    return <Auth onLogin={handleLogin} />;
-  }
+  // User login is always bypassed, user is authenticated by default
 
   const closeAllDrawers = () => {
     setMobileNavOpen(false);
@@ -603,7 +646,7 @@ const AppContent: React.FC = () => {
       case 'website-data':
         return <WebsiteDataView user={user} allUsers={allUsers} onUsersChange={handleUsersChange} />;
       case 'projects':
-        return <ProjectManagementView user={user} allUsers={allUsers} onNavigateToTasks={handleNavigateToTasks} onSendNotification={handleSendNotification} />;
+        return <ProjectManagementView user={user} onNavigateToTasks={handleNavigateToTasks} onSendNotification={handleSendNotification} />;
       case 'user-management':
         return <UserManagementView currentUser={user} users={allUsers} onUsersChange={handleUsersChange} />;
       case 'org-chart':
@@ -643,7 +686,28 @@ const AppContent: React.FC = () => {
       case 'class-detail':
         return <ClassDetailView user={user} classId={activeClassId} onNavigate={handleNavigate} />;
       case 'settings':
-        return <SettingsView user={user} services={services} onToggleSync={handleToggleSync} onToggleConnection={handleToggleConnection} allUsers={allUsers} onUsersChange={handleUsersChange} initialSection={activeSettingsSection} onNavigate={handleNavigate} theme={theme} setTheme={setTheme} accentColor={accentColor} setAccentColor={setAccentColor} />;
+        return (
+          <SettingsView 
+            user={user} 
+            services={services} 
+            onToggleSync={handleToggleSync} 
+            onToggleConnection={handleToggleConnection} 
+            allUsers={allUsers} 
+            onUsersChange={handleUsersChange} 
+            initialSection={activeSettingsSection} 
+            onNavigate={handleNavigate} 
+            theme={theme} 
+            setTheme={setTheme} 
+            accentColor={accentColor} 
+            setAccentColor={setAccentColor} 
+            wallpaper={wallpaper} 
+            setWallpaper={setWallpaper} 
+            sidebarOpacity={sidebarOpacity}
+            setSidebarOpacity={setSidebarOpacity}
+            cardOpacity={cardOpacity}
+            setCardOpacity={setCardOpacity}
+          />
+        );
       case 'dashboard':
       default:
         return <MainContent user={user} recentlyViewed={recentlyViewed} events={events} onNavigate={handleNavigate} checkInLog={checkInLog} activityLog={activityLog} />;
@@ -663,9 +727,20 @@ const AppContent: React.FC = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  const hasWallpaper = wallpaper?.type && wallpaper.type !== 'none';
+
   return (
-    <div className="h-screen w-screen bg-transparent p-0 sm:p-[5px] font-sans text-[--color-text-primary] overflow-hidden relative">
-      <div className="w-full h-full bg-[--color-surface-primary] sm:rounded-[12px] shadow-2xl overflow-hidden flex flex-col relative ring-1 ring-[--color-border-primary]">
+    <div 
+      className="h-screen w-screen bg-transparent p-[15px] font-sans text-[--color-text-primary] overflow-hidden relative"
+      style={{
+        '--sidebar-opacity': sidebarOpacity / 100,
+        '--card-opacity': cardOpacity / 100,
+      } as React.CSSProperties}
+    >
+      <div 
+        style={{ borderStyle: 'solid' }}
+        className={`w-full h-full rounded-[10px] border-4 shadow-3xl overflow-hidden flex flex-col relative transition-all duration-1000 ${borderColors[borderColorIndex]} ${hasWallpaper ? 'bg-[--color-surface-primary]/80 backdrop-blur-md' : 'bg-[--color-surface-primary]'}`}
+      >
         {(isMobileNavOpen || isMobileActivityOpen) && (
           <div 
               onClick={closeAllDrawers} 
@@ -681,46 +756,7 @@ const AppContent: React.FC = () => {
             defaultTitle={defaultEventTitle || undefined}
           />}
         
-        
-        <div className="flex flex-1 min-h-0 p-[5px] gap-[5px] bg-[--color-surface-secondary]/30 relative">
-          
-          {/* Floating Right Menu */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 flex flex-col gap-3 bg-[--color-surface-primary] p-2 rounded-l-xl shadow-lg border border-r-0 border-[--color-border-secondary]/50 z-50">
-            <button
-                onClick={() => setAiWidgetOpen(!isAiWidgetOpen)}
-                className={`relative w-12 h-12 rounded-xl overflow-hidden shadow-sm group border transition-all ${isAiWidgetOpen ? 'border-purple-500 ring-2 ring-purple-500/50' : 'border-[--color-border-secondary] hover:scale-105'}`}
-                title="Trợ lý ảo AI"
-            >
-                <img 
-                    src="https://i.ibb.co/x8Spz9Qm/Avata-AI-POW.gif" 
-                    alt="AI Assistant"
-                    className="w-full h-full object-cover"
-                />
-            </button>
-            <button 
-                onClick={() => handleNavigate('email')}
-                className="p-3 rounded-xl hover:bg-[--color-surface-secondary] transition-colors text-red-500 bg-[--color-surface-tertiary] shadow-sm relative group"
-                title="Mail"
-            >
-                <MailIcon className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
-            </button>
-            <button 
-                onClick={() => handleNavigate('chat')}
-                className="p-3 rounded-xl hover:bg-[--color-surface-secondary] transition-colors text-green-500 bg-[--color-surface-tertiary] shadow-sm relative group"
-                title="Tin nhắn"
-            >
-                <ChatIcon className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
-            </button>
-            <button 
-                onClick={() => setRightSidebarCollapsed(!isRightSidebarCollapsed)}
-                className="relative p-3 rounded-xl hover:bg-[--color-surface-secondary] transition-colors text-yellow-500 bg-[--color-surface-tertiary] shadow-sm group" 
-                title="Thông báo"
-            >
-                <BellIcon className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
-                {unreadCount > 0 && <span className="absolute top-1 right-1 flex items-center justify-center min-w-[20px] h-[20px] px-1 bg-red-600 rounded-full text-white text-[10px] font-bold ring-2 ring-white shadow-sm">{unreadCount > 99 ? '99+' : unreadCount}</span>}
-            </button>
-          </div>
-
+        <div className="flex flex-1 min-h-0">
           <LeftSidebar 
             isCollapsed={isLeftSidebarCollapsed}
             onToggleCollapse={() => setLeftSidebarCollapsed(!isLeftSidebarCollapsed)}
@@ -729,8 +765,12 @@ const AppContent: React.FC = () => {
             activeView={activeView}
             onNavigate={handleNavigate}
             recentlyViewed={recentlyViewed}
+            onAiClick={() => setAiWidgetOpen(!isAiWidgetOpen)}
+            isAiOpen={isAiWidgetOpen}
             user={user}
             onLogout={handleLogout}
+            unreadCount={unreadCount}
+            onNotificationClick={() => setRightSidebarCollapsed(!isRightSidebarCollapsed)}
           />
           <AnimatePresence mode="wait">
             <motion.div 
@@ -739,7 +779,7 @@ const AppContent: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -5 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="flex-1 flex flex-col min-w-0 glass-card-premium rounded-[16px] overflow-hidden"
+              className="flex-1 flex flex-col min-w-0 overflow-hidden"
               style={{
                 boxShadow: '0 4px 30px rgba(0, 0, 0, 0.05)',
               }}

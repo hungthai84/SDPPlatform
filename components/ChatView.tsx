@@ -1,9 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { User } from '../App';
 import { HashtagIcon, PaperAirplaneIcon, SearchIcon, XIcon, PlusIcon, SmileIcon, UserCircleIcon, SyncIcon, GoogleIcon, MicIcon } from './icons';
-
 import { initialContacts } from './ContactsView';
 import { db, auth, getAccessToken, googleSignIn } from '../firebase';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
+import PageBanner from './PageBanner';
+import { MessageSquare } from 'lucide-react';
 import { 
     collection, 
     query, 
@@ -637,12 +639,33 @@ const ChatView: React.FC<ChatViewProps> = ({ user, allUsers = [] }) => {
     }, [searchTerm, messages]);
 
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] pb-24 md:pb-8">
-            <div className="flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
-                
-                
-                <div className="flex-1 bg-white/40 backdrop-blur-xl rounded-xl shadow-lg overflow-hidden flex flex-col min-h-0">
-                    <div className="flex-1 flex min-h-0">
+        <StandardPageLayout>
+            <PageBanner 
+                title="Trung tâm Trao đổi"
+                subtitle="“Trao đổi đúng lúc – phản hồi đúng người – lưu đúng nơi.”"
+                icon={<MessageSquare className="w-full h-full text-white" />}
+                gradient="from-blue-600 to-indigo-700"
+                actions={
+                    <div className="flex gap-2">
+                        <button 
+                            onClick={() => setIsSelectingContact(true)} 
+                            className="flex items-center gap-1.5 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all border border-indigo-100 cursor-pointer"
+                        >
+                            <UserCircleIcon className="w-3.5 h-3.5" /> Liên hệ
+                        </button>
+                        <button 
+                            onClick={() => setIsCreatingChannel(true)} 
+                            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer"
+                        >
+                            <PlusIcon className="w-3.5 h-3.5" /> Kênh mới
+                        </button>
+                    </div>
+                }
+            />
+
+            <div className="mt-6">
+                <ContentCard className="!p-0 overflow-hidden">
+                    <div className="flex h-[calc(100vh-280px)] min-h-[580px] bg-white rounded-xl overflow-hidden">
                         {/* Left Pane: Channels and DMs */}
                         <div className="w-64 bg-white/30 backdrop-blur-lg border-r border-white/50 flex flex-col">
                             <div className="p-4 border-b border-white/50 shrink-0">
@@ -958,7 +981,7 @@ const ChatView: React.FC<ChatViewProps> = ({ user, allUsers = [] }) => {
                             )}
                         </div>
                     </div>
-                </div>
+                </ContentCard>
             </div>
 
             {/* Modal Chọn người trong hệ thống / danh bạ để chat */}
@@ -1123,7 +1146,7 @@ const ChatView: React.FC<ChatViewProps> = ({ user, allUsers = [] }) => {
                     </div>
                 </div>
             )}
-        </main>
+        </StandardPageLayout>
     );
 };
 

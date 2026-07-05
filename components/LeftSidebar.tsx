@@ -1,27 +1,36 @@
-import React, { useState } from 'react';
-import { HomeIcon, CalendarIcon, StickyNoteIcon, ChecklistIcon, UsersIcon, FolderIcon, BookOpenIcon, RssIcon, GraduationCapIcon, XIcon, ClipboardListIcon, ChevronDownIcon, ChevronUpIcon, SitemapIcon, WorkflowIcon, ChevronLeftIcon, ChevronRightIcon } from './icons';
-import { View, RecentItem, User } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  HomeIcon, 
+  CalendarIcon, 
+  StickyNoteIcon, 
+  ChecklistIcon, 
+  UsersIcon, 
+  FolderIcon, 
+  BookOpenIcon, 
+  RssIcon, 
+  GraduationCapIcon, 
+  XIcon, 
+  ClipboardListIcon, 
+  SitemapIcon, 
+  WorkflowIcon, 
+  ChevronLeftIcon, 
+  ChevronRightIcon,
+  SettingsIcon,
+  BellIcon,
+  MailIcon,
+  ChatIcon,
+  GlobeIcon,
+  SearchIcon
+} from './icons';
+import { View, User } from '../types';
 import { useLanguage } from './LanguageContext';
 import UserMenu from './UserMenu';
-
-// --- Sidebar Components ---
-
-interface NavItemProps {
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
-  isCollapsed: boolean;
-  onClick?: () => void;
-}
-
-const NavItem: React.FC<NavItemProps> = ({ icon, label, active = false, isCollapsed, onClick }) => (
-  <button onClick={onClick} className={`flex items-center w-full gap-3 px-4 py-[8px] rounded-lg transition-colors ${active ? 'bg-[--color-surface-tertiary] text-[--color-accent-700] dark:text-[--color-accent-400] font-semibold shadow-sm' : 'text-[--color-text-secondary] hover:bg-[--color-surface-secondary] hover:text-[--color-text-primary]'} ${isCollapsed ? 'justify-center' : ''}`}>
-    <div className="flex-center-icon w-5 h-5 shrink-0">
-      {icon}
-    </div>
-    <span className={`whitespace-nowrap font-medium text-sm transition-opacity duration-200 leading-none ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>{label}</span>
-  </button>
-);
+import { initialFileSystem } from './DriveView';
+import { initialContacts } from './ContactsView';
+import { mockTaskLists } from './TasklistView';
+import { mockEvents } from './CalendarView';
+import { mockMessages } from './ChatView';
+import GlobalSearchResults from './GlobalSearchResults';
 
 interface LeftSidebarProps {
   isCollapsed: boolean;
@@ -30,9 +39,27 @@ interface LeftSidebarProps {
   onToggleCollapse: () => void;
   activeView: View;
   onNavigate: (view: View, section?: string) => void;
-  recentlyViewed: RecentItem[];
   user: User;
   onLogout: () => void;
+  unreadCount?: number;
+  onNotificationClick?: () => void;
+}
+
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  view?: View;
+}
+
+interface SearchResults {
+  articles?: unknown[];
+  files?: unknown[];
+  contacts?: unknown[];
+  tasks?: unknown[];
+  events?: unknown[];
+  messages?: unknown[];
+  empty?: boolean;
 }
 
 const LeftSidebar: React.FC<LeftSidebarProps> = ({ 
@@ -42,108 +69,359 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   onClose, 
   activeView, 
   onNavigate, 
-  recentlyViewed, 
   user,
-  onLogout
+  onLogout,
+  unreadCount = 0,
+  onNotificationClick
 }) => {
   const { t } = useLanguage();
-  const [isRecentExpanded, setIsRecentExpanded] = useState(true);
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const performSearch = (query: string) => {
+      if (!query) {
+          setSearchResults(null);
+          return;
+      }
+      const lowerQuery = query.toLowerCase();
+      
+      const results = {
+          articles: [],
+          files: initialFileSystem.filter(f => f.name.toLowerCase().includes(lowerQuery) && f.type !== 'folder'),
+          contacts: initialContacts.filter(c => c.name.toLowerCase().includes(lowerQuery)),
+          tasks: mockTaskLists.flatMap(list => list.tasks.filter(t => !t.completed && t.text.toLowerCase().includes(lowerQuery))),
+          events: mockEvents.filter(e => e.title.toLowerCase().includes(lowerQuery)),
+          messages: mockMessages.filter(m => m.content.toLowerCase().includes(lowerQuery)),
+      };
+
+      const hasResults = Object.values(results).some(arr => arr.length > 0);
+      setSearchResults(hasResults ? results : { empty: true });
+  };
+  
+  // Debounce search
+  useEffect(() => {
+      const handler = setTimeout(() => {
+          performSearch(searchQuery);
+      }, 300);
+      return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // Handle click outside to close search
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleCloseSearch = () => {
+    setIsSearchFocused(false);
+    setSearchQuery('');
+    setSearchResults(null);
+  };
+
+  const menuItems: MenuItem[] = [
+    {
+      id: 'dashboard',
+      label: t('dashboard') || 'Trang chủ',
+      icon: <HomeIcon className="w-5 h-5 text-indigo-500" />,
+      view: 'dashboard'
+    },
+    {
+      id: 'projects',
+      label: 'Dự án',
+      icon: <ChecklistIcon className="w-5 h-5 text-teal-600" />,
+      view: 'projects'
+    },
+    {
+      id: 'tasklist',
+      label: t('tasklist') || 'Công việc',
+      icon: <ChecklistIcon className="w-5 h-5 text-green-500" />,
+      view: 'tasklist'
+    },
+    {
+      id: 'process',
+      label: 'Quy trình',
+      icon: <WorkflowIcon className="w-5 h-5 text-fuchsia-500" />,
+      view: 'process'
+    },
+    {
+      id: 'drive',
+      label: t('drive') || 'Lưu trữ',
+      icon: <FolderIcon className="w-5 h-5 text-yellow-500" />,
+      view: 'drive'
+    },
+    {
+      id: 'notes',
+      label: t('notes') || 'Ghi chú',
+      icon: <StickyNoteIcon className="w-5 h-5 text-amber-500" />,
+      view: 'notes'
+    },
+    {
+      id: 'blog',
+      label: t('blog') || 'Bài viết',
+      icon: <BookOpenIcon className="w-5 h-5 text-emerald-500" />,
+      view: 'blog'
+    },
+    {
+      id: 'calendar',
+      label: t('calendar') || 'Lịch hẹn',
+      icon: <CalendarIcon className="w-5 h-5 text-red-500" />,
+      view: 'calendar'
+    },
+    {
+      id: 'contacts',
+      label: t('contacts') || 'Danh bạ',
+      icon: <UsersIcon className="w-5 h-5 text-cyan-500" />,
+      view: 'contacts'
+    },
+    {
+      id: 'newsfeed',
+      label: t('newsfeed') || 'Bảng tin',
+      icon: <RssIcon className="w-5 h-5 text-orange-500" />,
+      view: 'newsfeed'
+    },
+    {
+      id: 'email',
+      label: t('email') || 'Hộp thư',
+      icon: <MailIcon className="w-5 h-5 text-red-500 fill-current" />,
+      view: 'email'
+    },
+    {
+      id: 'chat',
+      label: t('chat') || 'Trò chuyện',
+      icon: <ChatIcon className="w-5 h-5 text-green-500 fill-current" />,
+      view: 'chat'
+    },
+    ...(user.role === 'superadmin' || user.role === 'admin' ? [{
+      id: 'website-data',
+      label: 'Quản trị website',
+      icon: <GlobeIcon className="w-5 h-5 text-sky-500" />,
+      view: 'website-data' as View
+    }] : []),
+    {
+      id: 'training',
+      label: t('training') || 'Đào tạo',
+      icon: <GraduationCapIcon className="w-5 h-5 text-violet-500" />,
+      view: 'training'
+    },
+    {
+      id: 'requests',
+      label: 'Yêu cầu',
+      icon: <ClipboardListIcon className="w-5 h-5 text-rose-500" />,
+      view: 'requests'
+    },
+    {
+      id: 'org-chart',
+      label: 'Sơ đồ',
+      icon: <SitemapIcon className="w-5 h-5 text-cyan-600" />,
+      view: 'org-chart'
+    }
+  ];
+
+  const handleItemClick = (item: MenuItem) => {
+    if (item.view) {
+      onNavigate(item.view);
+    }
+  };
 
   return (
     <div 
-        className={`fixed inset-y-0 left-0 z-40 md:relative md:z-20 shrink-0 transition-transform duration-300 ease-in-out md:transform-none ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      ref={sidebarRef}
+      className={`fixed inset-y-0 left-0 z-40 md:relative md:z-20 shrink-0 transition-all duration-300 ease-in-out md:transform-none ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
-      <aside className={`relative flex flex-col p-[5px] bg-[--color-surface-primary] sm:rounded-[16px] border border-[--color-border-secondary]/50 shadow-sm h-full transition-all duration-300 ease-in-out shrink-0 w-[190px] md:${isCollapsed ? 'w-20' : 'w-[190px]'}`}>
-        
+      <aside 
+        style={{ 
+          backgroundColor: 'rgba(255, 255, 255, var(--sidebar-opacity, 1))',
+          backdropFilter: 'blur(12px)'
+        }}
+        className={`relative flex flex-col p-4 h-full border-r border-gray-100 dark:border-gray-800 transition-all duration-300 ease-in-out shrink-0 ${isCollapsed ? 'w-20' : 'w-64'}`}
+      >
         {/* Toggle Button */}
         <button 
           onClick={onToggleCollapse}
           className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full hidden md:flex items-center justify-center shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 transition-all z-50 group"
         >
           {isCollapsed ? (
-            <ChevronRightIcon className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-500" />
+            <ChevronRightIcon className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-500 transition-transform" />
           ) : (
-            <ChevronLeftIcon className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-500" />
+            <ChevronLeftIcon className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-500 transition-transform" />
           )}
         </button>
 
-        <div className="flex items-center justify-between mb-6 md:mb-2 px-2 pt-2">
-            <div className="flex items-center gap-2 select-none overflow-hidden">
-                <div className="w-8 h-8 flex items-center justify-center shrink-0">
-                    <img 
-                        src="https://i.ibb.co/VcwGhfRp/Logo-mau-xanh-Lark-CV-Nguyen-H-ng-Th-i.png" 
-                        alt="Power Service" 
-                        className="w-full h-full object-contain"
-                        referrerPolicy="no-referrer"
-                    />
-                </div>
-                {!isCollapsed && (
-                    <div className="flex flex-col min-w-0 md:flex">
-                        <span className="text-[#474DD3] dark:text-[#474DD3] font-extrabold text-[12.5px] leading-none tracking-tight uppercase whitespace-nowrap truncate">
-                            Power Service
-                        </span>
-                        <span className="text-black dark:text-slate-100 font-bold text-[9px] leading-none tracking-wider uppercase mt-1 truncate">
-                            SDP Platform
-                        </span>
-                    </div>
-                )}
-            </div>
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-black/10 md:hidden shrink-0">
-                <XIcon className="w-6 h-6 text-[--color-text-secondary]" />
-            </button>
+        {/* Mobile close button */}
+        <div className="flex items-center justify-end mb-4 md:hidden">
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-black/10">
+            <XIcon className="w-6 h-6 text-slate-500" />
+          </button>
         </div>
 
-        <nav className="flex-grow flex flex-col justify-center gap-[5px] overflow-y-auto no-scrollbar">
-          <NavItem icon={<HomeIcon className="w-5 h-5 shrink-0 text-indigo-500" />} label={t('dashboard')} active={activeView === 'dashboard'} isCollapsed={isCollapsed} onClick={() => onNavigate('dashboard')} />
-          <NavItem icon={<RssIcon className="w-5 h-5 shrink-0 text-orange-500" />} label={t('newsfeed')} active={activeView === 'newsfeed'} isCollapsed={isCollapsed} onClick={() => onNavigate('newsfeed')} />
-          
-          <NavItem icon={<ChecklistIcon className="w-5 h-5 shrink-0 text-teal-600" />} label={t('projects') || 'Dự án'} active={activeView === 'projects'} isCollapsed={isCollapsed} onClick={() => onNavigate('projects')} />
-          <NavItem icon={<FolderIcon className="w-5 h-5 shrink-0 text-yellow-500" />} label={t('drive')} active={activeView === 'drive'} isCollapsed={isCollapsed} onClick={() => onNavigate('drive')} />
-          <NavItem icon={<UsersIcon className="w-5 h-5 shrink-0 text-cyan-500" />} label={t('contacts')} active={activeView === 'contacts'} isCollapsed={isCollapsed} onClick={() => onNavigate('contacts')} />
-          <NavItem icon={<CalendarIcon className="w-5 h-5 shrink-0 text-red-500" />} label={t('calendar')} active={activeView === 'calendar'} isCollapsed={isCollapsed} onClick={() => onNavigate('calendar')} />
-          <NavItem icon={<StickyNoteIcon className="w-5 h-5 shrink-0 text-amber-500" />} label={t('notes')} active={activeView === 'notes'} isCollapsed={isCollapsed} onClick={() => onNavigate('notes')} />
-          <NavItem icon={<BookOpenIcon className="w-5 h-5 shrink-0 text-emerald-500" />} label={t('blog')} active={activeView === 'blog'} isCollapsed={isCollapsed} onClick={() => onNavigate('blog')} />
-          <NavItem icon={<GraduationCapIcon className="w-5 h-5 shrink-0 text-violet-500" />} label={t('training')} active={activeView === 'training'} isCollapsed={isCollapsed} onClick={() => onNavigate('training')} />
-          <NavItem icon={<ClipboardListIcon className="w-5 h-5 shrink-0 text-rose-500" />} label={t('requestsAndApprovals')} active={activeView === 'requests'} isCollapsed={isCollapsed} onClick={() => onNavigate('requests')} />
-          <NavItem icon={<SitemapIcon className="w-5 h-5 shrink-0 text-cyan-600" />} label={t('orgChartConfig')} active={activeView === 'org-chart'} isCollapsed={isCollapsed} onClick={() => onNavigate('org-chart')} />
-          <NavItem icon={<WorkflowIcon className="w-5 h-5 shrink-0 text-fuchsia-500" />} label="Quy trình" active={activeView === 'process'} isCollapsed={isCollapsed} onClick={() => onNavigate('process')} />
-
-          {recentlyViewed.length > 0 && (
-            <div className="shrink-0 mt-2">
-              <div className="w-full border-t my-2 border-[--color-border-secondary]"></div>
-              <button 
-                onClick={() => setIsRecentExpanded(!isRecentExpanded)}
-                className={`w-full flex items-center justify-between px-4 py-1 text-xs font-bold uppercase tracking-wider text-[--color-text-subtle] hover:text-[--color-text-primary] transition-colors ${isCollapsed ? 'justify-center opacity-0 h-0 hidden' : 'opacity-100'}`}
-              >
-                <span>{t('recentlyViewed') || 'RECENT'}</span>
-                {isRecentExpanded ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
-              </button>
-              <div className={`overflow-hidden transition-all duration-300 flex flex-col gap-[5px] mt-1 ${isRecentExpanded || isCollapsed ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                {recentlyViewed.map(item => (
-                  <NavItem
-                    key={item.id}
-                    icon={React.cloneElement(item.icon, { className: "w-5 h-5 shrink-0" })}
-                    label={item.name}
-                    isCollapsed={isCollapsed}
-                    onClick={() => onNavigate(item.type, item.itemId)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </nav>
-
-        {/* Bottom Section: Profile */}
-        <div className="mt-auto pt-3 border-t border-[--color-border-secondary]/60 flex flex-col gap-2.5 shrink-0">
-          <div className={`flex items-center gap-2.5 w-full p-1 rounded-xl transition-all ${!isCollapsed ? 'bg-slate-100/30 dark:bg-slate-800/30 border border-[--color-border-secondary]/40 px-2 py-1.5' : 'justify-center'}`}>
-            <UserMenu user={user} onLogout={onLogout} onNavigate={onNavigate} direction="up" />
+        {/* TOP: Company Logo and Name */}
+        <div className="flex flex-col items-center justify-center py-2 mb-4 border-b border-gray-100 dark:border-gray-800/50 w-full shrink-0">
+          <button 
+            onClick={() => onNavigate('dashboard')}
+            className={`flex items-center justify-center hover:opacity-95 active:scale-98 transition-all ${isCollapsed ? 'w-10 h-10' : 'w-full gap-3 px-2'}`}
+          >
+            <img 
+              src="https://i.ibb.co/VcwGhfRp/Logo-mau-xanh-Lark-CV-Nguyen-H-ng-Th-i.png" 
+              alt="Power Service" 
+              className="w-10 h-10 object-contain shrink-0"
+              referrerPolicy="no-referrer"
+            />
             {!isCollapsed && (
-              <div className="flex-1 min-w-0 flex flex-col text-left">
-                <span className="text-sm font-semibold text-[--color-text-primary] truncate leading-tight">{user.name}</span>
-                <span className="text-[10px] text-[--color-text-subtle] truncate font-medium uppercase tracking-wider mt-0.5">{user.role || 'Member'}</span>
+              <div className="flex flex-col text-left min-w-0">
+                <span className="font-extrabold text-[13px] text-[#474DD3] dark:text-[#474DD3] tracking-tight uppercase whitespace-nowrap">
+                  Power Service
+                </span>
+                <span className="text-slate-500 dark:text-slate-400 font-bold text-[9px] leading-none tracking-wider uppercase mt-1">
+                  SDP Platform
+                </span>
               </div>
             )}
+          </button>
+        </div>
+
+        {/* SEARCH BOX: only visible when sidebar is expanded */}
+        {!isCollapsed && (
+          <div ref={searchRef} className="w-full px-2 mb-4 relative shrink-0">
+            <div className="relative flex items-center">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <SearchIcon className="h-4 w-4 text-[--color-text-subtle]" />
+              </div>
+              <input
+                type="search"
+                placeholder={t('searchAllPlaceholder') || "Tìm kiếm..."}
+                className="w-full bg-[--color-surface-secondary] border border-transparent focus:bg-white dark:focus:bg-slate-800 focus:border-[--color-accent-400] focus:ring-0 focus:outline-none placeholder:text-[--color-text-subtle] text-[--color-text-primary] rounded-xl py-2 pl-9 pr-3 transition-all duration-300 text-xs font-medium"
+                aria-label={t('search')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchFocused(true)}
+              />
+            </div>
+            {isSearchFocused && searchQuery && (
+               <div className="absolute left-2 right-2 top-full mt-1 z-[9999]">
+                 <GlobalSearchResults
+                    results={searchResults}
+                    onNavigate={(view) => {
+                      onNavigate(view);
+                      handleCloseSearch();
+                    }}
+                    onClose={handleCloseSearch}
+                 />
+               </div>
+            )}
           </div>
+        )}
+
+        {/* CENTER: Main Centered Navigation Items */}
+        <nav className="flex-1 flex flex-col justify-start items-center gap-1.5 w-full overflow-y-auto scrollbar-none pr-1">
+          {menuItems.map((item) => {
+            const isActive = activeView === item.view;
+
+            return (
+              <div key={item.id} className="relative w-full flex items-center justify-center">
+                <button
+                  onClick={() => handleItemClick(item)}
+                  className={`flex items-center transition-all duration-200 ${
+                    isCollapsed 
+                      ? 'w-12 h-12 justify-center rounded-xl animate-fade-in' 
+                      : 'w-full gap-3.5 px-4 py-2.5 rounded-xl'
+                  } ${
+                    isActive 
+                      ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm border border-indigo-100/50 dark:border-indigo-900/50' 
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100'
+                  }`}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                    {item.icon}
+                  </div>
+                  {!isCollapsed && (
+                    <span className="text-sm font-semibold truncate text-left leading-none">
+                      {item.label}
+                    </span>
+                  )}
+                </button>
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* BOTTOM: Notifications, Settings, Profile */}
+        <div className="mt-auto pt-4 border-t border-gray-100 dark:border-gray-800/50 flex flex-col gap-3.5 w-full items-center shrink-0">
+          
+          {/* Notifications Button */}
+          <div className="w-full flex justify-center">
+            <button
+              onClick={onNotificationClick}
+              className={`relative flex items-center hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${
+                isCollapsed 
+                  ? 'w-11 h-11 justify-center rounded-xl' 
+                  : 'w-full gap-3 px-4 py-2.5 rounded-xl'
+              }`}
+              title={isCollapsed ? "Thông báo" : undefined}
+            >
+              <div className="relative">
+                <BellIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              {!isCollapsed && (
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Thông báo
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Settings Button */}
+          <div className="w-full flex justify-center">
+            <button
+              onClick={() => onNavigate('settings')}
+              className={`flex items-center hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${
+                isCollapsed 
+                  ? 'w-11 h-11 justify-center rounded-xl' 
+                  : 'w-full gap-3 px-4 py-2.5 rounded-xl'
+              } ${activeView === 'settings' ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600' : ''}`}
+              title={isCollapsed ? "Cài đặt" : undefined}
+            >
+              <SettingsIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+              {!isCollapsed && (
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Cài đặt
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Profile Section (User Menu) */}
+          <div className="w-full flex justify-center pt-1">
+            <div className={`flex items-center w-full transition-all ${isCollapsed ? 'justify-center' : 'gap-3 px-2 py-1.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/30 border border-gray-100/50 dark:border-gray-800/40'}`}>
+              <UserMenu user={user} onLogout={onLogout} onNavigate={onNavigate} direction="up" />
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0 flex flex-col text-left">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">
+                    {user.name}
+                  </span>
+                  <span className="text-[9px] text-slate-400 truncate font-semibold uppercase tracking-wider mt-0.5">
+                    {user.role || 'Thành viên'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
       </aside>
     </div>

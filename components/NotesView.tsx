@@ -1,25 +1,25 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-
+import PageBanner from './PageBanner';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import NoteCard, { Note, ChecklistItem, keepColors } from './NoteCard';
 import { 
-  Pencil, 
   Archive, 
   Pin, 
   Palette, 
   Image as ImageIcon, 
   Check, 
   CheckSquare, 
-  Square, 
   Plus, 
   X, 
   Tag, 
   Search,
-  CheckCircle2,
   Users,
   Link,
   Paperclip,
   File as FileIcon,
-  RefreshCcw,
+  RefreshCw,
+  CheckCircle,
+  StickyNote
 } from 'lucide-react';
 import { initialContacts } from './ContactsView';
 import { db } from '../firebase';
@@ -82,20 +82,16 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
   const [imageUrl, setImageUrl] = useState('');
   const [showImageUrlInput, setShowImageUrlInput] = useState(false);
   
-  // Checklist section visibility
   const [showChecklist, setShowChecklist] = useState(false);
   const [checklistItems, setChecklistItems] = useState<ChecklistItem[]>([]);
   const [newItemText, setNewItemText] = useState('');
   
-  // Tags dynamic creation state
   const [tagsInput, setTagsInput] = useState('');
   const [showTagsInput, setShowTagsInput] = useState(false);
 
-  // Picker popups
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showSharePicker, setShowSharePicker] = useState(false);
 
-  // Additional dynamic upload attachment and sharing states
   const [attachments, setAttachments] = useState<{ name: string; url: string; size?: string; type: string }[]>([]);
   const [sharedWith, setSharedWith] = useState<string[]>([]);
   
@@ -192,7 +188,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
   };
 
   const handleClose = () => {
-    // Determine if the note has any meaningful content
     const hasText = title.trim() || content.trim();
     const hasChecklist = showChecklist && checklistItems.length > 0;
     const hasImage = imageUrl.trim();
@@ -216,7 +211,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
       });
     }
 
-    // Reset fields
     setTitle('');
     setContent('');
     setNoteColor('default');
@@ -239,7 +233,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
     }
   };
 
-  // Close when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (formRef.current && !formRef.current.contains(event.target as Node)) {
@@ -269,7 +262,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
     ));
   };
 
-  // Keep colors values
   const activeColor = keepColors.find(c => c.id === noteColor) || keepColors[0];
 
   return (
@@ -282,8 +274,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
         onDrop={handleDrop}
       >
         <form ref={formRef} onSubmit={(e) => e.preventDefault()} className="flex flex-col relative">
-          
-          {/* Optional Image Preview inside creator */}
           {imageUrl && isFocused && (
             <div className="w-full relative h-40 rounded-t-xl overflow-hidden border-b border-dashed border-slate-200 dark:border-slate-800">
               <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
@@ -300,7 +290,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
 
           {isFocused ? (
             <>
-              {/* Header Title Input and Pin Toggle */}
               <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
                 <input
                   ref={titleInputRef}
@@ -320,7 +309,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                 </button>
               </div>
 
-              {/* Main Workspace: Text Content and Checklist */}
               <div className="px-4 py-2 space-y-3">
                 <textarea
                   autoFocus
@@ -334,7 +322,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                 {showChecklist && (
                   <div className="space-y-2 border-t border-slate-200/40 dark:border-slate-800/40 pt-3">
                     <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Danh mục checklist:</h5>
-                    {/* List Items drafted */}
                     {checklistItems.map((item, index) => (
                       <div key={index} className="flex items-center gap-2 group/item">
                         <button
@@ -364,7 +351,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                       </div>
                     ))}
 
-                    {/* New Item draft input */}
                     <div className="flex items-center gap-2 mt-2">
                       <Plus className="w-4 h-4 text-slate-400 block shrink-0" />
                       <input 
@@ -393,7 +379,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                   </div>
                 )}
 
-                {/* Optional Attachments Creator Preview */}
                 {attachments.length > 0 && (
                   <div className="space-y-1.5 border-t border-dashed border-slate-200/40 dark:border-slate-800/40 pt-3 text-left">
                     <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-505">Tệp đính kèm ({attachments.length}):</h5>
@@ -427,7 +412,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                   </div>
                 )}
 
-                {/* Shared with Members list Creator Preview */}
                 {sharedWith.length > 0 && (
                   <div className="space-y-1.5 border-t border-dashed border-slate-200/40 dark:border-slate-800/40 pt-3 text-left">
                     <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-505 flex items-center gap-1.5">
@@ -455,7 +439,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                 )}
               </div>
 
-              {/* Tag Inline Edit input field */}
               {showTagsInput && (
                 <div className="px-4 py-1.5 flex items-center gap-2 bg-black/5 dark:bg-white/5 border-t border-b border-slate-200/40 dark:border-slate-800/40">
                   <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -476,7 +459,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                 </div>
               )}
 
-              {/* Optional custom Image URL input field */}
               {showImageUrlInput && (
                 <div className="px-4 py-1.5 flex items-center gap-2 bg-black/5 dark:bg-white/5 border-t border-b border-slate-200/40 dark:border-slate-800/40">
                   <span className="text-xs font-semibold text-slate-500">Image URL:</span>
@@ -498,11 +480,8 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                 </div>
               )}
 
-              {/* Toolbar Actions Row */}
               <div className="flex items-center justify-between px-3 py-1.5 border-t border-slate-200/10 dark:border-white/5 mt-2 bg-black/5 dark:bg-white/5 rounded-b-xl">
                 <div className="flex items-center gap-0.5">
-                  
-                  {/* Dynamic Color palette popover inside creator */}
                   <div className="relative">
                     <button 
                       type="button" 
@@ -538,7 +517,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                     )}
                   </div>
 
-                  {/* Mode switcher Standard Text <--> Checklist */}
                   <button 
                     type="button" 
                     onClick={() => setShowChecklist(!showChecklist)}
@@ -548,7 +526,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                     <CheckSquare className="w-4 h-4" />
                   </button>
 
-                  {/* Tag label button */}
                   <button 
                     type="button" 
                     onClick={() => setShowTagsInput(!showTagsInput)}
@@ -558,7 +535,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                     <Tag className="w-4 h-4" />
                   </button>
 
-                  {/* Local image file trigger */}
                   <input 
                     type="file" 
                     ref={fileInputRef} 
@@ -575,7 +551,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                     <ImageIcon className="w-4 h-4" />
                   </button>
 
-                  {/* General file attachment trigger */}
                   <input 
                     type="file" 
                     ref={attachmentInputRef} 
@@ -591,10 +566,8 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                     <Paperclip className="w-4 h-4" />
                   </button>
 
-                  {/* Google Drive Picker component integration */}
                   <GooglePickerButton onPicked={handlePicked} variant="icon" label="Chọn tệp từ Google Drive" />
 
-                  {/* Share selector popover direct handle */}
                   <div className="relative">
                     <button 
                       type="button" 
@@ -642,7 +615,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                     )}
                   </div>
                   
-                  {/* URL icon button option */}
                   <button 
                     type="button" 
                     onClick={() => setShowImageUrlInput(!showImageUrlInput)}
@@ -673,11 +645,9 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
               </div>
             </>
           ) : (
-            // Collapsed Input Box Placeholder
             <div className="flex items-center justify-between p-3.5 h-12">
               <span className="text-slate-400 text-xs font-bold pl-2">Tạo ghi chú...</span>
               <div className="flex items-center gap-1.5 pr-1">
-                {/* Click list/checkbox directly transforms creator into checklist mode */}
                 <button 
                   type="button" 
                   onClick={(e) => {
@@ -691,7 +661,6 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
                   <CheckSquare className="w-4 h-4" />
                 </button>
                 
-                {/* Click ImageIcon directly places creator into photo mode */}
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -722,46 +691,46 @@ const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddN
   );
 });
 
-
 const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync }) => {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [toastMessage, setToastMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [isSyncingKeep, setIsSyncingKeep] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [sharingNote, setSharingNote] = useState<Note | null>(null);
+  const [shareSearchTerm, setShareSearchTerm] = useState('');
+  
+  const createNoteRef = useRef<CreateNoteHandle>(null);
+
   useEffect(() => {
     if (!user || user.id.startsWith('user-')) {
-        setNotes(mockNotes);
-        return;
+      setNotes(mockNotes);
+      return;
     }
 
     const q = query(
-        collection(db, 'notes'),
-        where('ownerId', '==', user.id)
+      collection(db, 'notes'),
+      where('ownerId', '==', user.id)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetchedNotes = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Note));
-        
-        if (fetchedNotes.length === 0 && !localStorage.getItem('notes_migrated')) {
-            setNotes(mockNotes);
-        } else {
-            setNotes(fetchedNotes);
-        }
+      const fetchedNotes = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Note));
+      
+      if (fetchedNotes.length === 0 && !localStorage.getItem('notes_migrated')) {
+        setNotes(mockNotes);
+      } else {
+        setNotes(fetchedNotes);
+      }
     }, (error) => {
-        handleFirestoreError(error, OperationType.LIST, 'notes');
+      handleFirestoreError(error, OperationType.LIST, 'notes');
     });
 
     return () => unsubscribe();
   }, [user?.id]);
-
-  const [toastMessage, setToastMessage] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTag, setActiveTag] = useState<string | null>(null);
-  
-  // Share Note Modal state
-  const [sharingNote, setSharingNote] = useState<Note | null>(null);
-  const [shareSearchTerm, setShareSearchTerm] = useState('');
-  const [isSyncingKeep, setIsSyncingKeep] = useState(false);
 
   const handleSyncWithKeep = async () => {
     setIsSyncingKeep(true);
@@ -771,8 +740,6 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
 
       const keepNotes: GoogleKeepNote[] = await fetchGoogleKeepNotes(token);
       
-      // Simple one-way sync logic for demonstration:
-      // Loop over keep items, create or update them in Firestore.
       for (const kNote of keepNotes) {
         if (kNote.trashed) continue;
         
@@ -793,8 +760,6 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
           tags: ['Google Keep']
         };
 
-        // Simplified for this example, just add them as new notes to firestore
-        // normally we should match by keep ID (kNote.name)
         if (user && !user.id.startsWith('user-')) {
           const q = query(collection(db, 'notes'), where('keepId', '==', kNote.name), where('ownerId', '==', user.id));
           const snapshot = await getDocs(q);
@@ -813,7 +778,6 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
               createdAt: Date.now()
             });
           } else {
-            // Update existing if needed
             const docId = snapshot.docs[0].id;
             await updateDoc(doc(db, 'notes', docId), {
               title: newNoteData.title || '',
@@ -833,79 +797,6 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
       setIsSyncingKeep(false);
     }
   };
-  
-  // Modal Edit Note state
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [modalTitle, setModalTitle] = useState('');
-  const [modalContent, setModalContent] = useState('');
-  const [modalColor, setModalColor] = useState('default');
-  const [modalIsPinned, setModalIsPinned] = useState(false);
-  const [modalChecklist, setModalChecklist] = useState<ChecklistItem[]>([]);
-  const [modalShowChecklist, setModalShowChecklist] = useState(false);
-  const [modalImageUrl, setModalImageUrl] = useState('');
-  const [modalTagsInput, setModalTagsInput] = useState('');
-  const [modalNewTodo, setModalNewTodo] = useState('');
-  const modalFileInputRef = useRef<HTMLInputElement>(null);
-  
-  // Custom states inside edit modal
-  const [modalSharedWith, setModalSharedWith] = useState<string[]>([]);
-  const [modalShowSharePicker, setModalShowSharePicker] = useState(false);
-
-  const handleModalPicked = (docs: { id: string; name: string; mimeType: string; url: string; lastEditedUtc: number; iconUrl: string; parentId: string; sizeBytes?: number }[]) => {
-    const newAttachments = docs.map((doc) => ({
-      name: doc.name,
-      url: doc.url,
-      size: doc.sizeBytes ? `${(doc.sizeBytes / 1024).toFixed(1)} KB` : undefined,
-      type: doc.mimeType || 'application/octet-stream'
-    }));
-    setModalAttachments(prev => [...prev, ...newAttachments]);
-  };
-  const modalAttachmentInputRef = useRef<HTMLInputElement>(null);
-  
-  const createNoteRef = useRef<CreateNoteHandle>(null);
-
-  const handleModalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setModalImageUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleModalAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      if (typeof reader.result === 'string') {
-        const sizeKB = Math.round(file.size / 1024);
-        const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
-        const newAttachment = {
-          name: file.name,
-          url: reader.result,
-          size: sizeStr,
-          type: file.type || 'application/octet-stream'
-        };
-        setModalAttachments(prev => [...prev, newAttachment]);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const toggleModalContactShare = (contactId: string) => {
-    setModalSharedWith(prev => 
-      prev.includes(contactId) ? prev.filter(id => id !== contactId) : [...prev, contactId]
-    );
-  };
-
-  // Persist notes changes
-  useEffect(() => {
-    localStorage.setItem('keep_notes', JSON.stringify(notes));
-  }, [notes]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -953,64 +844,63 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
       return note;
     });
     setNotes(updated);
-    localStorage.setItem('keep_notes', JSON.stringify(updated));
   };
 
   const handleAddNote = async (newNoteData: Partial<Note>) => {
     if (!user || user.id.startsWith('user-')) {
-        const newNote: Note = {
-            id: `note-${Date.now()}`,
-            createdAt: new Date().toISOString(),
-            color: newNoteData.color || 'default',
-            title: newNoteData.title || undefined,
-            content: newNoteData.content || undefined,
-            checklist: newNoteData.checklist || undefined,
-            imageUrl: newNoteData.imageUrl || undefined,
-            tags: newNoteData.tags || undefined,
-            isPinned: newNoteData.isPinned || false,
-        };
-        setNotes(prev => [newNote, ...prev]);
-        showToast("Đã lưu ghi chú mới (Local)!");
-        return;
+      const newNote: Note = {
+        id: `note-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        color: newNoteData.color || 'default',
+        title: newNoteData.title || undefined,
+        content: newNoteData.content || undefined,
+        checklist: newNoteData.checklist || undefined,
+        imageUrl: newNoteData.imageUrl || undefined,
+        tags: newNoteData.tags || undefined,
+        isPinned: newNoteData.isPinned || false,
+      };
+      setNotes(prev => [newNote, ...prev]);
+      showToast("Đã lưu ghi chú mới!");
+      return;
     }
 
     try {
-        await addDoc(collection(db, 'notes'), {
-            title: newNoteData.title || '',
-            content: newNoteData.content || '',
-            checklist: newNoteData.checklist || [],
-            color: newNoteData.color || 'default',
-            isPinned: newNoteData.isPinned || false,
-            imageUrl: newNoteData.imageUrl || '',
-            tags: newNoteData.tags || [],
-            ownerId: user.id,
-            createdAt: Date.now()
-        });
-        showToast("Đã lưu ghi chú mới thành công!");
+      await addDoc(collection(db, 'notes'), {
+        title: newNoteData.title || '',
+        content: newNoteData.content || '',
+        checklist: newNoteData.checklist || [],
+        color: newNoteData.color || 'default',
+        isPinned: newNoteData.isPinned || false,
+        imageUrl: newNoteData.imageUrl || '',
+        tags: newNoteData.tags || [],
+        ownerId: user.id,
+        createdAt: Date.now()
+      });
+      showToast("Đã lưu ghi chú mới!");
     } catch (error) {
-        handleFirestoreError(error, OperationType.CREATE, 'notes');
+      handleFirestoreError(error, OperationType.CREATE, 'notes');
     }
   };
 
   const handleUpdateNote = async (updatedNote: Note) => {
     if (!user || user.id.startsWith('user-') || updatedNote.id.startsWith('note-')) {
-        setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
-        return;
+      setNotes(prev => prev.map(n => n.id === updatedNote.id ? updatedNote : n));
+      return;
     }
 
     try {
-        const { id, ...data } = updatedNote;
-        await updateDoc(doc(db, 'notes', id), {
-            title: data.title || '',
-            content: data.content || '',
-            checklist: data.checklist || [],
-            color: data.color || 'default',
-            isPinned: data.isPinned || false,
-            imageUrl: data.imageUrl || '',
-            tags: data.tags || []
-        });
+      const { id, ...data } = updatedNote;
+      await updateDoc(doc(db, 'notes', id), {
+        title: data.title || '',
+        content: data.content || '',
+        checklist: data.checklist || [],
+        color: data.color || 'default',
+        isPinned: data.isPinned || false,
+        imageUrl: data.imageUrl || '',
+        tags: data.tags || []
+      });
     } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, 'notes');
+      handleFirestoreError(error, OperationType.UPDATE, 'notes');
     }
   };
   
@@ -1019,794 +909,296 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
     if (!note) return;
 
     if (!user || user.id.startsWith('user-') || noteId.startsWith('note-')) {
-        setNotes(prev => prev.map(n => n.id === noteId ? { ...n, isPinned: !n.isPinned } : n));
-        return;
+      setNotes(prev => prev.map(n => n.id === noteId ? { ...n, isPinned: !n.isPinned } : n));
+      return;
     }
 
     try {
-        await updateDoc(doc(db, 'notes', noteId), {
-            isPinned: !note.isPinned
-        });
+      await updateDoc(doc(db, 'notes', noteId), {
+        isPinned: !note.isPinned
+      });
     } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, 'notes');
+      handleFirestoreError(error, OperationType.UPDATE, 'notes');
     }
   };
 
   const handleDeleteNote = async (noteId: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa ghi chú này?")) {
       if (!user || user.id.startsWith('user-') || noteId.startsWith('note-')) {
-          setNotes(prev => prev.filter(n => n.id !== noteId));
-          showToast("Đã xóa ghi chú!");
-          return;
+        setNotes(prev => prev.filter(n => n.id !== noteId));
+        showToast("Đã xóa ghi chú!");
+        return;
       }
 
       try {
-          await deleteDoc(doc(db, 'notes', noteId));
-          showToast("Đã xóa ghi chú!");
+        await deleteDoc(doc(db, 'notes', noteId));
+        showToast("Đã xóa ghi chú!");
       } catch (error) {
-          handleFirestoreError(error, OperationType.DELETE, 'notes');
+        handleFirestoreError(error, OperationType.DELETE, 'notes');
       }
     }
   };
 
-  // Unique labels list extraction from all notes to support filter tabs
-  const allLabels = useMemo(() => {
-    const labelsSet = new Set<string>();
+  const allTags = useMemo(() => {
+    const tagsSet = new Set<string>();
     notes.forEach(note => {
       if (note.tags) {
-        note.tags.forEach(t => labelsSet.add(t));
+        note.tags.forEach(t => tagsSet.add(t));
       }
     });
-    return Array.from(labelsSet);
+    return Array.from(tagsSet);
   }, [notes]);
 
-  // Filters notes by Search text AND Active label/tag selection
   const filteredNotes = useMemo(() => {
     return notes.filter(note => {
-      // Search criterion
       const matchesSearch = 
         (note.title && note.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (note.content && note.content.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (note.checklist && note.checklist.some(ci => ci.item.toLowerCase().includes(searchTerm.toLowerCase()))) ||
         (note.tags && note.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase())));
 
-      // Tag criterion
       const matchesTag = !activeTag || (note.tags && note.tags.includes(activeTag));
 
       return !!(matchesSearch && matchesTag);
     });
   }, [notes, searchTerm, activeTag]);
 
-  // Group filtered results into Pinned / Unpinned for high fidelity Keep look
-  const pinnedNotes = useMemo(() => {
-    return filteredNotes.filter(n => n.isPinned);
-  }, [filteredNotes]);
-
-  const unpinnedNotes = useMemo(() => {
-    return filteredNotes.filter(n => !n.isPinned);
-  }, [filteredNotes]);
-
-  // Modal Editing setup
-  const openEditModal = (note: Note) => {
-    setEditingNote(note);
-    setModalTitle(note.title || '');
-    setModalContent(note.content || '');
-    setModalColor(note.color || 'default');
-    setModalIsPinned(!!note.isPinned);
-    setModalChecklist(note.checklist ? [...note.checklist] : []);
-    setModalShowChecklist(note.checklist && note.checklist.length > 0 ? true : false);
-    setModalImageUrl(note.imageUrl || '');
-    setModalTagsInput(note.tags ? note.tags.join(', ') : '');
-    setModalAttachments(note.attachments ? [...note.attachments] : []);
-    setModalSharedWith(note.sharedWith ? [...note.sharedWith] : []);
-    setModalShowSharePicker(false);
-  };
-
-  const saveEditModal = () => {
-    if (!editingNote) return;
-
-    const tags = modalTagsInput
-      ? modalTagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0)
-      : [];
-
-    const updated: Note = {
-      ...editingNote,
-      title: modalTitle.trim() || undefined,
-      content: modalContent.trim() || undefined,
-      checklist: modalShowChecklist && modalChecklist.length > 0 ? modalChecklist : undefined,
-      color: modalColor,
-      isPinned: modalIsPinned,
-      imageUrl: modalImageUrl.trim() || undefined,
-      tags: tags.length > 0 ? tags : undefined,
-      attachments: modalAttachments.length > 0 ? modalAttachments : undefined,
-      sharedWith: modalSharedWith.length > 0 ? modalSharedWith : undefined,
-    };
-
-    handleUpdateNote(updated);
-    setEditingNote(null);
-    showToast("Đã cập nhật ghi chú!");
-  };
-
-  const handleAddModalTodo = () => {
-    if (!modalNewTodo.trim()) return;
-    setModalChecklist([...modalChecklist, { item: modalNewTodo.trim(), done: false }]);
-    setModalNewTodo('');
-  };
-
-  const modalActiveColor = keepColors.find(c => c.id === modalColor) || keepColors[0];
+  const pinnedNotes = useMemo(() => filteredNotes.filter(n => n.isPinned), [filteredNotes]);
+  const otherNotes = useMemo(() => filteredNotes.filter(n => !n.isPinned), [filteredNotes]);
 
   return (
-    <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] gap-3 pb-24 md:pb-8">
-      <div className="shrink-0 animate-fade-in-up">
-        
-      </div>
+    <StandardPageLayout>
+      <PageBanner 
+        title="Ghi chú & Sổ tay"
+        subtitle="Lưu giữ ý tưởng, lập danh sách công việc và quản lý kiến thức cá nhân một cách thông minh."
+        icon={<StickyNote className="w-full h-full text-white" />}
+        gradient="from-yellow-500 to-amber-600"
+        actions={
+          <div className="flex gap-2">
+            <button onClick={handleSyncWithKeep} disabled={isSyncingKeep} className={`flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all ${isSyncingKeep ? 'animate-pulse' : ''}`}>
+              <RefreshCw className="w-3.5 h-3.5" /> Đồng bộ Keep
+            </button>
+            <button onClick={() => createNoteRef.current?.focus()} className="flex items-center gap-1.5 bg-white text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
+              <Plus className="w-3.5 h-3.5" /> Ghi chú mới
+            </button>
+          </div>
+        }
+      />
 
-      <div className="flex flex-1 min-h-0 bg-white/40 dark:bg-slate-900/30 backdrop-blur-xl rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-800/50 overflow-hidden">
-        
-        {/* Main Workspace Frame */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar p-5">
-           
-           {/* Top Bar for Dynamic Searching & Label Filtering */}
-           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-6 max-w-4xl mx-auto w-full">
-             
-             {/* Beautiful search bar with adjacent Create Note button */}
-             <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center gap-2 max-w-xl">
-               <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm qua văn bản, tiêu đề, checklist..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-medium text-slate-850 dark:text-white"
-                  />
-                  {searchTerm && (
-                    <button 
-                      onClick={() => setSearchTerm('')} 
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-650"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  )}
-               </div>
+      <div className="flex flex-col gap-6 mt-6">
+        <ContentCard>
+          <CreateNote 
+            ref={createNoteRef} 
+            onAddNote={handleAddNote} 
+          />
+        </ContentCard>
 
-               <button
-                 type="button"
-                 onClick={handleSyncWithKeep}
-                 disabled={isSyncingKeep}
-                 className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 active:scale-95 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all shrink-0 cursor-pointer disabled:opacity-50"
-               >
-                 <RefreshCcw className={`w-3.5 h-3.5 text-orange-500 ${isSyncingKeep ? 'animate-spin' : ''}`} />
-                 <span>{isSyncingKeep ? 'Đang đồng bộ...' : 'Đồng bộ Google Keep'}</span>
-               </button>
-
-               <button
-                 type="button"
-                 onClick={() => setIsCreateModalOpen(true)}
-                 className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 active:scale-95 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all shrink-0 cursor-pointer"
-               >
-                 <Plus className="w-3.5 h-3.5 text-indigo-500" />
-                 <span>Ghi chú mới</span>
-               </button>
-             </div>
-
-             {/* Tag selector filter badges */}
-             {allLabels.length > 0 && (
-               <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
-                 <button
-                   onClick={() => setActiveTag(null)}
-                   className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all ${!activeTag ? 'bg-indigo-600 text-white shadow' : 'bg-white dark:bg-slate-950 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'}`}
-                 >
-                   Tất cả ghi chú
-                 </button>
-                 {allLabels.map((tag) => (
-                   <button
-                     key={tag}
-                     onClick={() => setActiveTag(tag)}
-                     className={`px-3 py-1 text-[11px] font-bold rounded-lg transition-all flex items-center gap-1 ${activeTag === tag ? 'bg-indigo-600 text-white shadow' : 'bg-white/80 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-50'}`}
-                   >
-                     <Tag className="w-2.5 h-2.5" />
-                     {tag}
-                   </button>
-                 ))}
-               </div>
-             )}
-           </div>
-
-
-
-           {/* Masonry Columns Notes display */}
-           <div className="flex-1 min-h-0">
-             
-             {/* PINNED SECTION */}
-             {pinnedNotes.length > 0 && (
-               <div className="mb-8">
-                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 pl-2">
-                   Được ghim ({pinnedNotes.length})
-                 </h4>
-                 <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">
-                   {pinnedNotes.map(note => (
-                     <NoteCard 
-                       key={note.id} 
-                       note={note} 
-                       onTogglePin={handleTogglePin} 
-                       onDeleteNote={handleDeleteNote} 
-                       onShareNote={handleShareNote}
-                       onUpdateNote={handleUpdateNote}
-                       onEditNote={openEditModal}
-                     />
-                   ))}
-                 </div>
-               </div>
-             )}
-
-             {/* OTHER NOTES SECTION */}
-             <div>
-               {pinnedNotes.length > 0 && unpinnedNotes.length > 0 && (
-                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 pl-2 border-t border-slate-100/50 dark:border-slate-800/50 pt-5">
-                   Khác ({unpinnedNotes.length})
-                 </h4>
-               )}
-               {unpinnedNotes.length > 0 ? (
-                 <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4">
-                   {unpinnedNotes.map(note => (
-                     <NoteCard 
-                       key={note.id} 
-                       note={note} 
-                       onTogglePin={handleTogglePin} 
-                       onDeleteNote={handleDeleteNote} 
-                       onShareNote={handleShareNote}
-                       onUpdateNote={handleUpdateNote}
-                       onEditNote={openEditModal}
-                     />
-                   ))}
-                 </div>
-               ) : (
-                 pinnedNotes.length === 0 && (
-                   <div className="text-center py-20 flex flex-col items-center gap-3">
-                     <div className="w-16 h-16 rounded-full bg-slate-50 dark:bg-slate-950 text-slate-300 dark:text-slate-700 flex items-center justify-center border border-slate-100 dark:border-slate-800/50 shadow-inner">
-                       <Pencil className="w-6 h-6 animate-pulse" />
-                     </div>
-                     <p className="text-sm font-bold text-slate-400">Chưa có ghi chú nào ăn khớp với bộ lọc.</p>
-                     <p className="text-xs text-slate-400 max-w-xs">Hãy bấm vào nút 'Ghi chú mới' ở trên để viết các ý tưởng mới hoặc việc cần làm!</p>
-                   </div>
-                 )
-               )}
-             </div>
-
-           </div>
-        </div>
-      </div>
-
-      {/* Toast notifications */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-[100] bg-slate-900 border border-slate-800 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 animate-fade-in-up">
-          <CheckCircle2 className="w-4 h-4 text-green-400" />
-          <span className="text-xs font-semibold">{toastMessage}</span>
-        </div>
-      )}
-
-      {/* GOOGLE KEEP STYLE MODAL FOR EDITING NOTE DETAILS */}
-      {editingNote && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 animate-fade-in"
-          onClick={saveEditModal}
-        >
-          <div 
-            className={`w-[80%] h-[80%] rounded-2xl border shadow-2xl flex flex-col overflow-hidden animate-scale-in ${modalActiveColor.bg} ${modalActiveColor.border}`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Optional image banner at top */}
-            {modalImageUrl && (
-              <div className="w-full relative h-48 focus:outline-none shrink-0 border-b border-slate-200/30">
-                <img src={modalImageUrl} alt="Note banner preview" className="w-full h-full object-cover" />
-                <button 
-                  type="button" 
-                  onClick={() => setModalImageUrl('')}
-                  className="absolute top-3 right-3 p-1.5 bg-black/60 hover:bg-black/95 text-white rounded-full transition-colors"
-                  title="Xóa hình ảnh"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-
-            {/* Modal Scrollable Workspace */}
-            <div className="flex-1 overflow-y-auto no-scrollbar p-6 space-y-4">
-              
-              {/* Pin & Title */}
-              <div className="flex items-center justify-between">
-                <input
-                  type="text"
-                  placeholder="Tiêu đề"
-                  value={modalTitle}
-                  onChange={(e) => setModalTitle(e.target.value)}
-                  className="flex-1 bg-transparent text-lg font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none"
-                />
-                <button 
-                  type="button" 
-                  onClick={() => setModalIsPinned(!modalIsPinned)} 
-                  className={`p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${modalIsPinned ? 'text-yellow-600 dark:text-yellow-405' : 'text-slate-400'}`}
-                  title={modalIsPinned ? "Hủy ghim" : "Ghim ghi chú"}
-                >
-                  <Pin className={`w-4 h-4 fill-current ${modalIsPinned ? 'scale-110' : 'scale-100'}`} />
-                </button>
-              </div>
-
-              {/* Text Area AND Checklist unified together */}
-              <div className="space-y-3">
-                <textarea
-                  placeholder="Ghi chú chi tiết..."
-                  value={modalContent}
-                  onChange={(e) => setModalContent(e.target.value)}
-                  rows={5}
-                  className="w-full bg-transparent text-sm text-slate-700 dark:text-slate-350 placeholder-slate-400 focus:outline-none resize-none leading-relaxed min-h-[100px]"
-                />
-
-                {modalShowChecklist && (
-                  <div className="space-y-2 border-t border-slate-200/40 dark:border-slate-800/40 pt-3">
-                    <h5 className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">Danh mục việc cần làm:</h5>
-                    
-                    {/* Listed Items */}
-                    {modalChecklist.map((item, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setModalChecklist(modalChecklist.map((it, idx) => 
-                              idx === index ? { ...it, done: !it.done } : it
-                            ));
-                          }}
-                          className="text-slate-400 hover:text-indigo-600"
-                        >
-                          {item.done ? (
-                            <CheckSquare className="w-4 h-4 text-emerald-500" />
-                          ) : (
-                            <Square className="w-4 h-4" />
-                          )}
-                        </button>
-                        
-                        <input 
-                          type="text"
-                          value={item.item}
-                          onChange={(e) => {
-                            setModalChecklist(modalChecklist.map((it, idx) => 
-                              idx === index ? { ...it, item: e.target.value } : it
-                            ));
-                          }}
-                          className={`flex-1 bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none ${item.done ? 'line-through text-slate-400' : ''}`}
-                        />
-
-                        <button 
-                          type="button" 
-                          onClick={() => {
-                            setModalChecklist(modalChecklist.filter((_, idx) => idx !== index));
-                          }}
-                          className="p-1 hover:text-red-500 rounded text-slate-400"
-                          title="Xóa hàng"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
-
-                    {/* Add Row inside modal */}
-                    <div className="flex items-center gap-2 mt-4 pt-2 border-t border-slate-200/30">
-                      <Plus className="w-4 h-4 text-slate-400" />
-                      <input 
-                        type="text"
-                        placeholder="Thêm mục checklist mới..."
-                        value={modalNewTodo}
-                        onChange={(e) => setModalNewTodo(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddModalTodo();
-                          }
-                        }}
-                        className="flex-1 bg-transparent text-xs text-slate-707 dark:text-slate-300 focus:outline-none placeholder-slate-400"
-                      />
-                      {modalNewTodo.trim() && (
-                        <button 
-                          type="button" 
-                          onClick={handleAddModalTodo}
-                          className="p-1 px-3 bg-indigo-50 dark:bg-slate-800 text-[10px] font-bold text-indigo-700 dark:text-blue-400 rounded-md"
-                        >
-                          Thêm
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Tag modification line */}
-              <div className="pt-2">
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#80868b] dark:text-slate-500 block mb-1">Mác nhãn (cách nhau bằng dấy phẩy):</label>
-                <div className="flex items-center gap-2 bg-black/5 dark:bg-white/5 rounded-xl px-3 py-2 border border-slate-200/10">
-                  <Tag className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <input
-                    type="text"
-                    placeholder="e.g. công việc, mua sắm"
-                    value={modalTagsInput}
-                    onChange={(e) => setModalTagsInput(e.target.value)}
-                    className="flex-1 bg-transparent text-xs text-slate-707 dark:text-slate-350 placeholder-slate-400 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Image insertion line (Both local desktop upload and web link URL input) */}
-              <div>
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#80868b] dark:text-slate-500 block mb-1">Đính kèm hình ảnh:</label>
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <div className="flex items-center gap-2 bg-black/5 dark:bg-white/5 rounded-xl px-3 py-2 border border-slate-200/10 flex-1 w-full font-sans">
-                    <ImageIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                    <input
-                      type="text"
-                      placeholder="Dán URL đường dẫn liên kết hình ảnh..."
-                      value={modalImageUrl}
-                      onChange={(e) => setModalImageUrl(e.target.value)}
-                      className="flex-1 bg-transparent text-xs text-slate-707 dark:text-slate-350 placeholder-slate-400 focus:outline-none font-mono"
-                    />
-                  </div>
-                  
-                  <input 
-                    type="file" 
-                    ref={modalFileInputRef} 
-                    onChange={handleModalImageUpload} 
-                    accept="image/*" 
-                    className="hidden" 
-                  />
-                  <button 
-                    type="button"
-                    onClick={() => modalFileInputRef.current?.click()}
-                    className="w-full sm:w-auto px-4 py-2 hover:bg-black/10 dark:hover:bg-white/10 bg-black/5 dark:bg-slate-850 text-xs font-semibold text-slate-800 dark:text-slate-200 rounded-xl transition border border-slate-300 dark:border-slate-700 shrink-0"
-                  >
-                    Tải ảnh từ máy tính
-                  </button>
-                </div>
-              </div>
-
-              {/* Dynamic attachments list editing preview within edit modal */}
-              <div className="border-t border-dashed border-slate-200/40 dark:border-slate-800/40 pt-4">
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#80868b] dark:text-slate-500 block mb-1">Đính kèm tài liệu & Files giấy tờ ({modalAttachments.length}):</label>
-                <div className="space-y-2 border border-slate-200/50 dark:border-slate-850 rounded-2xl p-3 bg-black/5 dark:bg-slate-950/20">
-                  {modalAttachments.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 no-scrollbar">
-                      {modalAttachments.map((file, idx) => {
-                        const isImg = file.type.startsWith('image/');
-                        return (
-                          <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 text-left">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              {isImg ? (
-                                <ImageIcon className="w-3.5 h-3.5 text-teal-500 shrink-0" />
-                              ) : (
-                                <FileIcon className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-                              )}
-                              <div className="min-w-0">
-                                <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate leading-tight">{file.name}</p>
-                                {file.size && <p className="text-[9px] text-slate-450 font-semibold">{file.size}</p>}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setModalAttachments(modalAttachments.filter((_, fidx) => fidx !== idx))}
-                              className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-505 rounded transition cursor-pointer"
-                              title="Xóa tệp đính kèm"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-slate-400 font-bold text-center py-1 bg-transparent">Chưa đính kèm tài liệu nào cho ghi chú này.</p>
-                  )}
-                  
-                  <div className="flex justify-end pt-1">
-                    <input 
-                      type="file" 
-                      ref={modalAttachmentInputRef} 
-                      onChange={handleModalAttachmentUpload} 
-                      className="hidden" 
-                    />
-                    <button
-                      type="button"
-                      onClick={() => modalAttachmentInputRef.current?.click()}
-                      className="px-3.5 py-1.5 hover:bg-indigo-700 bg-indigo-600 text-[11px] font-bold text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Paperclip className="w-3.5 h-3.5" />
-                      <span>Đính kèm file mới</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dynamic family sharing selection within keep edit modal */}
-              <div className="border-t border-dashed border-slate-200/40 dark:border-slate-800/40 pt-4">
-                <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#80868b] dark:text-slate-500 block mb-1">Thành viên cùng chia sẻ ({modalSharedWith.length}):</label>
-                <div className="space-y-3 p-3.5 border border-slate-200/50 dark:border-slate-850 rounded-2xl bg-black/5 dark:bg-slate-950/20">
-                  {modalSharedWith.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto no-scrollbar">
-                      {modalSharedWith.map((contactId) => {
-                        const contact = initialContacts.find(c => c.id === contactId);
-                        if (!contact) return null;
-                        return (
-                          <div key={contactId} className="inline-flex items-center gap-1.5 text-xs font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 border border-indigo-200/20 dark:border-indigo-900/25 p-1 px-2.5 rounded-full select-none shadow-xs">
-                            <span className="w-4 h-4 bg-indigo-500 text-white font-bold rounded-full flex items-center justify-center text-[8px]">
-                              {contact.name.split(' ').pop()?.[0] || 'C'}
-                            </span>
-                            <span>{contact.name}</span>
-                            <button 
-                              type="button" 
-                              onClick={() => toggleModalContactShare(contactId)} 
-                              className="text-slate-450 hover:text-red-500 transition-colors ml-0.5 cursor-pointer"
-                              title="Gỡ bỏ chia sẻ"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-[10px] text-slate-400 font-bold text-center bg-transparent py-1">Ghi chú hiện tại đang ở chế độ riêng tư.</p>
-                  )}
-                  
-                  {/* Dropdown triggers share picker */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="w-full lg:w-64 shrink-0">
+            <ContentCard>
+              <aside className="space-y-6">
+                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setModalShowSharePicker(!modalShowSharePicker)}
-                      className="px-3.5 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-[11px] font-bold text-slate-700 dark:text-slate-200 rounded-xl transition flex items-center gap-1.5 bg-white dark:bg-slate-950 shadow-xs cursor-pointer"
-                    >
-                      <Users className="w-3.5 h-3.5 text-indigo-500" />
-                      <span>Quản lý thành viên cùng xem</span>
-                    </button>
-
-                    {modalShowSharePicker && (
-                      <div className="absolute left-0 top-10 z-[1000] bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl p-3 shadow-2xl w-64 max-h-48 overflow-y-auto no-scrollbar text-left font-sans">
-                        <div className="space-y-1">
-                          {initialContacts.map((contact) => {
-                            const isSelected = modalSharedWith.includes(contact.id);
-                            return (
-                              <div 
-                                key={contact.id} 
-                                onClick={() => toggleModalContactShare(contact.id)}
-                                className={`p-1.5 rounded-lg flex items-center gap-2 text-left cursor-pointer transition ${isSelected ? 'bg-indigo-50/45 dark:bg-indigo-950/25 font-semibold' : 'hover:bg-slate-5 dark:hover:bg-slate-805'}`}
-                              >
-                                <span className="w-4 h-4 bg-indigo-100 dark:bg-indigo-950 text-indigo-805 dark:text-indigo-400 text-[8px] font-bold rounded-full flex items-center justify-center shrink-0">
-                                  {contact.name.split(' ').pop()?.[0] || 'C'}
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[10px] text-slate-750 dark:text-slate-350 truncate">{contact.name}</p>
-                                </div>
-                                <div className="shrink-0">
-                                  <input 
-                                    type="checkbox" 
-                                    checked={isSelected} 
-                                    onChange={() => {}} 
-                                    className="w-3 h-3 text-indigo-600 focus:ring-0 rounded"
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                    <input 
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Tìm ghi chú..."
+                      className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                    />
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
                   </div>
                 </div>
-              </div>
 
-            </div>
-
-            {/* Modal Bottom toolbar */}
-            <div className="px-6 py-4 border-t border-slate-200/10 dark:border-white/5 bg-black/5 dark:bg-white/5 rounded-b-2xl flex flex-col sm:flex-row gap-3 sm:items-center justify-between shrink-0">
-              
-              {/* Color list overlay */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mr-1 shrink-0">Màu sắc:</span>
-                {keepColors.map((color) => (
+                <div className="space-y-1">
+                  <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Thư mục</h3>
+                  {[
+                    { id: null, label: 'Tất cả ghi chú', icon: <StickyNote className="w-4 h-4" /> },
+                    { id: 'pinned', label: 'Đã ghim', icon: <Pin className="w-4 h-4" /> },
+                    { id: 'archive', label: 'Lưu trữ', icon: <Archive className="w-4 h-4" /> },
+                  ].map(item => (
                   <button
-                    key={color.id}
-                    type="button"
-                    onClick={() => setModalColor(color.id)}
-                    title={color.name}
-                    className={`w-5 h-5 rounded-full border border-slate-300 dark:border-slate-700 hover:scale-110 active:scale-95 transition-all ${color.bullet} relative`}
+                    key={item.id || 'all'}
+                    onClick={() => setActiveTag(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTag === item.id ? 'bg-orange-50 text-orange-600 shadow-sm border border-orange-100' : 'text-slate-600 hover:bg-gray-100'}`}
                   >
-                    {modalColor === color.id && (
-                      <Check className="w-3.5 h-3.5 text-slate-700 dark:text-slate-200 absolute inset-0 m-auto" />
-                    )}
+                    {item.icon}
+                    {item.label}
                   </button>
                 ))}
               </div>
 
-              {/* Toggle switch standard or checklist directly */}
-              <div className="flex items-center gap-2 self-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setModalShowChecklist(!modalShowChecklist);
-                    if (modalChecklist.length === 0) {
-                      setModalChecklist([{ item: 'Mục công việc đầu tiên...', done: false }]);
-                    }
-                  }}
-                  className={`px-3 py-1 flex items-center gap-1.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[10px] font-bold rounded transition-all ${modalShowChecklist ? 'text-indigo-600 bg-indigo-50/80 dark:bg-slate-800' : 'text-slate-600 dark:text-slate-350'}`}
-                >
-                  <CheckSquare className="w-3.5 h-3.5" />
-                  {modalShowChecklist ? "Hiển thị checklist" : "Hiện Checklist"}
-                </button>
+              {allTags.length > 0 && (
+                <div className="space-y-1 pt-4 border-t border-gray-100">
+                  <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nhãn phổ biến</h3>
+                  <div className="flex flex-wrap gap-1.5 px-3">
+                    {allTags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${activeTag === tag ? 'bg-orange-500 text-white' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </aside>
+            </ContentCard>
+          </div>
 
-                <button 
-                  onClick={saveEditModal} 
-                  className="px-5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-lg shadow-md transition-colors"
-                >
-                  Đóng & Lưu
-                </button>
+          <div className="flex-1">
+              {pinnedNotes.length > 0 && (
+                <div className="mb-8">
+                  <div className="flex items-center gap-2 mb-4 px-2">
+                    <Pin className="w-4 h-4 text-orange-500" />
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Đã ghim</h3>
+                  </div>
+                  <div className="columns-1 sm:columns-2 xl:columns-3 gap-5 [column-fill:_balance]">
+                    {pinnedNotes.map(note => (
+                      <div key={note.id} className="break-inside-avoid mb-5">
+                        <NoteCard 
+                          note={note} 
+                          onClick={() => setEditingNote(note)}
+                          onTogglePin={() => handleTogglePin(note.id)}
+                          onDeleteNote={() => handleDeleteNote(note.id)}
+                          onShareNote={() => handleShareNote(note)}
+                          onCopyLink={() => handleCopyShareLink(note)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div>
+                {pinnedNotes.length > 0 && (
+                  <div className="flex items-center gap-2 mb-4 px-2">
+                    <StickyNote className="w-4 h-4 text-slate-400" />
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Khác</h3>
+                  </div>
+                )}
+                <div className="columns-1 sm:columns-2 xl:columns-3 gap-5 [column-fill:_balance]">
+                  {otherNotes.map(note => (
+                    <div key={note.id} className="break-inside-avoid mb-5">
+                      <NoteCard 
+                        note={note} 
+                        onClick={() => setEditingNote(note)}
+                        onTogglePin={() => handleTogglePin(note.id)}
+                        onDeleteNote={() => handleDeleteNote(note.id)}
+                        onShareNote={() => handleShareNote(note)}
+                        onCopyLink={() => handleCopyShareLink(note)}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              {/* Google Drive Picker inside Modal */}
-              <GooglePickerButton onPicked={handleModalPicked} variant="icon" className="p-1 border border-slate-200 dark:border-slate-800" />
+              
+              {filteredNotes.length === 0 && (
+                <div className="text-center py-20 bg-gray-50 rounded-3xl border border-gray-100 border-dashed">
+                  <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300 shadow-sm border border-gray-100">
+                    <Search className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 tracking-tight">Không tìm thấy ghi chú nào</h3>
+                  <p className="text-sm text-slate-500 mt-2">Thử thay đổi bộ lọc hoặc tìm kiếm theo từ khóa khác nhé.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
 
-      {/* GOOGLE KEEP STYLE MODAL FOR CREATING A NEW NOTE */}
-      {isCreateModalOpen && (
-        <div 
-          className="fixed inset-0 z-[9999] bg-slate-950/45 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 animate-fade-in"
-          onClick={() => {
-            createNoteRef.current?.close();
-          }}
-        >
-          <div 
-            className="w-[80%] h-[80%] animate-scale-in flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
+      {/* Edit Note Modal */}
+      {editingNote && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-zoom-in">
             <CreateNote 
-              ref={createNoteRef} 
-              onAddNote={handleAddNote} 
-              onCloseModal={() => setIsCreateModalOpen(false)}
+              onAddNote={(updatedData) => {
+                handleUpdateNote({ ...editingNote, ...updatedData });
+                setEditingNote(null);
+              }}
+              onCloseModal={() => setEditingNote(null)}
               isModal={true}
+              ref={null}
             />
           </div>
         </div>
       )}
 
-      {/* SHARE NOTE WITH CONTACTS MODAL */}
-      {sharingNote && (() => {
-        const filteredShareContacts = initialContacts.filter(c => 
-          c.name.toLowerCase().includes(shareSearchTerm.toLowerCase()) || 
-          c.email.toLowerCase().includes(shareSearchTerm.toLowerCase()) ||
-          (c.title && c.title.toLowerCase().includes(shareSearchTerm.toLowerCase()))
-        );
-
-        return (
-          <div 
-            className="fixed inset-0 z-[9999] bg-slate-950/45 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 animate-fade-in"
-            onClick={() => setSharingNote(null)}
-          >
-            <div 
-              className="w-[80%] h-[80%] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-2xl animate-scale-in flex flex-col"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-indigo-500" />
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-white">Chia sẻ với danh bạ</h3>
-                </div>
-                <button 
-                  onClick={() => setSharingNote(null)} 
-                  className="p-1 rounded-full hover:bg-slate-150 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-650 shrink-0"
-                >
-                  <X className="w-4 h-4" />
+      {/* Share Note Modal */}
+      {sharingNote && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden animate-zoom-in">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Chia sẻ ghi chú</h3>
+                <button onClick={() => setSharingNote(null)} className="p-2 hover:bg-gray-100 rounded-xl text-slate-400 transition-all">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
+              <p className="text-xs text-slate-500 mt-1 line-clamp-1">{sharingNote.title || sharingNote.content}</p>
+            </div>
 
-              <div className="mb-3">
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Ghi chú chia sẻ</p>
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate mt-0.5">
-                  {sharingNote.title || "Ghi chú không tiêu đề"}
-                </p>
-              </div>
-
-              {/* Search contacts inside modal */}
-              <div className="relative mb-3">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                <input
+            <div className="p-6">
+              <div className="relative mb-4">
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                <input 
                   type="text"
-                  placeholder="Tìm thành viên trong danh bạ..."
                   value={shareSearchTerm}
                   onChange={(e) => setShareSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-7 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-800 dark:text-white"
+                  placeholder="Tìm thành viên..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                 />
-                {shareSearchTerm && (
-                  <button 
-                    onClick={() => setShareSearchTerm('')} 
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
               </div>
 
-              {/* Scrollable list of suggested contacts */}
-              <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar pr-1 border border-slate-100 dark:border-slate-950 rounded-xl p-1.5 bg-slate-50/30 dark:bg-slate-950/30">
-                {filteredShareContacts.map((contact) => {
+              <div className="space-y-1 max-h-60 overflow-y-auto pr-2">
+                {initialContacts.filter(c => c.name.toLowerCase().includes(shareSearchTerm.toLowerCase())).map(contact => {
                   const isShared = sharingNote.sharedWith?.includes(contact.id);
                   return (
-                    <div 
-                      key={contact.id} 
+                    <button
+                      key={contact.id}
                       onClick={() => toggleContactShare(sharingNote.id, contact.id)}
-                      className={`p-2 rounded-lg flex items-center justify-between gap-3 text-left transition-all cursor-pointer ${isShared ? 'bg-indigo-50/40 dark:bg-indigo-950/15 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/25 border border-indigo-100/20 dark:border-indigo-900/10' : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/85 border border-transparent'}`}
+                      className={`w-full flex items-center justify-between p-2 rounded-xl transition-all ${isShared ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-gray-50'}`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        {contact.avatar && contact.avatar.startsWith('http') ? (
-                          <img 
-                            src={contact.avatar} 
-                            alt={contact.name} 
-                            referrerPolicy="no-referrer"
-                            className="w-8 h-8 rounded-full border border-slate-250/25 object-cover shrink-0" 
-                          />
-                        ) : (
-                          <span className="w-8 h-8 rounded-full bg-indigo-500 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                            {contact.name.split(' ').pop()?.[0] || 'C'}
-                          </span>
-                        )}
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-205 truncate">{contact.name}</p>
-                          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{contact.title} • {contact.email}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs">
+                          {contact.name[0]}
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs font-bold text-slate-800 tracking-tight">{contact.name}</p>
+                          <p className="text-[10px] text-slate-500 font-medium">{contact.role}</p>
                         </div>
                       </div>
-
-                      <div className="shrink-0">
-                        {isShared ? (
-                          <span className="bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-md text-[9px] font-bold border border-indigo-200/30">
-                            ✓ Đã chia sẻ
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-400 hover:text-slate-700 px-2.5 py-0.5 rounded-md text-[9px] font-bold border border-slate-200 dark:border-slate-800">
-                            + Thêm
-                          </span>
-                        )}
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${isShared ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-200'}`}>
+                        {isShared && <Check className="w-3 h-3" />}
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
-                {filteredShareContacts.length === 0 && (
-                  <div className="text-center py-6 text-xs text-slate-400 dark:text-slate-500">
-                    Không tìm thấy liên hệ nào.
-                  </div>
-                )}
               </div>
+            </div>
 
-              {/* Bottom bar and Copy link */}
-              <div className="mt-4 pt-3.5 border-t border-slate-200/10 dark:border-white/5 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => handleCopyShareLink(sharingNote)}
-                  className="px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 bg-white dark:bg-slate-900 font-bold text-[10px] rounded-lg flex items-center gap-1.5 shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
-                >
-                  <Link className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Sao chép liên kết</span>
-                </button>
-                <button 
-                  onClick={() => setSharingNote(null)} 
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors active:scale-95"
-                >
-                  Hoàn tất
-                </button>
-              </div>
-
+            <div className="p-6 bg-gray-50 flex items-center justify-between border-t border-gray-100">
+              <button onClick={() => handleCopyShareLink(sharingNote)} className="flex items-center gap-2 text-indigo-600 text-xs font-bold hover:underline">
+                <Link className="w-4 h-4" /> Sao chép liên kết
+              </button>
+              <button onClick={() => setSharingNote(null)} className="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all">
+                Xong
+              </button>
             </div>
           </div>
-        );
-      })()}
-
-    </main>
+        </div>
+      )}
+      
+      {toastMessage && (
+        <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 z-[2000] animate-fade-in-up">
+          <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-emerald-400" />
+            <span className="text-sm font-bold tracking-tight">{toastMessage}</span>
+          </div>
+        </div>
+      )}
+    </StandardPageLayout>
   );
 };
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-
-import { FileTextIcon, XIcon, ClipboardListIcon, TrashIcon, ClockIcon } from './icons';
+import PageBanner from './PageBanner';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
+import { FileTextIcon, XIcon, ClipboardListIcon, TrashIcon, ClockIcon, PlusIcon, DownloadIcon } from './icons';
 import { RecentItem, AppNotification } from '../App';
 import { db } from '../firebase';
 import { collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 type TaskStatus = 'Cần làm' | 'Đang làm' | 'Xem xét' | 'Hoàn thành';
 type TaskPriority = 'Cao' | 'Trung bình' | 'Thấp';
@@ -325,7 +326,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
                             <label className="text-sm font-semibold text-[--color-text-secondary] mb-1 block">Nhiệm vụ phụ (Subtasks)</label>
                             <div className="space-y-2 mb-2">
                                 {(task.subtasks || []).map(st => (
-                                    <div key={st.id} className="flex items-center justify-between group bg-white/50 dark:bg-black/10 p-2 rounded border border-slate-100 dark:border-slate-800">
+                                    <div key={st.id} className="flex items-center justify-between group bg-[--color-surface-primary]/50 p-2 rounded border border-[--color-border-secondary]">
                                         <label className="flex items-center gap-2 cursor-pointer flex-1">
                                             <input 
                                                 type="checkbox" 
@@ -334,9 +335,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
                                                     const newSubtasks = (task.subtasks || []).map(s => s.id === st.id ? { ...s, completed: e.target.checked } : s);
                                                     handleChange('subtasks', newSubtasks);
                                                 }}
-                                                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                                                className="w-4 h-4 rounded border-[--color-border-secondary] text-[--color-accent-500] focus:ring-[--color-accent-500]"
                                             />
-                                            <span className={`text-sm ${st.completed ? 'line-through text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>{st.title}</span>
+                                            <span className={`text-sm ${st.completed ? 'line-through text-[--color-text-subtle]' : 'text-[--color-text-primary]'}`}>{st.title}</span>
                                         </label>
                                         <button 
                                             onClick={() => handleChange('subtasks', (task.subtasks || []).filter(s => s.id !== st.id))}
@@ -374,14 +375,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
                             </label>
                             <div className="space-y-2">
                                 {(task.attachments || []).map(att => (
-                                    <div key={att.id} className="flex items-center justify-between p-2 bg-white/50 dark:bg-black/10 rounded border border-slate-100 dark:border-slate-800 group">
+                                    <div key={att.id} className="flex items-center justify-between p-2 bg-[--color-surface-primary]/50 rounded border border-[--color-border-secondary] group">
                                         <div className="flex items-center gap-2 overflow-hidden">
-                                            <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded flex items-center justify-center shrink-0">
+                                            <div className="w-7 h-7 bg-[--color-accent-500]/10 text-[--color-accent-600] rounded flex items-center justify-center shrink-0">
                                                 <FileTextIcon className="w-4 h-4" />
                                             </div>
-                                            <span className="text-xs truncate">{att.name}</span>
+                                            <span className="text-xs truncate text-[--color-text-primary]">{att.name}</span>
                                         </div>
-                                        <button onClick={() => handleRemoveAttachment(att.id)} className="text-red-400 opacity-0 group-hover:opacity-100 p-1">
+                                        <button onClick={() => handleRemoveAttachment(att.id)} className="text-[--color-text-subtle] opacity-0 group-hover:opacity-100 p-1">
                                             <XIcon className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -405,7 +406,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
                             <label className="text-sm font-semibold text-[--color-text-secondary] mb-3 block">Bình luận</label>
                             <div className="flex flex-col gap-3 mb-4">
                                 {(task.comments || []).map(comment => (
-                                    <div key={comment.id} className="bg-white/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800">
+                                    <div key={comment.id} className="bg-[--color-surface-primary]/50 p-3 rounded-lg border border-[--color-border-secondary]">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className="font-semibold text-sm text-[--color-text-primary]">{comment.author}</span>
                                             <span className="text-xs text-[--color-text-secondary]">{new Date(comment.timestamp).toLocaleString('vi-VN')}</span>
@@ -488,7 +489,7 @@ const KanbanColumn: React.FC<{
 }> = ({ title, tasks, selectedTaskIds, onSelectTask, onDeleteTask, onToggleSelection }) => {
     const styles = statusStyles[title];
     return (
-        <div className="flex-1 flex flex-col gap-4 p-4 bg-white/50 rounded-xl min-w-[300px]">
+        <div className="flex-1 flex flex-col gap-4 p-4 bg-[--color-surface-secondary]/40 backdrop-blur-md border border-[--color-border-secondary] rounded-xl min-w-[300px]">
             <div className="flex justify-between items-center">
                 <h2 className={`font-bold text-lg ${styles.text}`}>{title}</h2>
                 <span className={`px-2.5 py-1 text-sm font-semibold rounded-full ${styles.bg} ${styles.text}`}>{tasks.length}</span>
@@ -500,7 +501,7 @@ const KanbanColumn: React.FC<{
                         <div 
                             key={task.id} 
                             onClick={() => onSelectTask(task)}
-                            className={`relative group w-full text-left p-4 bg-white/80 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer transform hover:-translate-y-1 ${priorityStyles[task.priority]} ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+                            className={`relative group w-full text-left p-4 bg-[--color-surface-primary]/90 backdrop-blur-sm border border-[--color-border-primary] rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer transform hover:-translate-y-1 ${priorityStyles[task.priority]} ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
                         >
                             <label className="absolute top-2 left-2 z-10 p-1" onClick={(e) => { e.stopPropagation(); }}>
                                 <input 
@@ -511,7 +512,7 @@ const KanbanColumn: React.FC<{
                                 />
                             </label>
                             <div className="flex justify-between items-start pl-6">
-                                <h3 className="font-semibold text-slate-800">{task.title}</h3>
+                                <h3 className="text-sm font-bold text-slate-800">{task.title}</h3>
                                 <span className={`px-2 py-0.5 text-xs font-bold rounded-full ml-2 shrink-0 ${statusStyles[task.status].bg} ${statusStyles[task.status].text}`}>
                                     {task.status}
                                 </span>
@@ -519,7 +520,7 @@ const KanbanColumn: React.FC<{
                             {(task.labels && task.labels.length > 0) && (
                                 <div className="flex flex-wrap gap-1 mt-2 pl-6">
                                     {task.labels.map((label, idx) => (
-                                        <span key={idx} className={`px-2 py-0.5 text-[10px] font-bold rounded-md text-white ${label.color}`}>
+                                        <span key={idx} className={`px-2 py-0.5 text-xs font-bold rounded-md text-white ${label.color}`}>
                                             {label.name}
                                         </span>
                                     ))}
@@ -539,7 +540,7 @@ const KanbanColumn: React.FC<{
                                 </div>
                             )}
                             {task.timeSpent ? (
-                                <div className="mt-1 pl-6 flex items-center gap-1.5 text-blue-600 text-[10px] font-bold uppercase tracking-tight">
+                                <div className="mt-1 pl-6 flex items-center gap-1.5 text-blue-600 text-xs font-bold uppercase tracking-tight">
                                     <ClockIcon className="w-3 h-3" />
                                     <span>Time: {Math.floor(task.timeSpent / 3600000)}h {Math.floor((task.timeSpent % 3600000) / 60000)}m</span>
                                 </div>
@@ -740,7 +741,7 @@ const TaskView: React.FC<TaskViewProps> = ({ onItemViewed, onSendNotification })
     };
 
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] pb-24 md:pb-8 relative">
+        <StandardPageLayout>
             {taskToDeleteId && (
                 <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9999] flex justify-center items-center p-4" aria-modal="true" role="dialog">
                     <div className="relative w-full max-w-md bg-[--color-surface-tertiary] backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col animate-fade-in-up">
@@ -765,107 +766,129 @@ const TaskView: React.FC<TaskViewProps> = ({ onItemViewed, onSendNotification })
                     onDelete={handleDeleteRequest}
                 />
             )}
-            <div className="shrink-0 mb-6">
-                
-            </div>
+            
+            <PageBanner 
+                title="Quản lý Công việc"
+                subtitle="Theo dõi tiến độ, phân công nhiệm vụ và tối ưu hóa quy trình làm việc của nhóm."
+                icon={<ClipboardListIcon className="w-full h-full" />}
+                gradient="from-indigo-600 to-purple-700"
+                actions={
+                    <>
+                        <button className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                            <FilterIcon className="w-4 h-4" /> Lọc
+                        </button>
+                        <button className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                            <DownloadIcon className="w-4 h-4" /> Xuất dữ liệu
+                        </button>
+                        <button className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
+                            <PlusIcon className="w-4 h-4" /> Tạo việc mới
+                        </button>
+                    </>
+                }
+            />
 
-            {/* Task Summary Dashboard */}
-            <div className="shrink-0 mb-6 bg-white/50 backdrop-blur-md rounded-xl p-6 shadow-sm flex flex-col md:flex-row items-center gap-8">
-                <div className="flex-1 flex items-center justify-around w-full">
-                    {columns.map(status => (
-                        <div key={status} className="flex flex-col items-center">
-                            <span className="text-2xl font-bold text-slate-800">{taskCounts[status]}</span>
-                            <span className={`text-xs font-semibold uppercase tracking-wider ${statusStyles[status].text}`}>{status}</span>
+            <ContentCard>
+                {/* Task Summary Dashboard */}
+                <div className="mb-8 bg-gray-50 border border-gray-100 rounded-2xl p-6 flex flex-col md:flex-row items-center gap-8">
+                    <div className="flex-1 flex items-center justify-around w-full">
+                        {columns.map(status => (
+                            <div key={status} className="flex flex-col items-center">
+                                <span className="text-3xl font-bold text-[--color-text-primary] tracking-tight">{taskCounts[status]}</span>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${statusStyles[status].text}`}>{status}</span>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    {chartData.length > 0 && (
+                        <div className="w-full md:w-64 h-40 shrink-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={chartData}
+                                        innerRadius={50}
+                                        outerRadius={70}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {chartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[entry.name as keyof typeof COLORS]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip 
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
                         </div>
+                    )}
+                </div>
+
+                <div 
+                    ref={scrollRef}
+                    onWheel={handleWheel}
+                    className="flex gap-6 overflow-x-auto no-scrollbar pb-6 min-h-[600px]"
+                >
+                    {columns.map(status => (
+                        <KanbanColumn 
+                            key={status} 
+                            title={status} 
+                            tasks={tasks.filter(t => t.status === status)}
+                            selectedTaskIds={selectedTaskIds}
+                            onSelectTask={handleSelectTask}
+                            onDeleteTask={handleDeleteRequest}
+                            onToggleSelection={handleToggleSelection}
+                        />
                     ))}
                 </div>
-                
-                {chartData.length > 0 && (
-                    <div className="w-full md:w-64 h-48 shrink-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={chartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={40}
-                                    outerRadius={70}
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                    animationBegin={0}
-                                    animationDuration={1500}
-                                >
-                                    {chartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[entry.name as TaskStatus]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip 
-                                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                />
-                                <Legend 
-                                    iconType="circle" 
-                                    layout="vertical" 
-                                    align="right" 
-                                    verticalAlign="middle" 
-                                    wrapperStyle={{ fontSize: '10px', fontWeight: '600', paddingLeft: '10px' }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
+
+                {/* Bulk Actions Context Bar */}
+                {selectedTaskIds.length > 0 && (
+                    <div className="mt-8 bg-slate-900 text-white px-6 py-4 rounded-2xl flex flex-wrap items-center gap-6 shadow-2xl animate-fade-in-up">
+                        <div className="flex items-center gap-3">
+                            <span className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center font-bold">{selectedTaskIds.length}</span>
+                            <span className="font-bold text-sm tracking-tight">đã chọn</span>
+                        </div>
+                        <div className="h-8 w-px bg-slate-700 hidden sm:block"></div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Chuyển trạng thái:</span>
+                            <div className="flex flex-wrap gap-2">
+                                {columns.map(col => (
+                                    <button 
+                                        key={col} 
+                                        onClick={() => handleBulkMove(col)}
+                                        className="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold transition-all border border-slate-700"
+                                    >
+                                        {col}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="h-8 w-px bg-slate-700 hidden lg:block"></div>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Độ ưu tiên:</span>
+                            <div className="flex gap-2">
+                                {(['Cao', 'Trung bình', 'Thấp'] as TaskPriority[]).map(pri => (
+                                    <button 
+                                        key={pri} 
+                                        onClick={() => handleBulkPriority(pri)}
+                                        className="px-3 py-1 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold transition-all border border-slate-700"
+                                    >
+                                        {pri}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex-1"></div>
+                        <button onClick={handleBulkDelete} className="flex items-center gap-2 text-red-400 hover:text-red-300 font-bold text-sm transition-colors px-4 py-2 hover:bg-red-500/10 rounded-xl">
+                            <TrashIcon className="w-4 h-4" /> Xóa thẻ
+                        </button>
+                        <button onClick={() => setSelectedTaskIds([])} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white">
+                            <XIcon className="w-5 h-5" />
+                        </button>
                     </div>
                 )}
-            </div>
-
-            <div 
-                ref={scrollRef}
-                onWheel={handleWheel}
-                className="flex-1 flex gap-6 overflow-x-auto no-scrollbar pb-2"
-            >
-                {columns.map(status => (
-                    <KanbanColumn 
-                        key={status} 
-                        title={status}
-                        tasks={tasks.filter(t => t.status === status)}
-                        selectedTaskIds={selectedTaskIds}
-                        onSelectTask={handleSelectTask}
-                        onDeleteTask={handleDeleteRequest}
-                        onToggleSelection={handleToggleSelection}
-                    />
-                ))}
-            </div>
-
-            {/* Bulk Actions Context Bar */}
-            {selectedTaskIds.length > 0 && (
-                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full flex items-center gap-4 shadow-2xl animate-fade-in-up z-30">
-                    <span className="font-semibold">{selectedTaskIds.length} phần tử được chọn</span>
-                    <div className="h-6 w-px bg-slate-600"></div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-300">Chuyển thẻ:</span>
-                        <select className="bg-slate-700 text-sm rounded px-2 py-1 border-none focus:ring-1 focus:ring-blue-500" onChange={(e) => { if(e.target.value) handleBulkMove(e.target.value as TaskStatus); }}>
-                            <option value="">-- Chọn --</option>
-                            {columns.map(col => <option key={col} value={col}>{col}</option>)}
-                        </select>
-                    </div>
-                    <div className="h-6 w-px bg-slate-600"></div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-300">Mức độ:</span>
-                        <select className="bg-slate-700 text-sm rounded px-2 py-1 border-none focus:ring-1 focus:ring-blue-500" onChange={(e) => { if(e.target.value) handleBulkPriority(e.target.value as TaskPriority); }}>
-                            <option value="">-- Chọn --</option>
-                            <option value="Cao">Cao</option>
-                            <option value="Trung bình">Trung bình</option>
-                            <option value="Thấp">Thấp</option>
-                        </select>
-                    </div>
-                    <div className="h-6 w-px bg-slate-600"></div>
-                    <button onClick={handleBulkDelete} className="text-red-400 hover:text-red-300 font-semibold text-sm transition-colors">
-                        Xóa
-                    </button>
-                    <button onClick={() => setSelectedTaskIds([])} className="ml-2 hover:bg-slate-700 p-1 rounded-full transition-colors">
-                        <XIcon className="w-5 h-5 text-slate-400 hover:text-white" />
-                    </button>
-                </div>
-            )}
-        </main>
+            </ContentCard>
+        </StandardPageLayout>
     );
 };
 

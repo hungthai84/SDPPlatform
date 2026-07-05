@@ -7,6 +7,9 @@ import {
 import { User } from '../App';
 import { db, auth } from '../firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
+import PageBanner from './PageBanner';
+import { Network, Plus } from 'lucide-react';
 
 interface OrgTarget {
   id: string;
@@ -937,16 +940,34 @@ const OrgChartView: React.FC<OrgChartViewProps> = ({ user, allUsers = [] }) => {
   const activeRoot = orgData[selectedDept];
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[--color-surface-primary]/20 rounded-2xl border border-[--color-border-secondary] overflow-hidden">
-      {/* Header section */}
-      <div className="p-6 border-b border-[--color-border-secondary] flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[--color-surface-secondary]/50 shrink-0">
-        <div>
-          <h2 className="text-xl font-bold text-[--color-text-primary] flex items-center gap-2">
-            <SitemapIcon className="w-6 h-6 text-[--color-accent-600]" />
-            <span>Tổ chức</span>
-          </h2>
-          <p className="text-sm text-[--color-text-subtle] mt-1">Sơ đồ cơ cấu tổ chức, phòng ban và phân nhiệm nhân sự</p>
-        </div>
+    <StandardPageLayout>
+      <PageBanner 
+        title="Sơ đồ tổ chức & Phân nhiệm"
+        subtitle="Quản lý cấu trúc phòng ban, sơ đồ báo cáo và theo dõi tiến độ OKRs nhân sự trực quan."
+        icon={<Network className="w-full h-full text-white" />}
+        gradient="from-indigo-600 to-violet-700"
+        actions={
+          <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                setNewDeptName('');
+                setActionModal('add-dept');
+              }}
+              className="flex items-center gap-1.5 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all border border-indigo-100 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> Thêm phòng ban
+            </button>
+          </div>
+        }
+      />
+
+      <div className="flex flex-col gap-6 mt-6">
+        <ContentCard>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100 shrink-0">
+            <div>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Bộ phận & Bộ lọc cấu trúc</h3>
+              <p className="text-xs text-slate-500 mt-1">Chọn phòng ban để hiển thị sơ đồ báo cáo trực quan</p>
+            </div>
 
         {/* Action controllers */}
         <div className="flex flex-wrap items-center gap-3">
@@ -1834,7 +1855,9 @@ const OrgChartView: React.FC<OrgChartViewProps> = ({ user, allUsers = [] }) => {
           );
         })()
       )}
-    </div>
+        </ContentCard>
+      </div>
+    </StandardPageLayout>
   );
 };
 

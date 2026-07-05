@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
+import PageBanner from './PageBanner';
+import { CheckSquare } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -118,82 +121,6 @@ export const mockTaskTemplates = [
 ];
 
 import { fetchTaskLists, fetchTasks, getAccessToken } from '../googleTasks';
-
-// --- BANNER COMPONENT ---
-const AnimatedTasklistIcon = () => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        viewBox="0 0 120 100" 
-        className="w-14 h-14 drop-shadow-lg"
-        aria-hidden="true"
-    >
-        <style>{`
-            .clipboard-group {
-                animation: float 6s ease-in-out infinite;
-            }
-            @keyframes float {
-                0% { transform: translateY(0px); }
-                50% { transform: translateY(-8px); }
-                100% { transform: translateY(0px); }
-            }
-            .check-mark {
-                stroke-dasharray: 30;
-                stroke-dashoffset: 30;
-                animation: draw-check 3s ease-in-out infinite;
-                animation-delay: 1s;
-            }
-            @keyframes draw-check {
-                0% { stroke-dashoffset: 30; }
-                25% { stroke-dashoffset: 0; }
-                75% { stroke-dashoffset: 0; }
-                100% { stroke-dashoffset: -30; }
-            }
-        `}</style>
-        <g className="clipboard-group">
-            <path d="M85,15 H35 A5,5 0 0,0 30,20 V80 A5,5 0 0,0 35,85 H85 A5,5 0 0,0 90,80 V20 A5,5 0 0,0 85,15 Z" fill="#fff" stroke="#e0e7ff" strokeWidth="2" />
-            <path d="M70,10 h-20 a8,8 0 0,0 0,16 h20 a8,8 0 0,0 0,-16 Z" fill="#a5b4fc" />
-            <line x1="45" y1="58" x2="75" y2="58" stroke="#c7d2fe" strokeWidth="3" strokeLinecap="round" />
-            <line x1="45" y1="68" x2="65" y2="68" stroke="#c7d2fe" strokeWidth="3" strokeLinecap="round" />
-            
-            <g transform="translate(0, -5)">
-                <circle cx="50" cy="40" r="10" fill="#34d399" opacity="0.2" />
-                <path className="check-mark" d="M45 40 L49 44 L57 36" stroke="#10b981" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </g>
-        </g>
-    </svg>
-);
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const TasklistBanner: React.FC<{ onSync?: () => void, isSyncing?: boolean }> = ({ onSync, isSyncing }) => {
-    return (
-        <div className="relative p-3 sm:p-4 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-600 text-white overflow-hidden shadow-lg">
-            <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-white/10 rounded-full z-0" aria-hidden="true"></div>
-            <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-lg opacity-80 z-0 -rotate-12" aria-hidden="true"></div>
-            <div className="relative z-10 flex flex-col sm:flex-row justify-between items-center gap-2">
-                <div className="text-center sm:text-left">
-                    <div className="flex items-center gap-3">
-                        <h1 className="text-lg sm:text-xl font-bold">Danh sách việc</h1>
-                        {onSync && (
-                            <button 
-                                onClick={onSync} 
-                                disabled={isSyncing}
-                                className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded text-xs font-semibold backdrop-blur-sm transition-all shadow-sm flex items-center gap-2"
-                            >
-                                {isSyncing ? 'Đang đồng bộ...' : 'Đồng bộ Google Tasks'}
-                            </button>
-                        )}
-                    </div>
-                    <p className="mt-0.5 text-xs text-indigo-100 max-w-lg italic">
-                        “Việc nhỏ – nhưng nhớ kỹ. Đồng bộ, nhắc đúng, xử lý gọn.”
-                    </p>
-                </div>
-                <div className="shrink-0 hidden md:block">
-                    <AnimatedTasklistIcon />
-                </div>
-            </div>
-        </div>
-    );
-};
 
 // --- EDIT MODAL ---
 const TaskEditModal: React.FC<{ 
@@ -1150,10 +1077,8 @@ const TasklistView: React.FC<{
     return () => unsubscribe();
   }, [user?.id]);
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isSyncingTasks, setIsSyncingTasks] = useState(false);
   
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSyncGoogleTasks = async () => {
       setIsSyncingTasks(true);
       showToast('Đang kết nối Google Tasks...');
@@ -1884,8 +1809,24 @@ const TasklistView: React.FC<{
   };
 
   return (
-    <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] pb-24 md:pb-8">
-      <div className="flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
+    <StandardPageLayout>
+      <PageBanner 
+        title="Quản lý công việc"
+        subtitle="“Việc nhỏ – nhưng nhớ kỹ. Đồng bộ, nhắc đúng, xử lý gọn.”"
+        icon={<CheckSquare className="w-full h-full text-white" />}
+        gradient="from-indigo-600 to-blue-700"
+        actions={
+          <button 
+            onClick={handleSyncGoogleTasks} 
+            disabled={isSyncingTasks}
+            className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all disabled:opacity-50"
+          >
+            {isSyncingTasks ? 'Đang đồng bộ...' : 'Đồng bộ Google Tasks'}
+          </button>
+        }
+      />
+
+      <div className="flex flex-col gap-6 mt-6">
         {editingTask && <TaskEditModal 
             task={editingTask.task} 
             user={user}
@@ -1913,51 +1854,51 @@ const TasklistView: React.FC<{
           </div>
         )}
 
-        
-        
         {/* Search and Action Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 px-1 py-2">
-            <div className="relative flex-1 group">
-                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                <input 
-                    type="text" 
-                    placeholder="Tìm kiếm theo tên công việc, người phụ trách hoặc độ ưu tiên..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-white/70 backdrop-blur-md border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all shadow-sm"
-                />
-            </div>
-            <div className="flex gap-2">
-                <button 
-                  onClick={handlePrint}
-                  className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold border border-slate-200 hover:bg-slate-200 transition-all flex items-center gap-2"
-                >
-                  <ShareIcon className="w-4 h-4 rotate-180" /> In danh sách
-                </button>
-                <button 
-                  onClick={handleDownloadCSV}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center gap-2"
-                >
-                  <ShareIcon className="w-4 h-4" /> Xuất CSV
-                </button>
-                {selectedTaskIds.length > 0 && (
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={handleBulkComplete}
-                      className="px-4 py-2 bg-blue-100 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-200 transition-all flex items-center gap-2"
-                    >
-                      <PlusIcon className="w-4 h-4 rotate-45" /> Hoàn thành ({selectedTaskIds.length})
-                    </button>
-                    <button 
-                      onClick={handleBulkDelete}
-                      className="px-4 py-2 bg-red-100 text-red-600 rounded-xl text-sm font-bold hover:bg-red-200 transition-all flex items-center gap-2"
-                    >
-                      <TrashIcon className="w-4 h-4" /> Xóa ({selectedTaskIds.length})
-                    </button>
-                  </div>
-                )}
-            </div>
-        </div>
+        <ContentCard>
+          <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1 group">
+                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                  <input 
+                      type="text" 
+                      placeholder="Tìm kiếm theo tên công việc, người phụ trách hoặc độ ưu tiên..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full bg-white/70 backdrop-blur-md border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all shadow-sm"
+                  />
+              </div>
+              <div className="flex gap-2">
+                  <button 
+                    onClick={handlePrint}
+                    className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold border border-slate-200 hover:bg-slate-200 transition-all flex items-center gap-2"
+                  >
+                    <ShareIcon className="w-4 h-4 rotate-180" /> In danh sách
+                  </button>
+                  <button 
+                    onClick={handleDownloadCSV}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow-md shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center gap-2"
+                  >
+                    <ShareIcon className="w-4 h-4" /> Xuất CSV
+                  </button>
+                  {selectedTaskIds.length > 0 && (
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={handleBulkComplete}
+                        className="px-4 py-2 bg-blue-100 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-200 transition-all flex items-center gap-2"
+                      >
+                        <PlusIcon className="w-4 h-4 rotate-45" /> Hoàn thành ({selectedTaskIds.length})
+                      </button>
+                      <button 
+                        onClick={handleBulkDelete}
+                        className="px-4 py-2 bg-red-100 text-red-600 rounded-xl text-sm font-bold hover:bg-red-200 transition-all flex items-center gap-2"
+                      >
+                        <TrashIcon className="w-4 h-4" /> Xóa ({selectedTaskIds.length})
+                      </button>
+                    </div>
+                  )}
+              </div>
+          </div>
+        </ContentCard>
         
         {/* Kanban Board Container */}
         <DndContext 
@@ -2328,7 +2269,7 @@ const TasklistView: React.FC<{
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
-    </main>
+    </StandardPageLayout>
   );
 };
 

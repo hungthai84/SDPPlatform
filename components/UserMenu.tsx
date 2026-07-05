@@ -74,8 +74,6 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, onNavigate, directi
           </div>
           <div className="p-2">
             <MenuItem icon={<SettingsIcon className="w-4 h-4 text-slate-500" />} label={t('settings')} onClick={() => { onNavigate('settings'); setIsOpen(false); }} />
-            <div className="w-full border-t my-1 border-[--color-border-secondary]"></div>
-            <MenuItem icon={<LogoutIcon className="w-4 h-4 text-red-500" />} label={t('logout')} onClick={onLogout} isDestructive />
           </div>
         </div>
       )}

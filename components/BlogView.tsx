@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, View, RecentItem } from '../App';
-
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
+import PageBanner from './PageBanner';
 import { SearchIcon, PlusIcon, SettingsIcon, BloggerIcon, ChevronDownIcon, CalendarPlusIcon, RobotIcon, PaperAirplaneIcon, BookOpenIcon, PinIcon, ShareIcon, XIcon } from './icons';
 import { useLanguage } from './LanguageContext';
 import { GoogleGenAI } from '@google/genai';
@@ -59,7 +60,7 @@ const ArticleCard: React.FC<ArticleCardProps & { searchTerm?: string; onDelete?:
     const remainingTags = article.tags.length - TAG_LIMIT;
 
     return (
-        <div onClick={onView} className={`relative flex flex-col bg-white/70 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group overflow-hidden cursor-pointer ${article.isPinned ? 'ring-2 ring-pink-500' : ''}`}>
+        <div onClick={onView} className={`relative flex flex-col bg-[--color-surface-secondary]/60 rounded-[20px] border border-[--color-border-secondary] shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group overflow-hidden cursor-pointer backdrop-blur-md ${article.isPinned ? 'ring-2 ring-[--color-accent-500]' : ''}`}>
             {article.source === 'Blogger' && (
                 <div className="absolute top-2 right-2 bg-orange-500 text-white p-1 rounded-full z-10 shadow-sm" title="From Blogger">
                     <BloggerIcon className="w-4 h-4" /> 
@@ -94,7 +95,7 @@ const ArticleCard: React.FC<ArticleCardProps & { searchTerm?: string; onDelete?:
                 >
                     <ShareIcon className="w-4 h-4" />
                 </button>
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-full shadow-sm text-white ${
+                <span className={`text-xs font-bold px-2 py-1 rounded-full shadow-sm text-white ${
                     article.status === 'Published' ? 'bg-green-500' : 
                     article.status === 'Draft' ? 'bg-slate-500' : 'bg-orange-700'
                 }`}>
@@ -126,7 +127,7 @@ const ArticleCard: React.FC<ArticleCardProps & { searchTerm?: string; onDelete?:
                         </button>
                     )}
                 </div>
-                <h3 className="font-bold text-slate-800 leading-tight flex-1 group-hover:text-purple-700 transition-colors">{highlightText(article.title, searchTerm)}</h3>
+                <h3 className="text-base font-bold text-slate-800 leading-tight flex-1 group-hover:text-purple-700 transition-colors">{highlightText(article.title, searchTerm)}</h3>
                 <div className="flex justify-between items-center mt-2 mb-3">
                     <p className="text-sm text-slate-500">By {highlightText(article.author, searchTerm)} &bull; {article.date}</p>
                 </div>
@@ -148,7 +149,7 @@ const PinnedPost: React.FC<{ article: Article, onTagClick: (tag: string) => void
     const remainingTags = article.tags.length - TAG_LIMIT;
 
     return (
-        <div onClick={onView} className="relative bg-white/70 rounded-xl shadow-lg overflow-hidden group flex flex-col md:flex-row cursor-pointer">
+        <div onClick={onView} className="relative bg-[--color-surface-secondary]/60 rounded-[20px] border border-[--color-border-secondary] shadow-sm overflow-hidden group flex flex-col md:flex-row cursor-pointer backdrop-blur-md">
             <div className="absolute top-4 right-4 z-10 flex gap-2 items-center">
                 {canDelete && (
                     <button 
@@ -430,48 +431,64 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
     };
 
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] gap-3 pb-24 md:pb-8">
-            
-            <div className="flex-1 overflow-y-auto no-scrollbar" onScroll={handleScroll}>
+        <StandardPageLayout onScroll={handleScroll}>
+            <PageBanner 
+                title="Quản lý Bài viết & Nội dung"
+                subtitle="Sáng tạo, quản lý và tối ưu hóa nội dung tiếp thị, truyền thông và tri thức doanh nghiệp."
+                icon={<BookOpenIcon className="w-full h-full text-white" />}
+                gradient="from-pink-600 to-rose-700"
+                actions={
+                    <button 
+                        onClick={() => onNavigate('new-post')}
+                        className="flex items-center gap-2 bg-white text-pink-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all"
+                    >
+                        <PlusIcon className="w-4 h-4" /> Viết bài mới
+                    </button>
+                }
+            />
+
+            <div className="flex flex-col gap-6 mt-6">
                 {/* Search and Filter */}
-                <div className="flex flex-col md:flex-row items-center gap-4 mb-8 w-full sticky top-0 z-20">
-                    <div className="relative flex-1 w-full">
-                        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input 
-                            type="search" 
-                            value={searchTerm} 
-                            onChange={(e) => setSearchTerm(e.target.value)} 
-                            placeholder={t('searchPlaceholderBlog')} 
-                            className="w-full bg-white border-none shadow-sm focus:ring-2 focus:ring-pink-500/20 focus:outline-none placeholder-slate-400 text-slate-800 rounded-full py-4 pl-12 pr-14 transition-all" 
-                        />
-                        <button 
-                            onClick={() => setAssistantOpen(!isAssistantOpen)}
-                            className={`absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full transition-all ${isAssistantOpen ? 'bg-purple-600 text-white shadow-lg' : 'bg-purple-50 text-purple-600 hover:bg-purple-100 shadow-sm'}`}
-                            title={t('blogAssistant')}
-                        >
-                            <RobotIcon className="w-5 h-5" />
-                        </button>
-                    </div>
-                    <div className="flex gap-3 w-full md:w-auto">
-                        <div className="relative flex-1">
-                            <select value={selectedTag || ''} onChange={(e) => setSelectedTag(e.target.value || null)} className="appearance-none w-full md:w-40 bg-white border border-slate-300 shadow-sm rounded-full py-3.5 pl-4 pr-10 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer">
-                                <option value="">{t('allTags')}</option>
-                                {allTags.map(tag => ( <option key={tag} value={tag}>{tag}</option> ))}
-                            </select>
-                            <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ContentCard>
+                    <div className="flex flex-col md:flex-row items-center gap-4 w-full">
+                        <div className="relative flex-1 w-full">
+                            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input 
+                                type="search" 
+                                value={searchTerm} 
+                                onChange={(e) => setSearchTerm(e.target.value)} 
+                                placeholder={t('searchPlaceholderBlog')} 
+                                className="w-full bg-[--color-surface-secondary] border border-[--color-border-secondary] shadow-sm focus:ring-2 focus:ring-[--color-accent-500]/20 focus:outline-none placeholder-[--color-text-subtle] text-[--color-text-primary] rounded-full py-4 pl-12 pr-14 transition-all" 
+                            />
+                            <button 
+                                onClick={() => setAssistantOpen(!isAssistantOpen)}
+                                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full transition-all ${isAssistantOpen ? 'bg-purple-600 text-white shadow-lg' : 'bg-purple-50 text-purple-600 hover:bg-purple-100 shadow-sm'}`}
+                                title={t('blogAssistant')}
+                            >
+                                <RobotIcon className="w-5 h-5" />
+                            </button>
                         </div>
-                        <div className="relative flex-1">
-                            <select value={selectedStatus || ''} onChange={(e) => setSelectedStatus(e.target.value || null)} className="appearance-none w-full md:w-44 bg-white border border-slate-300 shadow-sm rounded-full py-3.5 pl-4 pr-10 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer">
-                                <option value="">{t('allStatuses')}</option>
-                                <option value="Published">{t('statusPublished')}</option>
-                                <option value="Draft">{t('statusDraft')}</option>
-                                <option value="Archived">{t('statusArchived')}</option>
-                            </select>
-                            <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <div className="flex gap-3 w-full md:w-auto">
+                            <div className="relative flex-1">
+                                <select value={selectedTag || ''} onChange={(e) => setSelectedTag(e.target.value || null)} className="appearance-none w-full md:w-40 bg-white border border-slate-300 shadow-sm rounded-full py-3.5 pl-4 pr-10 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer">
+                                    <option value="">{t('allTags')}</option>
+                                    {allTags.map(tag => ( <option key={tag} value={tag}>{tag}</option> ))}
+                                </select>
+                                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
+                            <div className="relative flex-1">
+                                <select value={selectedStatus || ''} onChange={(e) => setSelectedStatus(e.target.value || null)} className="appearance-none w-full md:w-44 bg-white border border-slate-300 shadow-sm rounded-full py-3.5 pl-4 pr-10 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer">
+                                    <option value="">{t('allStatuses')}</option>
+                                    <option value="Published">{t('statusPublished')}</option>
+                                    <option value="Draft">{t('statusDraft')}</option>
+                                    <option value="Archived">{t('statusArchived')}</option>
+                                </select>
+                                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            </div>
                         </div>
+                        {(selectedTag || selectedStatus) && ( <button onClick={clearFilter} className="text-sm font-semibold text-pink-600 hover:text-pink-700 hover:underline shrink-0 px-2">{t('clearFilter')}</button> )}
                     </div>
-                    {(selectedTag || selectedStatus) && ( <button onClick={clearFilter} className="text-sm font-semibold text-pink-600 hover:text-pink-700 hover:underline shrink-0 px-2">{t('clearFilter')}</button> )}
-                </div>
+                </ContentCard>
 
                 {/* Blog Assistant */}
                 <AnimatePresence>
@@ -600,7 +617,7 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
                     <span className="text-sm font-medium">{toastMessage}</span>
                 </div>
             )}
-        </main>
+        </StandardPageLayout>
     );
 };
 

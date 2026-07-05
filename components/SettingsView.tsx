@@ -11,7 +11,7 @@ import {
     SaveIcon, MailIcon, XIcon as CloseIcon
 } from './icons';
 import UserManagementView from './UserManagementView';
-
+import AccountSettingsBanner from './AccountSettingsBanner';
 
 enum OperationType {
   CREATE = 'create',
@@ -97,7 +97,7 @@ const ServiceCard: React.FC<{
                     <div className="text-left">
                         <h3 className="font-bold text-lg text-[--color-text-primary]">{service.name}</h3>
                         {service.isConnected && service.lastSync && (
-                            <p className="text-[10px] text-[--color-text-subtle] font-medium flex items-center gap-1 mt-0.5">
+                            <p className="text-xs text-[--color-text-subtle] font-medium flex items-center gap-1 mt-0.5">
                                 <span className={`w-1.5 h-1.5 rounded-full ${service.isSyncEnabled ? 'bg-green-500 animate-pulse' : 'bg-slate-400 font-bold'}`}></span>
                                 Sync: {service.lastSync}
                             </p>
@@ -105,7 +105,7 @@ const ServiceCard: React.FC<{
                     </div>
                 </div>
                 <div className="flex flex-col items-end gap-1.5 text-right">
-                    <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full ${service.isConnected ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>
+                    <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${service.isConnected ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-200 text-slate-600 border border-slate-300'}`}>
                         {service.isConnected ? t('connected') : t('notConnected')}
                     </span>
                     {service.isConnected && service.storageUsage && (
@@ -113,7 +113,7 @@ const ServiceCard: React.FC<{
                              <div className="w-20 h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                                 <div className="h-full bg-[--color-accent-500]" style={{ width: service.id === 'Drive' ? '30%' : '10%' }}></div>
                              </div>
-                             <span className="text-[9px] font-bold text-[--color-text-subtle]">
+                             <span className="text-xs font-bold text-[--color-text-subtle]">
                                 {service.storageUsage}
                              </span>
                         </div>
@@ -160,6 +160,12 @@ interface SettingsViewProps {
     setTheme: (theme: 'light' | 'dark' | 'system') => void;
     accentColor: string;
     setAccentColor: (color: string) => void;
+    wallpaper: { type: string; value: string; bgColor?: string; size?: string; thumbnail?: string };
+    setWallpaper: (wallpaper: { type: string; value: string; bgColor?: string; size?: string; thumbnail?: string }) => void;
+    sidebarOpacity: number;
+    setSidebarOpacity: (opacity: number) => void;
+    cardOpacity: number;
+    setCardOpacity: (opacity: number) => void;
 }
 type Theme = 'light' | 'dark' | 'system';
 const THEMES: { name: Theme, icon: React.ReactNode }[] = [
@@ -173,6 +179,88 @@ const ACCENT_COLORS = [
     { name: 'orange', color: '#f97316' },
     { name: 'green', color: '#22c55e' },
     { name: 'purple', color: '#a855f7' },
+];
+
+const IMAGE_WALLPAPERS = [
+  "https://i.ibb.co/G47jTb1g/minimalist-white-background-3840x2160-bright-space-clean-aesthetic-27644.jpg",
+  "https://i.ibb.co/q2X19rq/geometric-mountain-wallpaper-3840x2160-calming-visuals-simple-patterns-26760.jpg",
+  "https://i.ibb.co/R4P1zff0/ta-i-xu-ng-15.jpg",
+  "https://i.ibb.co/TDnD5NB1/ta-i-xu-ng-14.jpg",
+  "https://i.ibb.co/S49fBKcv/ta-i-xu-ng-13.jpg",
+  "https://i.ibb.co/04qypw8/ta-i-xu-ng-12.jpg",
+  "https://i.ibb.co/ch1yf4Dz/AVv-Xs-Egn6ve-Lq-M6aj-Fr-XO6-YYuy-NTs-Wt-x9-qxb2w-O8-Xt-OWdn-JECETXTri7-Ps-rnb2-Td-Jnln6xu-kddyc-Yisi1xf.jpg",
+  "https://i.ibb.co/d0Fw0xdW/Best-wallpaper-1.jpg",
+  "https://i.ibb.co/rKL4ffH2/2.jpg",
+  "https://i.ibb.co/nq9GHB11/ta-i-xu-ng-12.jpg",
+  "https://i.ibb.co/PZhKjDjP/Abstract-minimalistic-background-image-with-minimal-details-in-silvery-pearlescent-hues-subtle-tex.jpg",
+  "https://i.ibb.co/Fc1dczn/Wallpaper.jpg",
+  "https://i.ibb.co/DDCj9TBk/ta-i-xu-ng-15.jpg",
+  "https://i.ibb.co/jPN1bS9c/Pastel-Minimal-Wallpaper-Clean-Aesthetic-for-Mac-Book.jpg",
+  "https://i.ibb.co/chRZYCFs/ta-i-xu-ng-14.jpg",
+  "https://i.ibb.co/k2jTwnTp/ta-i-xu-ng-13.jpg",
+  "https://i.ibb.co/G4tGQZbB/ta-i-xu-ng-16.jpg",
+  "https://i.ibb.co/r2w5qZCT/Download-Abstract-Gradient-Circle-Background-for-free.jpg",
+  "https://i.ibb.co/zhc5bK7G/Ton-mental-a-aussi-besoin-de-repos.jpg"
+];
+
+const VIDEO_WALLPAPERS = [
+    { url: "https://cdn.dribbble.com/userupload/18230475/file/original-d7ab36998c2277e97c1996d837a4673c.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/9438742/file/original-9334dd4051bb585cc561e8be06870b39.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/4241992/file/original-1fcb82b5ace105f3ec88a2deb08e842d.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/34993295/file/original-2ea4b30fcd7c6eac3ca0f4d5bfd3d67b.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/32536603/file/original-db8060ba2540c3bf1cd2f30b4984cd51.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/32480516/file/original-f4a88d4031fee315e3175bf1834c24b4.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/32404914/file/original-57644971c47c0d16f90a68404a5e65c1.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/16365481/file/original-527fee647d12f31fce8a309ad136c4bb.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/15594644/file/original-6008d4b0ddcff73c116cb7989a144a71.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/14779635/file/original-1aca59fc5dc52bee9dcd291a27effcbf.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/10782874/file/original-06f7280dda982b62cd9452b0da032598.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/32524948/file/original-3c68e4ad227ae70e1875ef71289be2b0.mp4", thumbnail: "https://i.postimg.cc/jS3rSGdF/videoframe-8901.png" },
+    { url: "https://cdn.dribbble.com/userupload/13498087/file/original-b120f6a1a15d71e493f8d4b2d13b0296.mp4", thumbnail: "https://i.postimg.cc/BnmJ1jNN/videoframe-3046.png" },
+    { url: "https://cdn.dribbble.com/userupload/16718734/file/original-f2df9314dbf922d5452d7a8a5885d744.mp4", thumbnail: "https://i.postimg.cc/NfYtJ6zp/videoframe-1990.png" },
+    { url: "https://cdn.dribbble.com/userupload/43797830/file/original-b9bafe56dd75a7ae175f827cfc662738.mp4", thumbnail: "https://i.postimg.cc/yNJW1hB0/videoframe-3097.png" },
+    { url: "https://cdn.dribbble.com/userupload/16365364/file/original-dcc3ad4c0f5802c6670d36fcca720e5e.mp4", thumbnail: "https://i.postimg.cc/vBgPtKyD/videoframe-4678.png" },
+    { url: "https://cdn.dribbble.com/userupload/43797856/file/original-46c91cbdf46a3cbc3f30a85f061ed817.mp4", thumbnail: "https://i.postimg.cc/L6TVLSPN/videoframe-3537.png" },
+    { url: "https://cdn.dribbble.com/userupload/12532568/file/original-816b8af88c5a4336e9f0467a7848033e.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/9535990/file/original-3a87c5fdf2433287d096795a11fa9ee4.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/13253460/file/original-85659da2508a303a516780470e3ae354.mp4" },
+    { url: "https://cdn.dribbble.com/userupload/9783516/file/original-47f57ffecea5c7874ff6d6c2f0ce42bf.mp4" }
+];
+
+const GRADIENT_WALLPAPERS = [
+  "linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab)",
+  "linear-gradient(45deg, #6a11cb 0%, #2575fc 100%)",
+  "linear-gradient(45deg, #13547a 0%, #80d0c7 100%)",
+  "linear-gradient(45deg, #ed6ea0 0%, #ec8c69 100%)",
+  "linear-gradient(45deg, #000428 0%, #004e92 100%)",
+  "linear-gradient(45deg, #0f2027 0%, #203a43 50%, #2c5364 100%)",
+  "linear-gradient(45deg, #373b44 0%, #4286f4 100%)",
+  "linear-gradient(45deg, #7028e4 0%, #e5b2ca 100%)",
+  "linear-gradient(45deg, #1e3c72 0%, #2a5298 100%)",
+  "linear-gradient(45deg, #a8edea 0%, #fed6e3 100%)",
+  "linear-gradient(45deg, #0250c5 0%, #d43f8d 100%)"
+];
+
+const PATTERN_WALLPAPERS = [
+  { 
+      name: "Orbiting Planets", 
+      type: "image",
+      value: "https://images.pexels.com/photos/1655166/pexels-photo-1655166.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500"
+  },
+  {
+      name: "Dotted Pattern",
+      type: "pattern",
+      value: "radial-gradient(circle at 25% 25%, #a3b1c6 15%, transparent 15%), radial-gradient(circle at 75% 75%, #a3b1c6 15%, transparent 15%)",
+      bgColor: "#e0e7ed",
+      size: "10px 10px"
+  },
+  {
+      name: "Dark Dotted Pattern",
+      type: "pattern",
+      value: "radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px)",
+      bgColor: "#1d1f20",
+      size: "11px 11px"
+  }
 ];
 
 const mockFetchedArticles = [
@@ -200,7 +288,13 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     theme,
     setTheme,
     accentColor,
-    setAccentColor
+    setAccentColor,
+    wallpaper,
+    setWallpaper,
+    sidebarOpacity,
+    setSidebarOpacity,
+    cardOpacity,
+    setCardOpacity
 }) => {
     const { language, setLanguage, t } = useLanguage();
     const [activeSection, setActiveSection] = useState('profile');
@@ -676,7 +770,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                 </div>
             );
             case 'appearance': return (
-                <>
+                <div className="space-y-6">
                     <div className="p-6 bg-[--color-surface-secondary] rounded-xl">
                         <label className="text-lg font-bold text-[--color-text-primary]">{t('mode')}</label>
                         <p className="text-sm text-[--color-text-subtle] mb-4">Chọn giao diện sáng, tối hoặc theo hệ thống.</p>
@@ -699,7 +793,174 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             ))}
                         </div>
                     </div>
-                </>
+
+                     <div className="p-6 bg-[--color-surface-secondary] rounded-xl space-y-6">
+                        <div>
+                            <label className="text-lg font-bold text-[--color-text-primary]">Độ trong suốt thanh menu bên trái (Sidebar)</label>
+                            <p className="text-sm text-[--color-text-subtle] mb-4">Điều chỉnh mức độ hiển thị trong suốt cho thanh menu.</p>
+                            <div className="flex items-center gap-4">
+                                <input 
+                                    type="range" 
+                                    min="10" 
+                                    max="100" 
+                                    value={sidebarOpacity} 
+                                    onChange={(e) => setSidebarOpacity(Number(e.target.value))} 
+                                    className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[--color-accent-500]"
+                                />
+                                <span className="text-md font-mono font-bold text-[--color-text-primary] bg-[--color-surface-primary] px-3 py-1 rounded-md shadow-sm border border-[--color-border-secondary]">
+                                    {sidebarOpacity}%
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-[--color-border-secondary] pt-6">
+                            <label className="text-lg font-bold text-[--color-text-primary]">Độ trong suốt của thẻ nội dung</label>
+                            <p className="text-sm text-[--color-text-subtle] mb-4">Điều chỉnh độ mờ nền thẻ nội dung (thẻ nền màu trắng).</p>
+                            <div className="flex items-center gap-4">
+                                <input 
+                                    type="range" 
+                                    min="10" 
+                                    max="100" 
+                                    value={cardOpacity} 
+                                    onChange={(e) => setCardOpacity(Number(e.target.value))} 
+                                    className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[--color-accent-500]"
+                                />
+                                <span className="text-md font-mono font-bold text-[--color-text-primary] bg-[--color-surface-primary] px-3 py-1 rounded-md shadow-sm border border-[--color-border-secondary]">
+                                    {cardOpacity}%
+                                </span>
+                            </div>
+                        </div>
+                     </div>
+                    
+                    <div className="p-6 bg-[--color-surface-secondary] rounded-xl">
+                        <div className="flex justify-between items-center mb-4">
+                            <div>
+                                <label className="text-lg font-bold text-[--color-text-primary]">Hình nền</label>
+                                <p className="text-sm text-[--color-text-subtle]">Cá nhân hóa nền ứng dụng với ảnh, video, dải màu.</p>
+                            </div>
+                            <button 
+                                onClick={() => setWallpaper({ type: 'none', value: '' })}
+                                className="px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 rounded-lg transition-colors"
+                            >
+                                Mặc định
+                            </button>
+                        </div>
+
+                        {/* Live Wallpaper Info & Preview Panel */}
+                        <div className="mb-6 p-4 bg-[--color-surface-primary] border border-[--color-border-secondary] rounded-xl flex flex-col md:flex-row gap-4 items-center">
+                            <div className="w-full md:w-48 aspect-video rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative shadow-inner shrink-0 border border-[--color-border-primary]">
+                                {wallpaper?.type === 'none' || !wallpaper?.type ? (
+                                    <span className="text-xs text-[--color-text-subtle]">Mặc định (Không hình nền)</span>
+                                ) : wallpaper?.type === 'image' ? (
+                                    <img src={wallpaper.value} className="w-full h-full object-cover animate-fade-in" />
+                                ) : wallpaper?.type === 'video' ? (
+                                    <video src={wallpaper.value} className="w-full h-full object-cover animate-fade-in" autoPlay loop muted playsInline />
+                                ) : wallpaper?.type === 'gradient' ? (
+                                    <div className="w-full h-full animate-fade-in" style={{ background: wallpaper.value }} />
+                                ) : (
+                                    <div className="w-full h-full animate-fade-in" style={{ background: wallpaper.value, backgroundColor: wallpaper.bgColor || 'transparent', backgroundSize: wallpaper.size || 'auto' }} />
+                                )}
+                            </div>
+                            <div className="flex-1 text-left">
+                                <h4 className="text-sm font-bold text-[--color-text-primary]">Cài đặt & Mô tả hình nền hiện tại</h4>
+                                <p className="text-xs text-[--color-text-subtle] mt-1 leading-relaxed">
+                                    {(!wallpaper?.type || wallpaper?.type === 'none') && 'Hệ thống đang sử dụng nền màu trơn mặc định của Power Service.'}
+                                    {wallpaper?.type === 'image' && 'Hình nền dạng Ảnh Tĩnh có độ nét cao, mang lại chiều sâu tuyệt đối cho không gian làm việc mà không ảnh hưởng hiệu năng.'}
+                                    {wallpaper?.type === 'video' && 'Hình nền dạng Video Chuyển Động lặp vô tận mượt mà. Đề xuất sử dụng máy có cấu hình đồ họa tốt.'}
+                                    {wallpaper?.type === 'gradient' && 'Hình nền dạng Dải Màu (Dynamic CSS Gradient) chuyển sắc mượt mà góc 45 độ vô cùng tinh tế, hiện đại.'}
+                                    {wallpaper?.type === 'pattern' && 'Hình nền dạng Họa Tiết lập nghệ thuật đối xứng tinh tế, tạo chiều sâu thị giác sang trọng.'}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[--color-surface-secondary] rounded text-[--color-text-secondary] border border-[--color-border-primary] capitalize">
+                                        Thể loại: {wallpaper?.type || 'Mặc định'}
+                                    </span>
+                                    {wallpaper?.value && (
+                                        <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-[--color-surface-secondary] rounded text-[--color-text-secondary] border border-[--color-border-primary] truncate max-w-[220px]">
+                                            Nguồn: {wallpaper.value}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-6">
+                            {/* Image Wallpapers */}
+                            <div>
+                                <h4 className="text-sm font-semibold text-[--color-text-secondary] mb-3">Hình ảnh</h4>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-48 overflow-y-auto pr-2 pb-2">
+                                    {IMAGE_WALLPAPERS.map((url, i) => (
+                                        <button 
+                                            key={i} 
+                                            onClick={() => setWallpaper({ type: 'image', value: url })}
+                                            className={`relative w-full aspect-video rounded-lg overflow-hidden border-2 transition-all ${wallpaper?.type === 'image' && wallpaper?.value === url ? 'border-[--color-accent-500] scale-105 shadow-lg' : 'border-transparent hover:border-slate-300'}`}
+                                        >
+                                            <img src={url} alt={`Wallpaper ${i}`} className="w-full h-full object-cover" loading="lazy" />
+                                            {wallpaper?.type === 'image' && wallpaper?.value === url && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><CheckIcon className="w-6 h-6 text-white drop-shadow-md" /></div>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Video Wallpapers */}
+                            <div>
+                                <h4 className="text-sm font-semibold text-[--color-text-secondary] mb-3">Video chuyển động</h4>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-48 overflow-y-auto pr-2 pb-2">
+                                    {VIDEO_WALLPAPERS.map((video, i) => (
+                                        <button 
+                                            key={i} 
+                                            onClick={() => setWallpaper({ type: 'video', value: video.url, thumbnail: video.thumbnail })}
+                                            className={`relative w-full aspect-video rounded-lg overflow-hidden border-2 transition-all bg-black ${wallpaper?.type === 'video' && wallpaper?.value === video.url ? 'border-[--color-accent-500] scale-105 shadow-lg' : 'border-transparent hover:border-slate-300'}`}
+                                        >
+                                            {video.thumbnail ? (
+                                                <img src={video.thumbnail} alt={`Video Wallpaper ${i}`} className="w-full h-full object-cover" loading="lazy" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-white/50 text-[10px] font-medium">Video {i+1}</div>
+                                            )}
+                                            {wallpaper?.type === 'video' && wallpaper?.value === video.url ? (
+                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><CheckIcon className="w-6 h-6 text-white drop-shadow-md" /></div>
+                                            ) : (
+                                                <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                                                    <div className="w-5 h-5 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center pl-0.5">
+                                                        <div className="w-0 h-0 border-t-[3px] border-t-transparent border-l-[5px] border-l-white border-b-[3px] border-b-transparent"></div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            {/* Gradient & Patterns */}
+                            <div>
+                                <h4 className="text-sm font-semibold text-[--color-text-secondary] mb-3">Dải màu & Họa tiết</h4>
+                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 max-h-48 overflow-y-auto pr-2 pb-2">
+                                    {PATTERN_WALLPAPERS.map((pattern, i) => (
+                                        <button
+                                            key={`pattern-${i}`}
+                                            onClick={() => setWallpaper({ type: pattern.type, value: pattern.value, bgColor: pattern.bgColor, size: pattern.size })}
+                                            title={pattern.name}
+                                            className={`w-full aspect-square rounded-full overflow-hidden border-2 transition-all ${wallpaper?.type === pattern.type && wallpaper?.value === pattern.value ? 'border-[--color-accent-500] scale-110 shadow-lg' : 'border-slate-200 dark:border-slate-700 hover:scale-105'}`}
+                                            style={pattern.type === 'image' ? { backgroundImage: `url(${pattern.value})`, backgroundSize: 'cover' } : { background: pattern.value, backgroundColor: pattern.bgColor, backgroundSize: pattern.size || 'auto' }}
+                                        >
+                                            {wallpaper?.type === pattern.type && wallpaper?.value === pattern.value && <div className="w-full h-full bg-black/20 flex items-center justify-center"><CheckIcon className="w-5 h-5 text-white drop-shadow-md" /></div>}
+                                        </button>
+                                    ))}
+                                    {GRADIENT_WALLPAPERS.map((gradient, i) => (
+                                        <button
+                                            key={`grad-${i}`}
+                                            onClick={() => setWallpaper({ type: 'gradient', value: gradient })}
+                                            className={`w-full aspect-square rounded-full overflow-hidden border-2 transition-all ${wallpaper?.type === 'gradient' && wallpaper?.value === gradient ? 'border-[--color-accent-500] scale-110 shadow-lg' : 'border-slate-200 dark:border-slate-700 hover:scale-105'}`}
+                                            style={{ background: gradient }}
+                                        >
+                                            {wallpaper?.type === 'gradient' && wallpaper?.value === gradient && <div className="w-full h-full bg-black/20 flex items-center justify-center"><CheckIcon className="w-5 h-5 text-white drop-shadow-md" /></div>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
             );
              case 'language': return (
                  <div className="p-6 bg-[--color-surface-secondary] rounded-xl space-y-2">
@@ -1011,8 +1272,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     };
     
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] gap-3 pb-24 md:pb-8">
-            
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[3px] gap-3 pb-24 md:pb-8">
+            <div className="shrink-0">
+                <AccountSettingsBanner />
+            </div>
 
             <div className="flex-1 flex flex-col md:flex-row gap-8 min-h-0">
                 {/* Left Navigation (Desktop) */}

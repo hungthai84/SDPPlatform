@@ -1,15 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { User, RecentItem } from '../App';
-
+import PageBanner from './PageBanner';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import { 
-    FolderIcon, UploadIcon, GridIcon, ListIcon, ChevronLeftIcon, 
-    FileTextIcon, FileImageIcon, FileVideoIcon, FilePdfIcon, ShareIcon, DownloadIcon, TrashIcon, InfoIcon,
+    FolderIcon, ChevronLeftIcon, 
+    FileTextIcon, FileImageIcon, FileVideoIcon, FilePdfIcon, TrashIcon, InfoIcon,
     GoogleIcon, SyncIcon
 } from './icons';
 import { useLanguage } from './LanguageContext';
 import GooglePickerButton from './GooglePickerButton';
 import { getAccessToken } from '../firebase';
-import { backupDatabaseToDrive, restoreDatabaseFromDrive } from '../lib/driveDatabase';
+import { Search, Plus, Download, Grid, List, Share2 } from 'lucide-react';
 
 // --- TYPES ---
 interface FileSystemItem {
@@ -38,7 +39,6 @@ export const initialFileSystem: FileSystemItem[] = [
   { id: 'root-1', name: 'Quy chế công ty.docx', type: 'docx', size: '780 KB', modifiedAt: '2023-09-15', owner: 'HR Dept', parentId: 'root' },
 ];
 
-// --- HELPER COMPONENTS ---
 const FileIcon: React.FC<{ type: string, className?: string }> = ({ type, className = "w-6 h-6" }) => {
     switch (type) {
         case 'folder': return <FolderIcon className={className} />;
@@ -50,25 +50,6 @@ const FileIcon: React.FC<{ type: string, className?: string }> = ({ type, classN
     }
 };
 
-const FolderTreeItem: React.FC<{ folder: FileSystemItem, currentFolderId: string, onSelect: (id: string) => void, level?: number }> = ({ folder, currentFolderId, onSelect, level = 0 }) => {
-    const isSelected = folder.id === currentFolderId;
-    return (
-        <div>
-            <button
-                onClick={() => onSelect(folder.id)}
-                style={{ paddingLeft: `${level * 1.25 + 0.75}rem` }}
-                className={`w-full flex items-center gap-2 py-2 text-left rounded-md transition-colors ${isSelected ? 'bg-white/70 text-[--color-accent-600] font-semibold' : 'hover:bg-white/40 text-[--color-text-primary]'}`}
-            >
-                <FolderIcon className="w-5 h-5 shrink-0" />
-                <span className="truncate text-sm">{folder.name}</span>
-            </button>
-            {/* Can be extended to show sub-folders recursively */}
-        </div>
-    );
-};
-
-
-// --- MAIN VIEW COMPONENT ---
 interface DriveViewProps {
   user: User;
   onItemViewed: (item: RecentItem) => void;
@@ -79,34 +60,30 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
     const [currentFolderId, setCurrentFolderId] = useState('root');
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-    const [isFolderPaneCollapsed, setFolderPaneCollapsed] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const { t } = useLanguage();
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const showToast = (msg: string) => {
         setToastMessage(msg);
-        setTimeout(() => {
-            setToastMessage('');
-        }, 2500);
+        setTimeout(() => setToastMessage(''), 2500);
     };
 
     const handleShare = (item: FileSystemItem) => {
         const shareUrl = `${window.location.protocol}//${window.location.host}/?shareType=drive&shareId=${item.id}`;
         navigator.clipboard.writeText(shareUrl).then(() => {
             showToast(`Đã sao chép liên kết chia sẻ của "${item.name}"!`);
-        }).catch(() => {
-            const textarea = document.createElement('textarea');
-            textarea.value = shareUrl;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showToast(`Đã sao chép liên kết chia sẻ của "${item.name}"!`);
         });
     };
 
-    const itemsInCurrentFolder = useMemo(() => mockFileSystem.filter(item => item.parentId === currentFolderId), [mockFileSystem, currentFolderId]);
+    const filteredItems = useMemo(() => {
+        const inFolder = mockFileSystem.filter(item => item.parentId === currentFolderId);
+        if (!searchTerm) return inFolder;
+        return inFolder.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }, [mockFileSystem, currentFolderId, searchTerm]);
+
     const selectedItem = useMemo(() => mockFileSystem.find(item => item.id === selectedItemId), [mockFileSystem, selectedItemId]);
 
     const breadcrumbs = useMemo(() => {
@@ -124,11 +101,6 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
         return path;
     }, [mockFileSystem, currentFolderId]);
 
-    const handleSelectFolder = (id: string) => {
-        setCurrentFolderId(id);
-        setSelectedItemId(null); // Deselect file when changing folder
-    }
-
     const handleItemClick = (item: FileSystemItem) => {
         onItemViewed({
             id: `drive-${item.id}`,
@@ -144,310 +116,294 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
         } else {
             setSelectedItemId(item.id);
         }
-    }
+    };
+
+interface GoogleDriveFile {
+    id: string;
+    name: string;
+    mimeType: string;
+    size?: string;
+    modifiedTime?: string;
+    owners?: { displayName: string }[];
+}
 
     const handleSync = async () => {
         setIsSyncing(true);
         showToast(t('syncing'));
-        
         try {
             const token = await getAccessToken();
             if (!token) throw new Error('No access token available');
-            
             const response = await fetch('https://www.googleapis.com/drive/v3/files?fields=files(id,name,mimeType,size,modifiedTime,owners)&q=mimeType!="application/vnd.google-apps.folder" and trashed=false', {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            
-            if (!response.ok) throw new Error('Drive sync failed: ' + response.statusText);
+            if (!response.ok) throw new Error('Drive sync failed');
             const data = await response.json();
-            
             if (data.files) {
-                const newFiles: FileSystemItem[] = data.files.map((file: { id: string; name: string; mimeType: string; size?: string; modifiedTime?: string; owners?: { displayName?: string }[] }) => {
-                    let type: FileSystemItem['type'] = 'docx';
-                    if (file.mimeType.includes('pdf')) type = 'pdf';
-                    else if (file.mimeType.includes('image')) type = 'png';
-                    else if (file.mimeType.includes('video')) type = 'mp4';
-
-                    const size = file.size ? 
-                        (parseInt(file.size) > 1024 * 1024 
-                            ? (parseInt(file.size) / (1024 * 1024)).toFixed(1) + ' MB'
-                            : (parseInt(file.size) / 1024).toFixed(0) + ' KB') 
-                        : '-';
-
-                    return {
-                        id: file.id,
-                        name: file.name,
-                        type,
-                        size,
-                        modifiedAt: file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString() : '',
-                        owner: file.owners?.[0]?.displayName || 'Me',
-                        parentId: currentFolderId,
-                        source: 'google'
-                    };
-                });
-                
+                const newFiles: FileSystemItem[] = data.files.map((file: GoogleDriveFile) => ({
+                    id: file.id,
+                    name: file.name,
+                    type: file.mimeType.includes('pdf') ? 'pdf' : file.mimeType.includes('image') ? 'png' : file.mimeType.includes('video') ? 'mp4' : 'docx',
+                    size: file.size ? (parseInt(file.size) > 1024 * 1024 ? (parseInt(file.size) / (1024 * 1024)).toFixed(1) + ' MB' : (parseInt(file.size) / 1024).toFixed(0) + ' KB') : '-',
+                    modifiedAt: file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString() : '',
+                    owner: file.owners?.[0]?.displayName || 'Me',
+                    parentId: currentFolderId,
+                    source: 'google'
+                }));
                 setMockFileSystem(prev => {
                     const existingIds = new Set(prev.map(i => i.id));
-                    const uniqueFiles = newFiles.filter(f => !existingIds.has(f.id));
-                    return [...prev, ...uniqueFiles];
+                    return [...prev, ...newFiles.filter(f => !existingIds.has(f.id))];
                 });
-                
                 showToast(`Đã đồng bộ ${newFiles.length} tệp từ Google Drive!`);
             }
-        } catch (error) {
-            console.error('Drive sync error:', error);
-            showToast('Lỗi khi đồng bộ Google Drive. Vui lòng kết nối lại ứng dụng.');
+        } catch (err) {
+            console.error(err);
+            showToast('Lỗi đồng bộ Google Drive.');
         } finally {
             setIsSyncing(false);
         }
     };
 
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
-
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
-
-        const newFiles: FileSystemItem[] = Array.from(files).map((file: File, index) => {
-            let type: FileSystemItem['type'] = 'docx';
-            const ext = file.name.split('.').pop()?.toLowerCase();
-            if (ext === 'pdf') type = 'pdf';
-            else if (ext === 'png' || ext === 'jpg' || ext === 'jpeg') type = 'png';
-            else if (ext === 'mp4' || ext === 'mov') type = 'mp4';
-
-            const size = file.size > 1024 * 1024 
-                ? (file.size / (1024 * 1024)).toFixed(1) + ' MB'
-                : (file.size / 1024).toFixed(0) + ' KB';
-
-            return {
-                id: `uploaded-${Date.now()}-${index}`,
-                name: file.name,
-                type,
-                size,
-                modifiedAt: new Date().toISOString().split('T')[0],
-                owner: user.name,
-                parentId: currentFolderId,
-            };
-        });
-
+        const newFiles: FileSystemItem[] = Array.from(files).map((file, index) => ({
+            id: `uploaded-${Date.now()}-${index}`,
+            name: file.name,
+            type: file.name.endsWith('.pdf') ? 'pdf' : (file.type.startsWith('image') ? 'png' : (file.type.startsWith('video') ? 'mp4' : 'docx')),
+            size: file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' : (file.size / 1024).toFixed(0) + ' KB',
+            modifiedAt: new Date().toISOString().split('T')[0],
+            owner: user.name,
+            parentId: currentFolderId,
+        }));
         setMockFileSystem(prev => [...prev, ...newFiles]);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
     };
 
-    const handlePickedFromDrive = (docs: { id: string; name: string; mimeType?: string; sizeBytes?: number; lastEditedUtc?: number }[]) => {
-        const newFiles: FileSystemItem[] = docs.map(doc => {
-            let type: FileSystemItem['type'] = 'docx';
-            if (doc.mimeType?.includes('pdf')) type = 'pdf';
-            else if (doc.mimeType?.includes('image')) type = 'png';
-            else if (doc.mimeType?.includes('video')) type = 'mp4';
-
-            return {
-                id: doc.id,
-                name: doc.name,
-                type,
-                size: doc.sizeBytes ? `${(doc.sizeBytes / 1024).toFixed(0)} KB` : '-',
-                modifiedAt: doc.lastEditedUtc ? new Date(doc.lastEditedUtc).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                owner: 'Google Drive',
-                parentId: currentFolderId,
-                source: 'google'
-            };
-        });
+    const handlePickedFromDrive = (docs: GoogleDriveFile[]) => {
+        const newFiles: FileSystemItem[] = docs.map(doc => ({
+            id: doc.id,
+            name: doc.name,
+            type: doc.mimeType?.includes('pdf') ? 'pdf' : doc.mimeType?.includes('image') ? 'png' : doc.mimeType?.includes('video') ? 'mp4' : 'docx',
+            size: doc.sizeBytes ? `${(doc.sizeBytes / 1024).toFixed(0)} KB` : '-',
+            modifiedAt: new Date().toISOString().split('T')[0],
+            owner: 'Google Drive',
+            parentId: currentFolderId,
+            source: 'google'
+        }));
         setMockFileSystem(prev => {
             const existingIds = new Set(prev.map(i => i.id));
-            const filtered = newFiles.filter(f => !existingIds.has(f.id));
-            return [...prev, ...filtered];
+            return [...prev, ...newFiles.filter(f => !existingIds.has(f.id))];
         });
         showToast(`Đã thêm ${newFiles.length} tệp từ Google Drive!`);
     };
 
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] pb-24 md:pb-8">
-            <div className="flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
-                
-                <div className="flex-1 bg-white/40 backdrop-blur-xl rounded-xl shadow-lg overflow-hidden flex min-h-0">
-                    
-                    {/* Folder Tree Pane */}
-                    <div className="relative shrink-0">
-                        <aside className={`flex flex-col bg-white/30 border-r border-white/50 h-full transition-all duration-300 ease-in-out ${isFolderPaneCollapsed ? 'w-0' : 'w-64'}`}>
-                        <div className={`flex-1 flex flex-col min-h-0 transition-opacity duration-200 ${isFolderPaneCollapsed ? 'opacity-0' : 'opacity-100'}`}>
-                                <div className="p-4 border-b border-white/50">
-                                    <h2 className="text-lg font-bold text-[--color-text-primary] truncate">My Drive</h2>
-                                </div>
-                                <div className="flex-1 p-2 overflow-y-auto no-scrollbar">
-                                    {mockFileSystem.filter(f => f.type === 'folder' && f.parentId === 'root').map(folder => (
-                                        <FolderTreeItem key={folder.id} folder={folder} currentFolderId={currentFolderId} onSelect={handleSelectFolder} />
-                                    ))}
-                                </div>
+        <StandardPageLayout>
+            <PageBanner 
+                title="Quản lý Tài liệu"
+                subtitle="Lưu trữ, tổ chức và chia sẻ tài liệu công việc một cách thông minh và an toàn."
+                icon={<FolderIcon className="w-full h-full" />}
+                gradient="from-blue-500 to-cyan-600"
+                actions={
+                    <>
+                        <div className="flex bg-white/10 p-1 rounded-xl shadow-sm border border-white/20 mr-2">
+                            <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-white hover:bg-white/10'}`}><Grid className="w-4 h-4" /></button>
+                            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-white hover:bg-white/10'}`}><List className="w-4 h-4" /></button>
                         </div>
-                        </aside>
-                        <button
-                            onClick={() => setFolderPaneCollapsed(!isFolderPaneCollapsed)}
-                            className="absolute top-1/2 -right-3 -translate-y-1/2 bg-white/60 hover:bg-cyan-500 text-slate-700 hover:text-white w-6 h-6 rounded-full flex items-center justify-center z-10 ring-4 ring-gray-100/50 transition-all"
-                            aria-label={isFolderPaneCollapsed ? 'Expand folder pane' : 'Collapse folder pane'}
-                        >
-                            <ChevronLeftIcon className={`w-4 h-4 transition-transform duration-300 ${isFolderPaneCollapsed ? 'rotate-180' : ''}`} />
+                        <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                            <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} /> Đồng bộ
                         </button>
-                    </div>
-                    
-                    {/* Main Content Pane */}
-                    <div className="flex-1 flex flex-col min-w-0">
-                        <header className="p-4 border-b border-white/50 shrink-0 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-2 text-sm text-[--color-text-secondary] font-medium overflow-hidden">
+                        <GooglePickerButton onPicked={handlePickedFromDrive} className="!bg-white/20 !hover:bg-white/30 !text-white !border-none !shadow-none !px-3 !py-1.5 !rounded-lg !text-xs !font-semibold" />
+                        <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-white text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
+                            <Plus className="w-4 h-4" /> Tải lên
+                        </button>
+                        <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple />
+                    </>
+                }
+            />
+
+            <ContentCard>
+                <div className="flex flex-col gap-6">
+                    {/* Breadcrumbs & Search */}
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500 overflow-hidden">
                             {breadcrumbs.map((crumb, index) => (
                                 <React.Fragment key={crumb.id}>
-                                    {index > 0 && <span className="text-[--color-text-subtle]">/</span>}
-                                    <button onClick={() => handleSelectFolder(crumb.id)} className={`truncate max-w-[150px] p-1 rounded-md ${index === breadcrumbs.length-1 ? 'text-[--color-text-primary] font-bold' : 'hover:bg-white/50'}`}>{crumb.name}</button>
+                                    {index > 0 && <span className="text-slate-300">/</span>}
+                                    <button 
+                                        onClick={() => setCurrentFolderId(crumb.id)} 
+                                        className={`px-2 py-1 rounded-lg transition-all ${index === breadcrumbs.length - 1 ? 'bg-white text-blue-600 shadow-sm' : 'hover:bg-white/50'}`}
+                                    >
+                                        {crumb.name}
+                                    </button>
                                 </React.Fragment>
                             ))}
+                        </div>
+                        <div className="relative w-full md:w-64">
+                            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                placeholder="Tìm kiếm tài liệu..."
+                                className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* File Grid/List */}
+                    <div className="min-h-[400px]">
+                        {viewMode === 'grid' ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-6">
+                                {filteredItems.map(item => (
+                                    <div 
+                                        key={item.id} 
+                                        onClick={() => handleItemClick(item)}
+                                        className={`group relative p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer flex flex-col items-center gap-3 ${selectedItemId === item.id ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+                                    >
+                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${item.type === 'folder' ? 'bg-blue-50 text-blue-500 group-hover:scale-110' : 'bg-gray-50 text-slate-400'}`}>
+                                            <FileIcon type={item.type} className="w-10 h-10" />
+                                        </div>
+                                        <div className="text-center w-full">
+                                            <p className="text-xs font-bold text-slate-800 truncate">{item.name}</p>
+                                            <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{item.size === '-' ? 'Thư mục' : item.size}</p>
+                                        </div>
+                                        {item.source === 'google' && <GoogleIcon className="absolute top-3 right-3 w-4 h-4 opacity-50" />}
+                                    </div>
+                                ))}
                             </div>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <a href="https://drive.google.com/drive/folders/1O-LaLAA7FNrIzMKGwyxHCdlIKh_W4htY?usp=sharing" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 py-2 px-4 bg-gradient-to-br from-teal-500 to-emerald-600 text-white font-bold rounded-lg shadow-md hover:shadow-emerald-500/40 transition-all transform hover:scale-105">
-                                    <FolderIcon className="w-5 h-5"/> <span className="hidden sm:inline">Ổ chung</span>
-                                </a>
-                                <button onClick={async () => {
-                                    setIsSyncing(true);
-                                    try {
-                                        await backupDatabaseToDrive();
-                                        showToast('Sao lưu cơ sở dữ liệu lên Drive thành công!');
-                                    } catch (e) {
-                                        console.error(e);
-                                        showToast('Lỗi khi sao lưu dữ liệu.');
-                                    } finally {
-                                        setIsSyncing(false);
-                                    }
-                                }} disabled={isSyncing} className="py-2 px-4 bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold rounded-lg shadow-md hover:shadow-purple-500/40 transition-all transform hover:scale-105 flex items-center gap-2 disabled:opacity-60">
-                                    <UploadIcon className="w-4 h-4"/> <span className="hidden sm:inline">Tạo/Sao lưu CSDL</span>
-                                </button>
-                                <button onClick={async () => {
-                                    if (!window.confirm('Khôi phục cơ sở dữ liệu sẽ ghi đè dữ liệu hiện tại. Bạn có chắc chắn?')) return;
-                                    setIsSyncing(true);
-                                    try {
-                                        await restoreDatabaseFromDrive();
-                                        showToast('Khôi phục cơ sở dữ liệu thành công!');
-                                        setTimeout(() => window.location.reload(), 1500);
-                                    } catch (e) {
-                                        console.error(e);
-                                        showToast('Lỗi khi khôi phục dữ liệu.');
-                                    } finally {
-                                        setIsSyncing(false);
-                                    }
-                                }} disabled={isSyncing} className="py-2 px-4 bg-gradient-to-br from-slate-600 to-slate-800 text-white font-bold rounded-lg shadow-md hover:shadow-slate-500/40 transition-all transform hover:scale-105 flex items-center gap-2 disabled:opacity-60">
-                                    <DownloadIcon className="w-4 h-4"/> <span className="hidden sm:inline">Khôi phục CSDL</span>
-                                </button>
-                                <button onClick={handleSync} disabled={isSyncing} title={isSyncing ? t('syncing') : t('syncWithDrive')} className="p-2.5 rounded-lg bg-white/70 text-blue-700 shadow-md hover:bg-white transition-all transform hover:scale-105 disabled:opacity-60">
-                                    <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
-                                </button>
-                                <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
-                                    onChange={handleFileUpload} 
-                                    className="hidden" 
-                                    multiple
-                                />
-                                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 py-2 px-4 bg-gradient-to-br from-blue-500 to-sky-600 text-white font-bold rounded-lg shadow-md hover:shadow-sky-500/40 transition-all transform hover:scale-105">
-                                    <UploadIcon className="w-5 h-5"/> <span className="hidden xl:inline">Tải lên</span>
-                                </button>
-                                <GooglePickerButton onPicked={handlePickedFromDrive} className="hover:scale-105" />
-                                <div className="bg-white/50 p-1 rounded-lg flex items-center text-sm font-semibold">
-                                    <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-slate-600 hover:bg-white/50'}`} title="Grid View"><GridIcon className="w-5 h-5" /></button>
-                                    <button onClick={() => setViewMode('list')} className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-slate-600 hover:bg-white/50'}`} title="List View"><ListIcon className="w-5 h-5" /></button>
-                                </div>
-                            </div>
-                        </header>
-                        <div className="flex-1 overflow-y-auto no-scrollbar px-3 md:px-4 py-4 pb-24">
-                            {viewMode === 'grid' ? (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-                                    {itemsInCurrentFolder.map(item => (
-                                        <button key={item.id} onClick={() => handleItemClick(item)} className={`relative p-4 bg-white/60 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group text-center flex flex-col items-center justify-center gap-2 ${selectedItemId === item.id ? 'ring-2 ring-[--color-accent-500]' : 'ring-1 ring-transparent hover:ring-[--color-accent-400]'}`}>
-                                            {item.source === 'google' && <GoogleIcon className="absolute top-2 right-2 w-4 h-4" title="From Google Drive" />}
-                                            <FileIcon type={item.type} className={`w-12 h-12 ${item.type === 'folder' ? 'text-[--color-accent-500]' : 'text-[--color-text-subtle]'}`} />
-                                            <p className="font-semibold text-[--color-text-primary] text-sm w-full truncate">{item.name}</p>
-                                        </button>
-                                    ))}
-                                </div>
-                            ) : (
-                                <table className="w-full text-left">
-                                            <thead className="border-b border-[--color-border-secondary]">
+                        ) : (
+                            <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead className="bg-gray-50 border-b border-gray-100">
                                         <tr>
-                                            <th className="p-3 font-semibold text-[--color-text-secondary] text-sm">Name</th>
-                                            <th className="p-3 font-semibold text-[--color-text-secondary] text-sm hidden md:table-cell">Owner</th>
-                                            <th className="p-3 font-semibold text-[--color-text-secondary] text-sm hidden sm:table-cell">Last Modified</th>
-                                            <th className="p-3 font-semibold text-[--color-text-secondary] text-sm hidden lg:table-cell">File Size</th>
+                                            <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tên tài liệu</th>
+                                            <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden md:table-cell">Chủ sở hữu</th>
+                                            <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden sm:table-cell">Ngày sửa đổi</th>
+                                            <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest hidden lg:table-cell">Kích thước</th>
+                                            <th className="p-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
-                                        {itemsInCurrentFolder.map(item => (
-                                            <tr key={item.id} onClick={() => handleItemClick(item)} className={`border-t border-[--color-border-secondary] hover:bg-white/50 cursor-pointer ${selectedItemId === item.id ? 'bg-[--color-accent-500]/10' : ''}`}>
-                                                <td className="p-3 font-medium text-[--color-text-primary] text-sm">
+                                    <tbody className="divide-y divide-gray-50">
+                                        {filteredItems.map(item => (
+                                            <tr key={item.id} onClick={() => handleItemClick(item)} className="hover:bg-blue-50/30 cursor-pointer group transition-all">
+                                                <td className="p-4">
                                                     <div className="flex items-center gap-3">
-                                                        <FileIcon type={item.type} className={`w-6 h-6 shrink-0 ${item.type === 'folder' ? 'text-[--color-accent-500]' : 'text-[--color-text-subtle]'}`} />
-                                                        {item.name}
-                                                        {item.source === 'google' && <GoogleIcon className="w-4 h-4" title="From Google Drive" />}
+                                                        <div className={`p-2 rounded-lg ${item.type === 'folder' ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-slate-400'}`}>
+                                                            <FileIcon type={item.type} className="w-5 h-5" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-800 text-xs tracking-tight">{item.name}</p>
+                                                            {item.source === 'google' && <p className="text-[10px] font-bold text-blue-500 mt-0.5">Google Drive</p>}
+                                                        </div>
                                                     </div>
                                                 </td>
-                                                <td className="p-3 text-[--color-text-secondary] text-sm hidden md:table-cell">{item.owner}</td>
-                                                <td className="p-3 text-[--color-text-secondary] text-sm hidden sm:table-cell">{item.modifiedAt}</td>
-                                                <td className="p-3 text-[--color-text-secondary] text-sm hidden lg:table-cell">{item.size}</td>
+                                                <td className="p-4 text-xs font-semibold text-slate-600 hidden md:table-cell">{item.owner}</td>
+                                                <td className="p-4 text-xs font-semibold text-slate-600 hidden sm:table-cell">{item.modifiedAt}</td>
+                                                <td className="p-4 text-xs font-semibold text-slate-600 hidden lg:table-cell">{item.size}</td>
+                                                <td className="p-4 text-right">
+                                                    <button onClick={(e) => { e.stopPropagation(); handleShare(item); }} className="p-2 rounded-lg bg-gray-50 text-slate-400 hover:bg-blue-100 hover:text-blue-600 transition-all">
+                                                        <Share2 className="w-4 h-4" />
+                                                    </button>
+                                                </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
-                            )}
-                        </div>
-                    </div>
+                            </div>
+                        )}
 
-                    {/* Details Pane */}
-                    <div className={`flex flex-col border-l border-white/50 bg-white/30 transition-all duration-300 ease-in-out ${selectedItem ? 'w-72' : 'w-0'}`}>
-                    <div className={`flex-1 flex flex-col min-h-0 p-4 gap-4 transition-opacity duration-200 ${selectedItem ? 'opacity-100' : 'opacity-0'}`}>
-                            {selectedItem && <>
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-bold text-[--color-text-primary]">Details</h3>
-                                    <button onClick={() => setSelectedItemId(null)} className="p-1.5 rounded-full hover:bg-black/10"><ChevronLeftIcon className="w-5 h-5 rotate-180 text-[--color-text-subtle]" /></button>
+                        {filteredItems.length === 0 && (
+                            <div className="text-center py-20 bg-gray-50 rounded-3xl border border-gray-100 border-dashed">
+                                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-200 border border-gray-100">
+                                    <Search className="w-8 h-8" />
                                 </div>
-                                <div className="flex flex-col items-center justify-center p-6 bg-white/40 rounded-xl">
-                                    <FileIcon type={selectedItem.type} className="w-20 h-20 text-[--color-text-subtle] mb-3" />
-                                    <p className="font-bold text-[--color-text-primary] text-center break-all text-sm">{selectedItem.name}</p>
-                                </div>
-                                <div className="flex justify-around items-center">
-                                    <button 
-                                        onClick={() => handleShare(selectedItem)}
-                                        className="flex flex-col items-center gap-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors p-2 rounded-lg hover:bg-black/5"
-                                        title="Chia sẻ liên kết"
-                                    >
-                                        <ShareIcon className="w-6 h-6" /> 
-                                        <span className="text-xs font-semibold">Share</span>
-                                    </button>
-                                    <button className="flex flex-col items-center gap-1 text-slate-600 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-black/5"><DownloadIcon className="w-6 h-6" /> <span className="text-xs font-semibold">Download</span></button>
-                                    <button className="flex flex-col items-center gap-1 text-slate-600 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-black/5"><TrashIcon className="w-6 h-6" /> <span className="text-xs font-semibold">Delete</span></button>
-                                </div>
-                                <div className="text-sm text-[--color-text-primary] space-y-2 bg-white/40 p-3 rounded-lg">
-                                    <p><strong>Type:</strong> <span className="capitalize">{selectedItem.type}</span></p>
-                                    <p><strong>Size:</strong> {selectedItem.size}</p>
-                                    <p><strong>Owner:</strong> {selectedItem.owner}</p>
-                                    <p><strong>Modified:</strong> {selectedItem.modifiedAt}</p>
-                                    {selectedItem.source === 'google' && <p><strong>Source:</strong> Google Drive</p>}
-                                </div>
-                                <div className="mt-2">
-                                    <h4 className="font-semibold text-[--color-text-secondary] mb-2 text-sm">Activity</h4>
-                                    <div className="space-y-2 text-xs text-[--color-text-secondary]">
-                                        <div className="flex items-center gap-2"><InfoIcon className="w-4 h-4 text-[--color-text-subtle]" /> <p>You created this item.</p></div>
-                                        <div className="flex items-center gap-2"><InfoIcon className="w-4 h-4 text-[--color-text-subtle]" /> <p>Alice viewed this item.</p></div>
+                                <h3 className="text-lg font-bold text-slate-800 tracking-tight">Không tìm thấy tài liệu</h3>
+                                <p className="text-sm text-slate-500 mt-2">Vui lòng thử tìm kiếm với từ khóa khác.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </ContentCard>
+
+            {/* Item Details Sidebar/Modal */}
+            {selectedItem && (
+                <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-[1000] animate-slide-in-right border-l border-gray-100 flex flex-col">
+                    <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-slate-800 tracking-tight">Chi tiết tài liệu</h3>
+                        <button onClick={() => setSelectedItemId(null)} className="p-2 hover:bg-gray-100 rounded-xl transition-all">
+                            <ChevronLeftIcon className="w-5 h-5 text-slate-400 rotate-180" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-8">
+                        <div className="flex flex-col items-center gap-4">
+                            <div className={`w-32 h-32 rounded-[32px] flex items-center justify-center shadow-xl ${selectedItem.type === 'folder' ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-slate-400'}`}>
+                                <FileIcon type={selectedItem.type} className="w-16 h-16" />
+                            </div>
+                            <div className="text-center">
+                                <h4 className="text-lg font-bold text-slate-800 tracking-tight">{selectedItem.name}</h4>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{selectedItem.type === 'folder' ? 'Thư mục' : selectedItem.type}</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <button className="flex items-center justify-center gap-2 p-3 bg-blue-600 text-white rounded-2xl font-bold text-xs shadow-lg shadow-blue-600/20 hover:bg-blue-700 transition-all">
+                                <Download className="w-4 h-4" /> Tải về
+                            </button>
+                            <button onClick={() => handleShare(selectedItem)} className="flex items-center justify-center gap-2 p-3 bg-gray-50 text-slate-700 rounded-2xl font-bold text-xs hover:bg-gray-100 transition-all">
+                                <Share2 className="w-4 h-4" /> Chia sẻ
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Thông tin tệp</p>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500 font-semibold">Chủ sở hữu:</span>
+                                        <span className="text-slate-800 font-bold">{selectedItem.owner}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500 font-semibold">Kích thước:</span>
+                                        <span className="text-slate-800 font-bold">{selectedItem.size === '-' ? 'N/A' : selectedItem.size}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-slate-500 font-semibold">Ngày sửa:</span>
+                                        <span className="text-slate-800 font-bold">{selectedItem.modifiedAt}</span>
                                     </div>
                                 </div>
-                            </>}
+                            </div>
+
+                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Hoạt động gần đây</p>
+                                <div className="space-y-4">
+                                    <div className="flex gap-3">
+                                        <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                            <InfoIcon className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[11px] font-bold text-slate-700">Bạn đã tạo tệp này</p>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{selectedItem.modifiedAt}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                    <div className="p-6 border-t border-gray-100">
+                        <button className="w-full flex items-center justify-center gap-2 p-3 bg-red-50 text-red-600 rounded-2xl font-bold text-xs hover:bg-red-100 transition-all">
+                            <TrashIcon className="w-4 h-4" /> Xóa tài liệu
+                        </button>
                     </div>
-                </div>
-            </div>
-            {toastMessage && (
-                <div className="fixed bottom-5 right-5 z-[9999] bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 animate-fade-in-up">
-                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                    <span className="text-sm font-medium">{toastMessage}</span>
                 </div>
             )}
-        </main>
+
+            {toastMessage && (
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[2000] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-fade-in-up">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    <span className="text-xs font-bold">{toastMessage}</span>
+                </div>
+            )}
+        </StandardPageLayout>
     );
 };
 

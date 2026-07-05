@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-
+import PageBanner from './PageBanner';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import { User, RecentItem, View, CheckInEntry, ActivityItem } from '../types';
 import { useLanguage } from './LanguageContext';
 import { CalendarEvent } from './CalendarView';
@@ -9,7 +10,7 @@ import { initialFileSystem } from './DriveView';
 import { mockEmails } from './EmailClient';
 import { initialMeetings } from './MeetingView';
 import { mockClasses } from './TrainingDashboardView';
-import { SettingsIcon, XIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon, FileTextIcon, GripVerticalIcon, RssIcon, FolderIcon, ChecklistIcon, CalendarIcon, StickyNoteIcon, BookOpenIcon, GraduationCapIcon, MailIcon, ChatIcon, ZapIcon, ClockIcon } from './icons';
+import { SettingsIcon, XIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon, FileTextIcon, GripVerticalIcon, RssIcon, FolderIcon, ChecklistIcon, CalendarIcon, StickyNoteIcon, BookOpenIcon, GraduationCapIcon, MailIcon, ChatIcon, ZapIcon, ClockIcon, FilterIcon, LightningIcon } from './icons';
 import { motion, Reorder, AnimatePresence } from 'motion/react';
 import { auth, db } from '../firebase';
 import { collection, query, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore';
@@ -21,15 +22,17 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Toolti
 const WidgetCard: React.FC<{ title: string; icon?: React.ReactNode; onNavigate?: () => void; children: React.ReactNode; className?: string }> = ({ title, icon, onNavigate, children, className = '' }) => {
     const { t } = useLanguage();
     return (
-        <div className={`p-4 glass-card-premium rounded-[16px] flex flex-col animate-fade-in-up break-inside-avoid ${className}`}>
-            <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-2">
-                    {icon}
-                    <h3 className="font-bold text-[--color-text-primary] text-lg">{title}</h3>
+        <div className={`p-5 bg-gray-50 rounded-[15px] flex flex-col animate-fade-in-up break-inside-avoid border border-gray-100 hover:shadow-md transition-all duration-300 ${className}`}>
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white rounded-lg shadow-sm">
+                        {icon}
+                    </div>
+                    <h3 className="font-bold text-[--color-text-primary] text-sm tracking-tight">{title}</h3>
                 </div>
                 {onNavigate && (
-                    <button onClick={onNavigate} className="text-sm font-semibold text-[--color-accent-600] hover:underline flex items-center gap-1">
-                        {t('viewAll')} <ChevronRightIcon className="w-4 h-4" />
+                    <button onClick={onNavigate} className="text-[10px] font-bold text-[--color-accent-600] hover:underline flex items-center gap-1 uppercase tracking-wider">
+                        {t('viewAll')} <ChevronRightIcon className="w-3 h-3" />
                     </button>
                 )}
             </div>
@@ -285,10 +288,10 @@ const RecentTasksWidget: React.FC<{ onNavigate: () => void }> = ({ onNavigate })
                             <div className="flex-1 truncate">
                                 <p className="font-semibold text-sm text-[--color-text-primary] truncate">{task.text}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${task.priority === 'Cao' ? 'bg-red-100 text-red-600' : task.priority === 'Thấp' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${task.priority === 'Cao' ? 'bg-red-100 text-red-600' : task.priority === 'Thấp' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
                                         {task.priority || 'Trung bình'}
                                     </span>
-                                    <span className="text-[10px] text-[--color-text-subtle]">{task.status || 'Cần làm'}</span>
+                                    <span className="text-xs text-[--color-text-subtle]">{task.status || 'Cần làm'}</span>
                                 </div>
                             </div>
                         </div>
@@ -317,11 +320,11 @@ const DailyActivitySummaryWidget: React.FC<{ events: CalendarEvent[]; onNavigate
             <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 bg-[--color-surface-primary] rounded-xl flex flex-col items-center justify-center text-center">
                     <span className="text-2xl font-bold text-[--color-accent-600]">{stats.completedTasks}</span>
-                    <span className="text-[10px] uppercase font-bold text-[--color-text-subtle]">Công việc đã xong</span>
+                    <span className="text-xs uppercase font-bold text-[--color-text-subtle]">Công việc đã xong</span>
                 </div>
                 <div className="p-3 bg-[--color-surface-primary] rounded-xl flex flex-col items-center justify-center text-center">
                     <span className="text-2xl font-bold text-indigo-600">{stats.scheduledMeetings}</span>
-                    <span className="text-[10px] uppercase font-bold text-[--color-text-subtle]">Cuộc họp hôm nay</span>
+                    <span className="text-xs uppercase font-bold text-[--color-text-subtle]">Cuộc họp hôm nay</span>
                 </div>
             </div>
         </WidgetCard>
@@ -620,7 +623,7 @@ const MainContent: React.FC<MainContentProps> = ({ user, recentlyViewed, events,
   }, [widgetSettings, ALL_WIDGETS]);
 
   return (
-    <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] pb-24 md:pb-8">
+    <StandardPageLayout>
         {isCustomizeModalOpen && (
             <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9999] flex justify-center items-center p-4" aria-modal="true">
                 <div className="absolute inset-0" onClick={() => setIsCustomizeModalOpen(false)}></div>
@@ -671,59 +674,74 @@ const MainContent: React.FC<MainContentProps> = ({ user, recentlyViewed, events,
                 </div>
             </div>
         )}
-        <div className="overflow-y-auto no-scrollbar flex-1 flex flex-col gap-[5px]">
-            <div className="p-[5px] space-y-4">
-              
-              
-              {/* AI Support Chat Section */}
-              <div className="glass-card-premium rounded-[20px] p-5 mb-2 shadow-sm animate-fade-in">
-                  <div className="flex items-center gap-3 mb-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">AI</div>
-                      <h3 className="font-bold text-[--color-text-primary]">Trợ lý hỗ trợ AI</h3>
-                  </div>
-                  <div className="flex gap-2">
-                       <input 
-                          type="text" 
-                          placeholder="Bạn cần hỗ trợ gì hôm nay?" 
-                          className="flex-1 bg-[--color-surface-secondary] border border-[--color-border-primary] focus:bg-[--color-surface-solid] focus:ring-2 focus:ring-[--color-accent-400] focus:outline-none rounded-xl px-4 py-2 text-sm text-[--color-text-primary]"
-                       />
-                       <button className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-xl transition-all shadow-md active:scale-95">
-                           <ChatIcon className="w-5 h-5"/>
-                       </button>
-                  </div>
-                  <p className="text-[10px] text-[--color-text-subtle] mt-2 italic px-1">AI có thể trả lời các câu hỏi về quy trình, hỗ trợ kỹ thuật và quản lý công việc.</p>
-              </div>
 
-            </div>
-            <div className="px-[5px] pb-3">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold text-[--color-text-primary]">{t('dashboard')}</h2>
-                    <button onClick={() => setIsCustomizeModalOpen(true)} className="flex items-center gap-2 text-sm font-semibold text-[--color-text-secondary] hover:text-[--color-accent-600] p-2 rounded-lg transition-colors">
-                        <SettingsIcon className="w-5 h-5"/>
-                        <span className="hidden sm:inline">{t('customizeDashboard')}</span>
+        <PageBanner 
+            title={t('welcomeUser', { userName: user.name })}
+            subtitle={t('welcomeDesc')}
+            icon={<LightningIcon className="w-full h-full" />}
+            gradient="from-cyan-600 to-blue-700"
+            actions={
+                <>
+                    <button className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                        <FilterIcon className="w-4 h-4" /> Lọc dữ liệu
+                    </button>
+                    <button onClick={() => setIsCustomizeModalOpen(true)} className="flex items-center gap-2 bg-white text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
+                        <SettingsIcon className="w-4 h-4" /> {t('customizeDashboard')}
+                    </button>
+                </>
+            }
+        />
+
+        <ContentCard>
+            {/* AI Support Chat Section */}
+            <div className="bg-gray-50 rounded-[15px] p-5 mb-8 border border-gray-100 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-200">AI</div>
+                    <div>
+                        <h3 className="font-bold text-[--color-text-primary] text-sm">Trợ lý hỗ trợ AI</h3>
+                        <p className="text-[10px] text-[--color-text-subtle] font-medium uppercase tracking-wider">Hệ thống phản hồi thông minh</p>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <input 
+                        type="text" 
+                        placeholder="Bạn cần hỗ trợ gì hôm nay?" 
+                        className="flex-1 bg-white border border-gray-200 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:outline-none rounded-xl px-4 py-2.5 text-sm text-[--color-text-primary] transition-all"
+                    />
+                    <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 font-bold text-sm">
+                        Gửi yêu cầu
                     </button>
                 </div>
-                <motion.div layout className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 space-y-6">
-                  <AnimatePresence mode="popLayout">
-                    {orderedVisibleWidgets.map(widget => {
-                      const WidgetComponent = widget.component;
-                      return (
-                        <motion.div
-                          key={widget.id}
-                          layout
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                        >
-                            <WidgetComponent {...widget.props} />
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </motion.div>
+                <p className="text-[11px] text-[--color-text-subtle] mt-3 italic px-1 flex items-center gap-2 font-medium">
+                    <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                    AI có thể trả lời các câu hỏi về quy trình, hỗ trợ kỹ thuật và quản lý công việc.
+                </p>
             </div>
-        </div>
-    </main>
+
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-[--color-text-primary] tracking-tight">{t('dashboard')}</h2>
+            </div>
+
+            <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                <AnimatePresence mode="popLayout">
+                {orderedVisibleWidgets.map(widget => {
+                    const WidgetComponent = widget.component;
+                    return (
+                    <motion.div
+                        key={widget.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                    >
+                        <WidgetComponent {...widget.props} />
+                    </motion.div>
+                    );
+                })}
+                </AnimatePresence>
+            </motion.div>
+        </ContentCard>
+    </StandardPageLayout>
   );
 };
 

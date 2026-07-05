@@ -1,5 +1,5 @@
 import React from 'react';
-import { MailIcon, PencilIcon, TrashIcon, ChatIcon, StarIcon } from './icons';
+import { MailIcon, PencilIcon, TrashIcon, ChatIcon } from './icons';
 
 export interface Contact {
   id: string;
@@ -17,10 +17,9 @@ export interface Contact {
 interface ContactCardProps {
   contact: Contact;
   onChatClick?: (e: React.MouseEvent, contact: Contact) => void;
-  onCreateGoalClick?: (e: React.MouseEvent, contact: Contact) => void;
 }
 
-const ContactCard: React.FC<ContactCardProps> = ({ contact, onChatClick, onCreateGoalClick }) => {
+const ContactCard: React.FC<ContactCardProps> = ({ contact, onChatClick }) => {
   const getInitials = (name: string) => {
     const names = name.split(' ');
     if (names.length > 1) {
@@ -57,13 +56,6 @@ const ContactCard: React.FC<ContactCardProps> = ({ contact, onChatClick, onCreat
         </div>
       </div>
       <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button 
-            onClick={(e) => { e.stopPropagation(); if(onCreateGoalClick) onCreateGoalClick(e, contact); }}
-            className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-yellow-500 dark:text-yellow-400 transition-colors shadow-sm"
-            title="Tạo mục tiêu"
-        >
-            <StarIcon className="w-4 h-4" />
-        </button>
         <button 
             onClick={(e) => { e.stopPropagation(); if(onChatClick) onChatClick(e, contact); }}
             className="p-2 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-purple-600 dark:text-purple-400 transition-colors shadow-sm"

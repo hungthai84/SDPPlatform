@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, View } from '../App';
 import { useLanguage } from './LanguageContext';
-
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
+import PageBanner from './PageBanner';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { 
   Plus, 
   User as UserIcon, 
@@ -13,7 +15,8 @@ import {
   X, 
   BookOpen, 
   Home, 
-  Check 
+  Book,
+  GraduationCap
 } from 'lucide-react';
 
 export interface ClassInfo {
@@ -76,6 +79,7 @@ interface ClassCardProps {
 }
 
 const ClassCard: React.FC<ClassCardProps> = ({ classInfo, user, onNavigate, onShare, onEdit, onDelete }) => {
+    const { t } = useLanguage();
     const [showMenu, setShowMenu] = useState(false);
 
     useEffect(() => {
@@ -106,20 +110,20 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, user, onNavigate, onSh
         const isCompleted = completionRate === 100 || localStorage.getItem(`course_completed_${classInfo.id}_${user.id}`) === 'true';
         if (isCompleted) {
             return {
-                label: 'Đã hoàn thành',
+                label: t('completed') || 'Đã hoàn thành',
                 bg: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-150/15',
                 bar: 'bg-emerald-500'
             };
         }
         if (completionRate > 0) {
             return {
-                label: 'Đang học',
+                label: t('learning') || 'Đang học',
                 bg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-150/15',
                 bar: 'bg-amber-500'
             };
         }
         return {
-            label: 'Chưa bắt đầu',
+            label: t('notStarted') || 'Chưa bắt đầu',
             bg: 'bg-slate-50 dark:bg-slate-950/30 text-slate-500 dark:text-slate-400 border-slate-200/50 dark:border-slate-800/40',
             bar: 'bg-slate-200 dark:bg-slate-800'
         };
@@ -131,7 +135,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, user, onNavigate, onSh
             {/* Header / Banner region */}
             <div className="relative h-28 w-full group/banner cursor-pointer shrink-0 overflow-hidden" onClick={() => onNavigate('class-detail', classInfo.id)}>
                 <div className="w-full h-full transform group-hover/banner:scale-105 transition-transform duration-500">
-                    
+                    <ClassBannerBg image={classInfo.image} className="w-full h-full" />
                 </div>
                 <div className="absolute inset-0 bg-black/20 group-hover/banner:bg-black/30 transition-all"></div>
                 
@@ -188,14 +192,14 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, user, onNavigate, onSh
                     {classInfo.room && (
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 pl-0.5">
                             <Home className="w-3" />
-                            <span>Phòng: {classInfo.room}</span>
+                            <span>{t('room') || 'Phòng'}: {classInfo.room}</span>
                         </div>
                     )}
                     
                     {/* Sleek Progress Status Badge & Bar */}
                     <div className="pt-3.5 border-t border-slate-100 dark:border-slate-800/60 mt-3 space-y-2.5">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase text-slate-400">Trạng thái học tập</span>
+                            <span className="text-[10px] font-black uppercase text-slate-400">{t('learningStatus') || 'Trạng thái học tập'}</span>
                             <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${statusInfo.bg}`}>
                                 {statusInfo.label}
                             </span>
@@ -203,7 +207,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, user, onNavigate, onSh
                         
                         <div className="space-y-1">
                             <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
-                                <span>Tiến độ hoàn tất</span>
+                                <span>{t('completionProgress') || 'Tiến độ hoàn tất'}</span>
                                 <span className={completionRate === 100 ? 'text-emerald-500' : ''}>{completionRate}%</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-950 rounded-full overflow-hidden">
@@ -268,6 +272,18 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
     const [searchQuery, setSearchQuery] = useState('');
     const [progressFilter, setProgressFilter] = useState<'all' | 'not-started' | 'in-progress' | 'completed'>('all');
     const [toastMessage, setToastMessage] = useState('');
+
+    // Stats calculations for training progress matching project dashboard structure
+    const stats = useMemo(() => {
+        const completed = classes.filter(c => localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true').length;
+        const inProgress = classes.filter(c => {
+            const rate = parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10);
+            const completedCheck = localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true';
+            return rate > 0 && !completedCheck;
+        }).length;
+        const notStarted = classes.length - completed - inProgress;
+        return { completed, inProgress, notStarted };
+    }, [classes, user?.id]);
 
     // Modal forms states
     const [showEditAddModal, setShowEditAddModal] = useState(false);
@@ -430,96 +446,136 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
     }, [classes, searchQuery, progressFilter, user?.id]);
 
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] gap-3 pb-24 md:pb-8 relative">
-            
-            
-            <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-4">
-                
-                {/* Control bar */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800 pb-3">
-                    <div>
-                        <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">{t('myClasses')}</h2>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Quản lý và tổ chức các lớp học giáo dục nội bộ.</p>
+        <StandardPageLayout>
+            <PageBanner 
+                title={t('trainingTitle') || "Đào tạo & Phát triển"}
+                subtitle={t('trainingSubtitle') || "Nâng cao kỹ năng chuyên môn, cập nhật kiến thức mới và xây dựng lộ trình sự nghiệp bền vững."}
+                icon={<GraduationCap className="w-full h-full text-white" />}
+                gradient="from-emerald-600 to-teal-700"
+                actions={
+                    <button 
+                        onClick={handleOpenCreateModal}
+                        className="flex items-center gap-2 bg-white text-emerald-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all"
+                    >
+                        <Plus className="w-4 h-4" /> {t('createNewClass') || 'Tạo lớp học mới'}
+                    </button>
+                }
+            />
+
+            <div className="flex flex-col gap-6 mt-6">
+                {/* Statistics Section matching Project Management style */}
+                <ContentCard>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-gray-100">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <GraduationCap className="w-4 h-4 text-emerald-600" />
+                          Thống kê & Lộ trình Học tập
+                        </h3>
+                        <p className="text-[11px] text-slate-500 font-medium">Theo dõi tỉ lệ hoàn thành khoá học và tổng quan tiến độ đào tạo cá nhân.</p>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
-                        
-                        {/* Search Input Box */}
-                        <div className="relative flex-1 sm:flex-initial">
-                            <input 
-                                type="text"
-                                placeholder="Tìm kiếm lớp học..."
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                className="w-full sm:w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 pl-9 pr-4 text-xs text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 font-medium"
-                            />
-                            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                            {searchQuery && (
-                                <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100">
-                                    <X className="w-3 h-3" />
-                                </button>
-                            )}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+                      <div className="lg:col-span-1 flex flex-col justify-center space-y-4">
+                        {[
+                          { label: 'Đã hoàn thành', count: stats.completed, color: 'bg-emerald-500' },
+                          { label: 'Đang học', count: stats.inProgress, color: 'bg-amber-500' },
+                          { label: 'Chưa bắt đầu', count: stats.notStarted, color: 'bg-slate-300' },
+                        ].map((item, idx) => (
+                          <div key={idx} className="flex justify-between items-center text-xs font-bold">
+                            <span className="flex items-center gap-2 text-slate-500 uppercase tracking-wider text-[10px]">
+                              <span className={`w-2.5 h-2.5 rounded-full ${item.color}`}></span>
+                              {item.label}
+                            </span>
+                            <span className="text-slate-800 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md">{item.count} khoá học</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="lg:col-span-2 h-[180px]">
+                        {classes.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={[
+                                  { name: 'Đã hoàn thành', value: stats.completed, color: '#10B981' },
+                                  { name: 'Đang học', value: stats.inProgress, color: '#F59E0B' },
+                                  { name: 'Chưa bắt đầu', value: stats.notStarted, color: '#CBD5E1' },
+                                ].filter(d => d.value > 0)}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={50}
+                                outerRadius={75}
+                                paddingAngle={4}
+                                dataKey="value"
+                              >
+                                {[
+                                  { name: 'Đã hoàn thành', value: stats.completed, color: '#10B981' },
+                                  { name: 'Đang học', value: stats.inProgress, color: '#F59E0B' },
+                                  { name: 'Chưa bắt đầu', value: stats.notStarted, color: '#CBD5E1' },
+                                ].filter(d => d.value > 0).map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                                  borderRadius: '12px', 
+                                  border: 'none',
+                                  color: '#fff',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold'
+                                }} 
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-xs font-bold text-slate-400">Chưa có dữ liệu học tập.</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </ContentCard>
+
+                <ContentCard>
+                    <div className="flex flex-col gap-6">
+                        <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                                <div className="relative flex-1 md:w-64">
+                                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                                    <input 
+                                        type="text"
+                                        placeholder={t('searchClassPlaceholder') || "Tìm kiếm lớp học..."}
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-2">{t('filter')}:</span>
+                                {[
+                                    { id: 'all', label: t('all') || 'Tất cả', count: classes.length },
+                                    { id: 'completed', label: t('completed') || 'Hoàn thành', count: classes.filter(c => localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true').length },
+                                    { id: 'in-progress', label: t('learning') || 'Đang học', count: classes.filter(c => (parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10) > 0 && localStorage.getItem(`course_completed_${c.id}_${user.id}`) !== 'true')).length },
+                                ].map(filter => (
+                                    <button
+                                        key={filter.id}
+                                        onClick={() => setProgressFilter(filter.id as 'all' | 'completed' | 'in-progress')}
+                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${progressFilter === filter.id ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-500 border border-gray-200 hover:border-emerald-200'}`}
+                                    >
+                                        {filter.label} ({filter.count})
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-
-                        {/* Plus button inside the header */}
-                        <button 
-                            onClick={handleOpenCreateModal}
-                            className="flex items-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all shrink-0 active:scale-95 duration-75 text-xs"
-                        >
-                            <Plus className="w-4 h-4" />
-                            <span>Tạo lớp học mới</span>
-                        </button>
                     </div>
-                </div>
+                </ContentCard>
 
-                {/* Progress Filter Segmented Controls */}
-                <div className="flex flex-wrap items-center gap-1.5 border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900 rounded-2xl p-2.5 shrink-0 shadow-xs">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 ml-1.5 mr-2">Trạng thái:</span>
-                    <button
-                        onClick={() => setProgressFilter('all')}
-                        className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${progressFilter === 'all' ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs' : 'bg-transparent border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                    >
-                        Tất cả ({classes.length})
-                    </button>
-                    <button
-                        onClick={() => setProgressFilter('completed')}
-                        className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${progressFilter === 'completed' ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'bg-transparent border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                    >
-                        Đã hoàn thành ({classes.filter(c => {
-                            const r = parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10);
-                            const isComp = r === 100 || localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true';
-                            return isComp;
-                        }).length})
-                    </button>
-                    <button
-                        onClick={() => setProgressFilter('in-progress')}
-                        className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${progressFilter === 'in-progress' ? 'bg-amber-600 border-amber-600 text-white shadow-xs' : 'bg-transparent border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                    >
-                        Đang học ({classes.filter(c => {
-                            const r = parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10);
-                            const stepStr = localStorage.getItem(`course_step_idx_${c.id}_${user.id}`);
-                            const stepVal = stepStr ? parseInt(stepStr, 10) : 0;
-                            const isComp = r === 100 || localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true';
-                            return !isComp && (r > 0 || stepVal > 0);
-                        }).length})
-                    </button>
-                    <button
-                        onClick={() => setProgressFilter('not-started')}
-                        className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${progressFilter === 'not-started' ? 'bg-slate-600 border-slate-600 text-white shadow-xs' : 'bg-transparent border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                    >
-                        Chưa bắt đầu ({classes.filter(c => {
-                            const r = parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10);
-                            const stepStr = localStorage.getItem(`course_step_idx_${c.id}_${user.id}`);
-                            const stepVal = stepStr ? parseInt(stepStr, 10) : 0;
-                            const isComp = r === 100 || localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true';
-                            return r === 0 && stepVal === 0 && !isComp;
-                        }).length})
-                    </button>
-                </div>
-
-                {/* Grid view of classes */}
                 {filteredClasses.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredClasses.map(classInfo => (
                             <ClassCard 
                                 key={classInfo.id} 
@@ -533,183 +589,56 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
                         ))}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-20 bg-slate-50/50 dark:bg-slate-900/10 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center">
-                        <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950/20 text-blue-600 flex items-center justify-center mb-4">
-                            <BookOpen className="w-7 h-7" />
+                    <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed border-gray-200 p-8 text-center shadow-sm">
+                        <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 border border-emerald-100">
+                            <Book className="w-8 h-8" />
                         </div>
-                        <h3 className="text-base font-bold text-slate-700 dark:text-slate-300">Không tìm thấy lớp học nào</h3>
-                        <p className="text-xs text-slate-400 mt-1 max-w-sm">Tạo một lớp học đào tạo mới hoặc điều chỉnh truy vấn tìm kiếm của bạn.</p>
-                        <button 
-                            onClick={handleOpenCreateModal}
-                            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center gap-1"
-                        >
-                            <Plus className="w-3.5 h-3.5" /> Tạo lớp học ngay
-                        </button>
+                        <h3 className="text-sm font-bold text-slate-800">Không tìm thấy khóa học nào</h3>
+                        <p className="text-xs text-slate-500 mt-1">Hãy thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn.</p>
                     </div>
                 )}
             </div>
 
-            {/* Custom Edit / Add Modal representing Google Classroom styled "Tạo lớp học" */}
+            {/* Modal & Toast remain similar but with standardized styling classes */}
             {showEditAddModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[100] flex justify-center items-center p-4 overflow-y-auto" aria-modal="true" role="dialog">
-                    <div className="absolute inset-0" onClick={() => setShowEditAddModal(false)}></div>
-                    <form onSubmit={handleSaveClass} className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl flex flex-col my-8 animate-scale-in overflow-hidden">
-                        
-                        {/* Header banner gradient theme representing active choice */}
-                        <div 
-                            className="p-5 md:p-6 text-white relative h-32 flex flex-col justify-end text-left shrink-0"
-                            style={{ 
-                                background: isCustomCover 
-                                    ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.5)), url(${customUnsplashUrl || 'https://images.unsplash.com/photo-1543269865-cbf427effbad?q=80&w=850'}) center/cover` 
-                                    : (presetThemes.find(t => t.id === fieldImageTheme)?.gradient || presetThemes[0].gradient)
-                            }}
-                        >
-                            <button 
-                                type="button" 
-                                onClick={() => setShowEditAddModal(false)} 
-                                className="absolute top-4 right-4 p-1.5 bg-black/25 hover:bg-black/50 text-white rounded-full transition-all"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                            <div className="absolute top-4 left-5 bg-white/20 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                                Google Lớp học
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-extrabold text-white leading-tight">
-                                    {modalMode === 'create' ? 'Tạo lớp học mới' : 'Chỉnh sửa chi tiết lớp'}
-                                </h3>
-                                <p className="text-[11px] text-white/80 mt-0.5">Đặt tên, phân chia danh mục và lựa chọn chủ đề hiển thị</p>
-                            </div>
+                <div className="fixed inset-0 z-[2000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-scale-up border border-white/20">
+                        <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                            <h3 className="text-lg font-bold text-slate-800 tracking-tight">{modalMode === 'create' ? t('createNewClass') || 'Tạo lớp học mới' : t('editClass') || 'Chỉnh sửa lớp học'}</h3>
+                            <button onClick={() => setShowEditAddModal(false)} className="p-2 hover:bg-white rounded-xl transition-all shadow-sm"><X className="w-5 h-5 text-slate-400" /></button>
                         </div>
-
-                        {/* Modal Body */}
-                        <div className="p-5 md:p-6 overflow-y-auto space-y-4 max-h-[60vh] text-left no-scrollbar">
-                            
-                            {/* Class name required input */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block">Tên lớp học (bắt buộc) *</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="Ví dụ: Kỹ năng Chăm sóc Khách hàng chuyên nghiệp"
-                                    value={fieldName}
-                                    onChange={e => setFieldName(e.target.value)}
-                                    required
-                                    className="w-full text-sm font-bold bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2.5 px-3.5 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-400"
-                                />
+                        <form onSubmit={handleSaveClass} className="p-8 flex flex-col gap-5">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('className') || 'Tên lớp học'}</label>
+                                <input type="text" required value={fieldName} onChange={e => setFieldName(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all" />
                             </div>
-
-                            {/* Section input */}
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-slate-500 dark:text-slate-400 block">Phần (Phân hệ, Khoa ban)</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="Ví dụ: Phòng CSKH, Đội kỹ thuật..."
-                                    value={fieldSection}
-                                    onChange={e => setFieldSection(e.target.value)}
-                                    className="w-full text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3.5 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-400"
-                                />
-                            </div>
-
-                            {/* Column inputs */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 block">Chủ đề bài giảng (Subject)</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Ví dụ: Chuyên môn, Kỹ năng mềm"
-                                        value={fieldSubject}
-                                        onChange={e => setFieldSubject(e.target.value)}
-                                        className="w-full text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3.5 text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-400"
-                                    />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('subject') || 'Lĩnh vực'}</label>
+                                    <input type="text" value={fieldSubject} onChange={e => setFieldSubject(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all" />
                                 </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500 block">Phòng học (Nếu có)</label>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Ví dụ: Phòng Hội nghị G, Zoom"
-                                        value={fieldRoom}
-                                        onChange={e => setFieldRoom(e.target.value)}
-                                        className="w-full text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3.5 text-slate-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all placeholder:text-slate-400"
-                                    />
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">{t('room') || 'Phòng học'}</label>
+                                    <input type="text" value={fieldRoom} onChange={e => setFieldRoom(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 text-sm font-bold text-slate-800 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all" />
                                 </div>
                             </div>
-
-                            {/* Theme styling and Preset theme color selection Grid */}
-                            <div className="space-y-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800">
-                                <div className="flex justify-between items-center text-xs font-bold text-slate-500">
-                                    <span>Chọn chủ đề hình nền</span>
-                                    
-                                    {/* Unsplash Custom Selector Tab */}
-                                    <button 
-                                        type="button"
-                                        onClick={() => setIsCustomCover(!isCustomCover)}
-                                        className="text-[10px] text-blue-600 hover:text-blue-700 underline tracking-wide font-bold"
-                                    >
-                                        {isCustomCover ? 'Chọn màu dải màu mặc định' : 'Tải hình nền tùy chọn (Unsplash URL)'}
-                                    </button>
-                                </div>
-
-                                {!isCustomCover ? (
-                                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 pt-1">
-                                        {presetThemes.map(theme => (
-                                            <button
-                                                key={theme.id}
-                                                type="button"
-                                                onClick={() => setFieldImageTheme(theme.id)}
-                                                style={{ background: theme.gradient }}
-                                                className={`h-11 rounded-lg border-2 relative transition-all duration-150 transform hover:scale-[1.03] shadow-xs flex items-center justify-center ${fieldImageTheme === theme.id ? 'border-sky-500 ring-2 ring-sky-300' : 'border-slate-200 dark:border-slate-800 hover:opacity-90'}`}
-                                                title={theme.name}
-                                            >
-                                                {fieldImageTheme === theme.id && (
-                                                    <div className="w-5 h-5 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-md">
-                                                        <Check className="w-3.5 h-3.5" />
-                                                    </div>
-                                                )}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="space-y-1.5 animate-fade-in-up">
-                                        <input 
-                                            type="url"
-                                            placeholder="Nhập link ảnh Unsplash (e.g. https://images.unsplash.com/field...)"
-                                            value={customUnsplashUrl}
-                                            onChange={e => setCustomUnsplashUrl(e.target.value)}
-                                            className="w-full text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-slate-800 dark:text-white"
-                                        />
-                                        <p className="text-[10px] text-slate-400">Gợi ý: Dán đường lẫm ảnh phong cảnh ngang từ Unsplash.com để bao phủ lớp học sinh động.</p>
-                                    </div>
-                                )}
+                            <div className="pt-4">
+                                <button type="submit" className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-600/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2">
+                                    <Plus className="w-5 h-5" /> {modalMode === 'create' ? t('createClass') || 'Tạo lớp học' : t('saveChanges') || 'Lưu thay đổi'}
+                                </button>
                             </div>
-                        </div>
-
-                        {/* Footer Controls */}
-                        <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 bg-slate-50 dark:bg-slate-900">
-                            <button 
-                                type="button"
-                                onClick={() => setShowEditAddModal(false)}
-                                className="py-2.5 px-4 rounded-xl text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-xs"
-                            >
-                                Hủy bỏ
-                            </button>
-                            <button 
-                                type="submit"
-                                className="py-2.5 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md flex items-center gap-1.5 text-xs transition-colors"
-                            >
-                                {modalMode === 'create' ? 'Tạo lớp học' : 'Lưu thay đổi'}
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             )}
 
             {toastMessage && (
-                <div className="fixed bottom-5 right-5 z-[1001] bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 animate-fade-in-up">
-                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[2000] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-fade-in-up">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
                     <span className="text-xs font-bold">{toastMessage}</span>
                 </div>
             )}
-        </main>
+        </StandardPageLayout>
     );
 };
 

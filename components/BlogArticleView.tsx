@@ -103,26 +103,26 @@ const BlogArticleView: React.FC<BlogArticleViewProps> = ({ user, articleId, onNa
 
     if (isLoading) {
         return (
-            <div className="flex-1 flex items-center justify-center bg-slate-50">
-                <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex-1 flex items-center justify-center bg-transparent">
+                <div className="w-12 h-12 border-4 border-[--color-accent-500] border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     if (!article) {
         return (
-            <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Bài viết không tồn tại</h2>
-                <button onClick={() => onNavigate('blog')} className="text-pink-600 font-bold hover:underline">Quay lại Blog</button>
+            <div className="flex-1 flex flex-col items-center justify-center bg-transparent p-6 text-center">
+                <h2 className="text-2xl font-bold text-[--color-text-primary] mb-2">Bài viết không tồn tại</h2>
+                <button onClick={() => onNavigate('blog')} className="text-[--color-accent-600] font-bold hover:underline">Quay lại Blog</button>
             </div>
         );
     }
 
     return (
-        <main className="flex-1 flex flex-col min-h-0 bg-white overflow-hidden">
+        <main className="flex-1 flex flex-col min-h-0 bg-transparent overflow-hidden">
             {/* Header */}
-            <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-                <button onClick={() => onNavigate('blog')} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-pink-600 transition-colors">
+            <header className="sticky top-0 z-20 bg-[--color-surface-secondary]/60 backdrop-blur-md border-b border-[--color-border-secondary] px-6 py-4 flex items-center justify-between">
+                <button onClick={() => onNavigate('blog')} className="flex items-center gap-2 text-sm font-semibold text-[--color-text-secondary] hover:text-[--color-accent-600] transition-colors">
                     <ChevronLeftIcon className="w-5 h-5" />
                     Quay lại
                 </button>
@@ -138,14 +138,14 @@ const BlogArticleView: React.FC<BlogArticleViewProps> = ({ user, articleId, onNa
                 <article className="max-w-4xl mx-auto px-6 py-12">
                     {/* Meta info */}
                     <div className="mb-8">
-                        <div className="flex items-center gap-3 text-sm text-slate-500 mb-4">
+                        <div className="flex items-center gap-3 text-sm text-[--color-text-secondary] mb-4">
                             <span className="flex items-center gap-1"><UserIcon className="w-4 h-4"/> {article.authorName}</span>
                             <span className="flex items-center gap-1"><CalendarIcon className="w-4 h-4"/> {new Date(article.createdAt).toLocaleDateString('vi-VN')}</span>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight mb-6">{article.title}</h1>
+                        <h1 className="text-4xl md:text-5xl font-extrabold text-[--color-text-primary] leading-tight mb-6">{article.title}</h1>
                         <div className="flex flex-wrap gap-2">
                             {article.tags.map(tag => (
-                                <span key={tag} className="flex items-center gap-1 px-3 py-1 bg-pink-50 text-pink-700 text-xs font-bold rounded-full border border-pink-100">
+                                <span key={tag} className="flex items-center gap-1 px-3 py-1 bg-[--color-surface-secondary]/60 text-[--color-text-primary] text-xs font-bold rounded-full border border-[--color-border-secondary] backdrop-blur-md">
                                     <TagIcon className="w-3 h-3"/> {tag}
                                 </span>
                             ))}
@@ -160,33 +160,33 @@ const BlogArticleView: React.FC<BlogArticleViewProps> = ({ user, articleId, onNa
                     )}
 
                     {/* Body Content */}
-                    <div className="prose prose-lg max-w-none prose-headings:text-slate-900 prose-p:text-slate-700 prose-strong:text-slate-900 prose-a:text-pink-600 mb-20" dangerouslySetInnerHTML={{ __html: article.content }}></div>
+                    <div className="prose prose-lg max-w-none prose-headings:text-[--color-text-primary] prose-p:text-[--color-text-secondary] prose-strong:text-[--color-text-primary] prose-a:text-[--color-accent-600] mb-20" dangerouslySetInnerHTML={{ __html: article.content }}></div>
 
                     {/* Comments Section */}
-                    <section className="border-t border-slate-100 pt-12">
-                        <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-2">
+                    <section className="border-t border-[--color-border-secondary] pt-12">
+                        <h2 className="text-2xl font-bold text-[--color-text-primary] mb-8 flex items-center gap-2">
                             Nhận xét ({comments.length})
                         </h2>
 
                         {/* Comment Form */}
-                        <form onSubmit={handleAddComment} className="mb-12 bg-slate-50 rounded-2xl p-6 border border-slate-100 shadow-sm">
+                        <form onSubmit={handleAddComment} className="mb-12 bg-[--color-surface-secondary]/60 backdrop-blur-md rounded-[20px] p-6 border border-[--color-border-secondary] shadow-sm">
                             <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center overflow-hidden shrink-0">
-                                    {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5 text-purple-600"/>}
+                                <div className="w-10 h-10 rounded-full bg-[--color-surface-solid] flex items-center justify-center overflow-hidden shrink-0">
+                                    {user.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5 text-[--color-text-primary]"/>}
                                 </div>
                                 <div className="flex-1">
                                     <textarea 
                                         value={newComment}
                                         onChange={(e) => setNewComment(e.target.value)}
                                         placeholder="Để lại nhận xét của bạn..."
-                                        className="w-full bg-white border border-slate-200 rounded-xl p-4 focus:ring-2 focus:ring-pink-500 focus:outline-none transition-all resize-none text-slate-800 placeholder:text-slate-400"
+                                        className="w-full bg-[--color-surface-primary] border border-[--color-border-secondary] rounded-xl p-4 focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all resize-none text-[--color-text-primary] placeholder-[--color-text-subtle]"
                                         rows={3}
                                     />
                                     <div className="flex justify-end mt-3">
                                         <button 
                                             type="submit" 
                                             disabled={!newComment.trim() || isSubmitting}
-                                            className="bg-gradient-to-r from-pink-500 to-purple-600 text-white font-bold px-6 py-2.5 rounded-lg shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                            className="bg-gradient-to-r from-[--color-accent-500] to-[--color-accent-600] text-white font-bold px-6 py-2.5 rounded-lg shadow-lg hover:shadow-[--color-accent-500]/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                         >
                                             {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <PaperAirplaneIcon className="w-4 h-4" />}
                                             Gửi nhận xét
@@ -199,7 +199,7 @@ const BlogArticleView: React.FC<BlogArticleViewProps> = ({ user, articleId, onNa
                         {/* Comments List */}
                         <div className="space-y-8">
                             {comments.length === 0 ? (
-                                <div className="text-center py-12 text-slate-400 italic">
+                                <div className="text-center py-12 text-[--color-text-subtle] italic">
                                     Chưa có nhận xét nào. Hãy là người đầu tiên!
                                 </div>
                             ) : (
@@ -210,28 +210,28 @@ const BlogArticleView: React.FC<BlogArticleViewProps> = ({ user, articleId, onNa
                                         key={comment.id} 
                                         className="flex gap-4 group"
                                     >
-                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
-                                            {comment.authorAvatar ? <img src={comment.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5 text-slate-400"/>}
+                                        <div className="w-10 h-10 rounded-full bg-[--color-surface-solid] flex items-center justify-center overflow-hidden shrink-0">
+                                            {comment.authorAvatar ? <img src={comment.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="w-5 h-5 text-[--color-text-subtle]"/>}
                                         </div>
-                                        <div className="flex-1 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm relative transition-all hover:shadow-md">
+                                        <div className="flex-1 bg-[--color-surface-secondary]/60 backdrop-blur-md border border-[--color-border-secondary] rounded-[20px] p-4 shadow-sm relative transition-all hover:shadow-md">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <h4 className="font-bold text-slate-900 text-sm">{comment.id === 'user-admin' ? 'Quản trị viên' : comment.authorName}</h4>
-                                                    <span className="text-[10px] text-slate-400 uppercase tracking-wider">
+                                                    <h4 className="font-bold text-[--color-text-primary] text-sm">{comment.id === 'user-admin' ? 'Quản trị viên' : comment.authorName}</h4>
+                                                    <span className="text-[10px] text-[--color-text-subtle] uppercase tracking-wider">
                                                         {comment.createdAt && typeof comment.createdAt !== 'number' && 'toDate' in comment.createdAt ? comment.createdAt.toDate().toLocaleString('vi-VN') : (typeof comment.createdAt === 'number' ? new Date(comment.createdAt).toLocaleString('vi-VN') : 'Vừa xong')}
                                                     </span>
                                                 </div>
                                                 {(comment.authorId === user.id || user.role === 'superadmin') && (
                                                     <button 
                                                         onClick={() => handleDeleteComment(comment.id)} 
-                                                        className="p-2 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                                                        className="p-2 text-[--color-text-subtle] hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                                                         title="Xóa nhận xét"
                                                     >
                                                         <TrashIcon className="w-4 h-4" />
                                                     </button>
                                                 )}
                                             </div>
-                                            <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                                            <p className="text-[--color-text-secondary] whitespace-pre-wrap leading-relaxed">{comment.content}</p>
                                         </div>
                                     </motion.div>
                                 ))

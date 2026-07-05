@@ -11,7 +11,7 @@ const FloatingAiButton: React.FC<FloatingAiButtonProps> = ({ onClick, isOpen }) 
   return (
     <button
       onClick={onClick}
-      className={`fixed top-[72px] right-6 w-16 h-16 rounded-full bg-gradient-to-br from-indigo-600 via-purple-700 to-slate-800 text-white flex items-center justify-center shadow-2xl z-50 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-[--color-accent-400]/50`}
+      className={`fixed top-[72px] right-6 w-16 h-16 rounded-full bg-[--color-accent-500] text-white flex items-center justify-center shadow-lg z-50 transition-all duration-300 transform hover:scale-110 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-[--color-accent-400]/50`}
       aria-label={isOpen ? "Close AI Assistant" : "Open AI Assistant"}
     >
       <div className="relative w-full h-full flex items-center justify-center overflow-hidden rounded-full">

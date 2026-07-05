@@ -14,7 +14,7 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Play', 'Outfit', 'Plus Jakarta Sans', 'Inter', 'sans-serif'],
+              sans: ['Play', 'Inter', 'Outfit', 'Plus Jakarta Sans', 'sans-serif'],
             }
           }
         }
@@ -25,17 +25,24 @@
       /* Using a more complex gradient for the background */
       /* Ensure base font size uniformity */
       html {
-        font-size: 17px;
+        font-size: 16px;
       }
       body {
-        font-family: 'Play', 'Outfit', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif !important;
+        font-family: 'Play', 'Inter', 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
         background: var(--color-background-body);
         background-color: #f0fdf4; /* fallback */
         background-size: cover;
         background-attachment: fixed;
-        border-radius: 0 10px 10px 0;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+      }
+      
+      * {
+        scrollbar-width: none !important; /* Firefox */
+        -ms-overflow-style: none !important; /* IE 10+ */
+      }
+      *::-webkit-scrollbar {
+        display: none !important; /* Webkit / Chrome */
       }
       
       input, button, select, textarea {
