@@ -56,9 +56,167 @@ export interface EmailConfig {
 
 const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUsersChange }) => {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'pages' | 'media' | 'settings' | 'permissions' | 'email-config'>('pages');
+  const [activeTab, setActiveTab] = useState<'pages' | 'media' | 'settings' | 'permissions' | 'email-config' | 'demo-simulation'>('pages');
   const [pages, setPages] = useState<PageData[]>(mockPages);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Simulation states
+  const [simulationLogs, setSimulationLogs] = useState<string[]>([]);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simulatedCounts, setSimulatedCounts] = useState({ projects: 0, tasks: 0, events: 0, chats: 0 });
+
+  const runSimulation = async (type: 'all' | 'projects' | 'tasks' | 'events') => {
+    setIsSimulating(true);
+    const logs: string[] = [];
+    const addLog = (msg: string) => {
+      logs.push(`[${new Date().toLocaleTimeString()}] ${msg}`);
+      setSimulationLogs([...logs]);
+    };
+
+    addLog(`🚀 Bắt đầu khởi tạo dữ liệu mô phỏng doanh nghiệp...`);
+    await new Promise(r => setTimeout(r, 600));
+
+    try {
+      if (type === 'all' || type === 'projects') {
+        addLog(`📂 Đang ghi các Dự án (Projects) mẫu vào Firestore...`);
+        const sampleProjects = [
+          {
+            name: 'Xây dựng Cổng thông tin Power Service v2.0',
+            description: 'Nâng cấp toàn diện cổng thông tin dịch vụ, tích hợp các công cụ tự động hóa quy trình nghiệp vụ.',
+            status: 'active',
+            dueDate: '2026-11-30',
+            startDate: '2026-07-01',
+            department: 'IT'
+          },
+          {
+            name: 'Chiến dịch Truyền thông Tết Nguyên Đán 2026',
+            description: 'Phát triển thương hiệu số thông qua chuỗi sự kiện trực tuyến và chiến dịch bài viết tối ưu SEO.',
+            status: 'active',
+            dueDate: '2026-02-15',
+            startDate: '2026-06-15',
+            department: 'Marketing'
+          },
+          {
+            name: 'Đào tạo kỹ năng số cho phòng Hành chính',
+            description: 'Phổ cập sử dụng các công cụ văn phòng thông minh và hệ thống quản trị tài liệu đám mây.',
+            status: 'completed',
+            dueDate: '2026-06-30',
+            startDate: '2026-05-01',
+            department: 'HR'
+          }
+        ];
+
+        let count = 0;
+        for (const proj of sampleProjects) {
+          await addDoc(collection(db, 'projects'), proj);
+          count++;
+          addLog(`✅ Đã lưu dự án mẫu: "${proj.name}"`);
+          await new Promise(r => setTimeout(r, 200));
+        }
+        setSimulatedCounts(prev => ({ ...prev, projects: prev.projects + count }));
+      }
+
+      if (type === 'all' || type === 'tasks') {
+        addLog(`📝 Đang ghi các Công việc (Tasks) mẫu vào Firestore...`);
+        const sampleTasks = [
+          {
+            title: 'Phân tích yêu cầu nghiệp vụ và vẽ Wireframe giao diện v2.0',
+            description: 'Họp với các phòng ban liên quan để chốt tính năng và layout cho các màn hình chính.',
+            status: 'completed',
+            dueDate: '2026-07-15',
+            assignedTo: user.id,
+            category: 'Thiết kế',
+            priority: 'high'
+          },
+          {
+            title: 'Cấu hình Firebase Firestore và thiết lập bảo mật Security Rules',
+            description: 'Thiết lập các rule bảo mật dữ liệu theo đúng phân quyền người dùng (superadmin, admin, user).',
+            status: 'pending',
+            dueDate: '2026-08-01',
+            assignedTo: user.id,
+            category: 'Công nghệ',
+            priority: 'high'
+          },
+          {
+            title: 'Viết nội dung truyền thông cho chuỗi bài viết khai xuân 2026',
+            description: 'Chuẩn bị 5 bài viết định hướng thương hiệu số PSO Desk trên các kênh xã hội.',
+            status: 'pending',
+            dueDate: '2026-09-10',
+            assignedTo: user.id,
+            category: 'Nội dung',
+            priority: 'medium'
+          },
+          {
+            title: 'Phát hành tài liệu hướng dẫn sử dụng phần mềm Power Service',
+            description: 'Biên soạn file PDF hướng dẫn chi tiết các thao tác quản trị cho doanh nghiệp.',
+            status: 'completed',
+            dueDate: '2026-06-25',
+            assignedTo: user.id,
+            category: 'Đào tạo',
+            priority: 'low'
+          }
+        ];
+
+        let count = 0;
+        for (const task of sampleTasks) {
+          await addDoc(collection(db, 'tasks'), task);
+          count++;
+          addLog(`✅ Đã lưu công việc mẫu: "${task.title}"`);
+          await new Promise(r => setTimeout(r, 200));
+        }
+        setSimulatedCounts(prev => ({ ...prev, tasks: prev.tasks + count }));
+      }
+
+      if (type === 'all' || type === 'events') {
+        addLog(`📅 Đang ghi các Lịch họp (Events) mẫu vào Firestore...`);
+        const sampleEvents = [
+          {
+            title: 'Họp Kick-off Dự án Power Service v2.0',
+            description: 'Khởi động dự án, phân công vai trò và chốt deadline các mốc quan trọng.',
+            date: '2026-07-10',
+            time: '09:00',
+            location: 'Phòng họp trực tuyến Teams/Zoom',
+            category: 'Họp dự án',
+            organizer: user.name
+          },
+          {
+            title: 'Duyệt thiết kế Banner & Kế hoạch truyền thông Tết 2026',
+            description: 'Đánh giá các phương án Key Visual và duyệt chi phí quảng bá đa kênh.',
+            date: '2026-07-15',
+            time: '14:00',
+            location: 'Phòng họp Lotus - Tầng 3',
+            category: 'Marketing',
+            organizer: user.name
+          },
+          {
+            title: 'Họp Tổng kết Khóa đào tạo kỹ năng số phòng Hành chính',
+            description: 'Đánh giá kết quả làm bài thu hoạch và trao chứng nhận kỹ thuật cho học viên xuất sắc.',
+            date: '2026-07-20',
+            time: '10:30',
+            location: 'Hội trường lớn - Tầng G',
+            category: 'Đào tạo',
+            organizer: user.name
+          }
+        ];
+
+        let count = 0;
+        for (const ev of sampleEvents) {
+          await addDoc(collection(db, 'events'), ev);
+          count++;
+          addLog(`✅ Đã lưu lịch họp mẫu: "${ev.title}"`);
+          await new Promise(r => setTimeout(r, 200));
+        }
+        setSimulatedCounts(prev => ({ ...prev, events: prev.events + count }));
+      }
+
+      addLog(`🎉 Hoàn tất quy trình mô phỏng! Dữ liệu đã đồng bộ thời gian thực lên toàn hệ thống.`);
+    } catch (err) {
+      console.error(err);
+      addLog(`❌ Lỗi tạo dữ liệu Firestore: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsSimulating(false);
+    }
+  };
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -471,6 +629,13 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
             <span>{t('userManagement') || 'Phân quyền'}</span>
           </button>
         )}
+        <button
+          onClick={() => setActiveTab('demo-simulation')}
+          className={`pb-4 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'demo-simulation' ? 'border-[--color-accent-500] text-[--color-accent-600] dark:text-[--color-accent-400]' : 'border-transparent text-[--color-text-secondary] hover:text-[--color-text-primary]'}`}
+        >
+          <SyncIcon className="w-4 h-4" />
+          <span>Dữ liệu mô phỏng</span>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 md:px-8 pt-6 pb-28 md:pb-12 space-y-8">
@@ -1103,6 +1268,130 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
         {activeTab === 'permissions' && (user.role === 'superadmin' || user.role === 'admin') && (
           <div className="animate-fade-in-up">
              <UserManagementView currentUser={user} users={allUsers} onUsersChange={onUsersChange} />
+          </div>
+        )}
+
+        {activeTab === 'demo-simulation' && (
+          <div className="animate-fade-in-up space-y-6">
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-xl border border-indigo-500/20 relative overflow-hidden">
+              <div className="absolute right-0 bottom-0 opacity-10 translate-y-6 translate-x-6 scale-150 pointer-events-none">
+                <SyncIcon className="w-48 h-48 animate-spin" style={{ animationDuration: '30s' }} />
+              </div>
+              <div className="relative z-10 space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/25 border border-indigo-400/30 text-xs font-bold text-indigo-200 tracking-wide uppercase">
+                  <span>Power Simulator SDK</span>
+                </div>
+                <h3 className="text-2xl font-extrabold tracking-tight">Bộ công cụ Khởi tạo dữ liệu mô phỏng Doanh nghiệp</h3>
+                <p className="text-slate-300 text-sm max-w-3xl leading-relaxed">
+                  Cho phép quản trị viên tự động cấu trúc và khởi tạo dữ liệu mẫu phong phú cho các phân hệ của nền tảng Power Service (Dự án, Nhiệm vụ, Lịch biểu, Bảng tin...). Dữ liệu được đẩy trực tiếp lên Cloud Firestore và hiển thị lập tức theo thời gian thực.
+                </p>
+                <div className="pt-3 flex flex-wrap gap-4">
+                  <button
+                    disabled={isSimulating}
+                    onClick={() => runSimulation('all')}
+                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 text-sm"
+                  >
+                    💥 KHỞI TẠO TẤT CẢ DỮ LIỆU DEMO
+                  </button>
+                  <button
+                    onClick={() => setSimulationLogs([])}
+                    className="px-5 py-3 bg-white/10 hover:bg-white/15 text-slate-200 font-semibold rounded-xl border border-white/10 transition-all text-sm"
+                  >
+                    Xoá lịch sử logs
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modules Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="p-6 bg-[--color-surface-secondary] border border-[--color-border-primary]/50 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-950/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mb-4">
+                    <FolderIcon className="w-5 h-5" />
+                  </div>
+                  <h4 className="font-bold text-base text-[--color-text-primary]">Phân hệ Dự án (Projects)</h4>
+                  <p className="text-xs text-[--color-text-subtle] mt-1 leading-relaxed">
+                    Tạo 3 dự án cốt lõi: Nâng cấp Core v2.0, Chiến dịch Marketing Tết 2026, Đào tạo kỹ năng số phòng ban.
+                  </p>
+                </div>
+                <div className="mt-5 pt-4 border-t border-[--color-border-secondary] flex items-center justify-between">
+                  <span className="text-xs font-mono text-[--color-text-subtle]">Đã tạo: {simulatedCounts.projects}</span>
+                  <button
+                    disabled={isSimulating}
+                    onClick={() => runSimulation('projects')}
+                    className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 dark:text-indigo-400 font-bold rounded-lg text-xs transition-colors"
+                  >
+                    Chạy Seeder
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 bg-[--color-surface-secondary] border border-[--color-border-primary]/50 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                    <FileTextIcon className="w-5 h-5" />
+                  </div>
+                  <h4 className="font-bold text-base text-[--color-text-primary]">Phân hệ Công việc (Tasks)</h4>
+                  <p className="text-xs text-[--color-text-subtle] mt-1 leading-relaxed">
+                    Tạo 4 công việc thực tế với phân quyền phụ trách cụ thể cho bạn, bao gồm thiết kế, bảo mật, truyền thông và đào tạo.
+                  </p>
+                </div>
+                <div className="mt-5 pt-4 border-t border-[--color-border-secondary] flex items-center justify-between">
+                  <span className="text-xs font-mono text-[--color-text-subtle]">Đã tạo: {simulatedCounts.tasks}</span>
+                  <button
+                    disabled={isSimulating}
+                    onClick={() => runSimulation('tasks')}
+                    className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 dark:text-indigo-400 font-bold rounded-lg text-xs transition-colors"
+                  >
+                    Chạy Seeder
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 bg-[--color-surface-secondary] border border-[--color-border-primary]/50 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col justify-between">
+                <div>
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-4">
+                    <SyncIcon className="w-5 h-5" />
+                  </div>
+                  <h4 className="font-bold text-base text-[--color-text-primary]">Lịch họp & Sự kiện (Events)</h4>
+                  <p className="text-xs text-[--color-text-subtle] mt-1 leading-relaxed">
+                    Tạo 3 cuộc họp kinh doanh quan trọng tích hợp phòng họp trực tuyến và thời gian chi tiết.
+                  </p>
+                </div>
+                <div className="mt-5 pt-4 border-t border-[--color-border-secondary] flex items-center justify-between">
+                  <span className="text-xs font-mono text-[--color-text-subtle]">Đã tạo: {simulatedCounts.events}</span>
+                  <button
+                    disabled={isSimulating}
+                    onClick={() => runSimulation('events')}
+                    className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/40 dark:text-indigo-400 font-bold rounded-lg text-xs transition-colors"
+                  >
+                    Chạy Seeder
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Console Output */}
+            {simulationLogs.length > 0 && (
+              <div className="p-6 bg-black border border-slate-800 rounded-2xl shadow-inner space-y-3 font-mono text-xs">
+                <div className="flex justify-between items-center text-slate-500 border-b border-slate-800 pb-3">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full animate-ping" />
+                    POWER SIMULATOR CONSOLE LOGS
+                  </span>
+                  <button onClick={() => setSimulationLogs([])} className="hover:text-white transition-colors">Clear</button>
+                </div>
+                <div className="space-y-1.5 max-h-[220px] overflow-y-auto text-slate-300 no-scrollbar">
+                  {simulationLogs.map((log, idx) => (
+                    <div key={idx} className="leading-relaxed animate-fade-in">{log}</div>
+                  ))}
+                  {isSimulating && (
+                    <div className="text-amber-400 font-bold animate-pulse mt-2">⚡ Đang đóng gói payloads và truyền tải Firestore streams...</div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

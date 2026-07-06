@@ -1,8 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { User, RecentItem } from '../App';
-import MeetingBanner from './MeetingBanner';
 import { ClockIcon, UsersIcon, VideoIcon, MailIcon, PlusIcon, GoogleIcon, SyncIcon, FileTextIcon, FilePdfIcon, DownloadIcon, CopyIcon, CalendarPlusIcon, ShareIcon } from './icons';
 import { useLanguage } from './LanguageContext';
+import PageBanner from './PageBanner';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
+import { LayoutGrid, CheckCircle2 } from 'lucide-react';
 
 // --- TYPES ---
 type MeetingType = 'Nội bộ' | 'Giao ban' | 'Đối tác / khách hàng' | 'Phỏng vấn';
@@ -191,10 +193,24 @@ const statusOrder: Record<MeetingStatus, number> = { 'Sắp diễn ra': 1, 'Đã
 interface MeetingViewProps {
   user: User;
   onItemViewed: (item: RecentItem) => void;
+  activeTab?: 'schedule' | 'minutes';
+  onTabChange?: (tab: 'schedule' | 'minutes') => void;
+  showTabs?: boolean;
   isEmbedded?: boolean;
 }
 
-const MeetingView: React.FC<MeetingViewProps> = ({ onItemViewed, isEmbedded = false }) => {
+const MeetingView: React.FC<MeetingViewProps> = ({ 
+  onItemViewed, 
+  activeTab: controlledActiveTab, 
+  onTabChange, 
+  showTabs = true,
+  isEmbedded = false
+}) => {
+  const [localActiveTab, setLocalActiveTab] = useState<'schedule' | 'minutes'>('schedule');
+  const activeTab = controlledActiveTab !== undefined ? controlledActiveTab : localActiveTab;
+  const setActiveTab = onTabChange !== undefined ? onTabChange : setLocalActiveTab;
+  
+  const LayoutWrapper = isEmbedded ? React.Fragment : StandardPageLayout;
   const [meetings, setMeetings] = useState(initialMeetings);
   const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(meetings.find(m => m.status === 'Sắp diễn ra')?.id || meetings[0].id);
   const [activeFilters, setActiveFilters] = useState<{ type: MeetingType[], status: MeetingStatus[] }>({ type: [], status: [] });
@@ -306,226 +322,334 @@ const MeetingView: React.FC<MeetingViewProps> = ({ onItemViewed, isEmbedded = fa
   }
 
   return (
-    <main className={`flex-1 flex flex-col min-h-0 overflow-hidden ${isEmbedded ? 'p-0' : 'p-[3px] pb-24 md:pb-8'}`}>
-      <div className={`flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar ${isEmbedded ? 'p-0' : ''}`}>
-        {!isEmbedded && <MeetingBanner />}
-
-        <div className="flex flex-col md:flex-row items-center gap-4 shrink-0">
-          <button className="w-full md:w-auto flex items-center justify-center gap-2 py-3 px-6 bg-gradient-to-br from-blue-500 to-sky-600 text-white font-bold rounded-lg shadow-lg hover:shadow-sky-500/40 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all transform hover:scale-105">
-              <PlusIcon className="w-5 h-5"/>
-              <span>Cuộc họp mới</span>
-          </button>
-          <div className="w-full md:w-auto flex-grow flex items-center gap-2">
-              <div className="relative flex-grow">
-                  <VideoIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                  <input
-                      type="text"
-                      placeholder="Nhập mã hoặc đường liên kết"
-                      className="w-full bg-white/60 border border-slate-300/60 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none placeholder-slate-500 text-slate-800 rounded-lg py-3 pl-12 pr-4 transition-all"
-                  />
-              </div>
-              <button className="flex-shrink-0 py-3 px-5 rounded-lg text-slate-700 font-semibold hover:bg-white/70 transition-colors border border-slate-300/60 bg-white/50">
-                  Tham gia
+    <LayoutWrapper>
+      {!isEmbedded && (
+        <PageBanner
+          title="Quản lý Cuộc họp"
+          subtitle="Họp thông minh – Kết nối liền mạch – Quản trị hiệu quả"
+          icon={<VideoIcon className="w-full h-full text-white" />}
+          gradient="from-indigo-600 to-blue-700"
+          actions={
+            <div className="flex gap-2">
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all disabled:opacity-60"
+              >
+                <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? t('syncing') : 'Đồng bộ Google Calendar'}</span>
               </button>
-          </div>
-          <button onClick={handleSync} disabled={isSyncing} title={isSyncing ? t('syncing') : t('syncWithMeetingsCalendar')} className="p-3 rounded-lg bg-white/70 text-indigo-700 font-bold shadow-md hover:bg-white transition-all transform hover:scale-105 disabled:opacity-60">
-              <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+            </div>
+          }
+        />
+      )}
+
+      {/* Sub-navigation Tabs (Consistent with Project layouts) */}
+      {showTabs && (
+        <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setActiveTab('schedule')}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeTab === 'schedule'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            <LayoutGrid className="w-4 h-4" />
+            <span>Lịch họp & Chi tiết</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('minutes')}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+              activeTab === 'minutes'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Biên bản & Giao việc</span>
           </button>
         </div>
-        {syncMessage && <p className="text-sm text-center font-semibold text-green-700">{syncMessage}</p>}
+      )}
 
-
-        <div className="flex-1 bg-white/40 backdrop-blur-xl rounded-xl shadow-lg overflow-hidden flex min-h-0">
-          
-          {/* Left Pane: Filters */}
-          <div className="w-1/4 max-w-[280px] border-r border-white/50 flex flex-col">
-            <div className="p-4 border-b border-white/50 shrink-0">
-              <h2 className="text-xl font-bold text-slate-800">Lịch họp</h2>
-            </div>
-            <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4">
-              <div>
-                  <h3 className="font-semibold text-slate-600 mb-2">Loại cuộc họp</h3>
-                  {(['Nội bộ', 'Giao ban', 'Đối tác / khách hàng', 'Phỏng vấn'] as MeetingType[]).map(type => (
-                      <button key={type} onClick={() => toggleFilter('type', type)} className={`w-full text-left p-2 rounded-md flex items-center gap-2 ${activeFilters.type.includes(type) ? 'bg-indigo-100 text-indigo-800' : 'hover:bg-white/50'}`}>
-                          <input type="checkbox" readOnly checked={activeFilters.type.includes(type)} className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
-                          <span className="font-medium">{type}</span>
-                      </button>
-                  ))}
-              </div>
-              <div>
-                  <h3 className="font-semibold text-slate-600 mb-2">Trạng thái</h3>
-                  {(['Sắp diễn ra', 'Đã kết thúc', 'Huỷ'] as MeetingStatus[]).map(status => (
-                      <button key={status} onClick={() => toggleFilter('status', status)} className={`w-full text-left p-2 rounded-md flex items-center gap-2 ${activeFilters.status.includes(status) ? 'bg-indigo-100 text-indigo-800' : 'hover:bg-white/50'}`}>
-                          <input type="checkbox" readOnly checked={activeFilters.status.includes(status)} className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
-                          <span className="font-medium">{statusConfig[status].icon} {status}</span>
-                      </button>
-                  ))}
-              </div>
+      {activeTab === 'schedule' ? (
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row items-center gap-4 shrink-0">
+            <button className="w-full md:w-auto flex items-center justify-center gap-2 py-3 px-6 bg-gradient-to-br from-blue-500 to-sky-600 text-white font-bold rounded-lg shadow-lg hover:shadow-sky-500/40 focus:outline-none focus:ring-2 focus:ring-sky-400 transition-all transform hover:scale-105">
+                <PlusIcon className="w-5 h-5"/>
+                <span>Cuộc họp mới</span>
+            </button>
+            <div className="w-full md:w-auto flex-grow flex items-center gap-2">
+                <div className="relative flex-grow">
+                    <VideoIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                        type="text"
+                        placeholder="Nhập mã hoặc đường liên kết"
+                        className="w-full bg-white/60 dark:bg-slate-800/60 border border-slate-300/60 dark:border-slate-700/60 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none placeholder-slate-500 text-slate-800 dark:text-slate-200 rounded-lg py-3 pl-12 pr-4 transition-all"
+                    />
+                </div>
+                <button className="flex-shrink-0 py-3 px-5 rounded-lg text-slate-700 dark:text-slate-200 font-semibold hover:bg-white/70 dark:hover:bg-slate-800/70 transition-colors border border-slate-300/60 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50">
+                    Tham gia
+                </button>
             </div>
           </div>
+          {syncMessage && <p className="text-sm text-center font-semibold text-green-700">{syncMessage}</p>}
 
-          {/* Center Pane: Meeting List */}
-          <div className="w-1/3 border-r border-white/50 flex flex-col">
-              <div className="p-4 border-b border-white/50 shrink-0">
-                  <h3 className="text-lg font-bold text-slate-800">Danh sách ({filteredMeetings.length})</h3>
+          <ContentCard className="!p-0 overflow-hidden flex h-[calc(100vh-320px)] min-h-[580px]">
+            {/* Left Pane: Filters */}
+            <div className="w-1/4 max-w-[280px] border-r border-gray-200 dark:border-slate-800 flex flex-col bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="p-4 border-b border-gray-200 dark:border-slate-800 shrink-0">
+                <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Bộ lọc lịch họp</h2>
               </div>
-              <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-2">
-                  {filteredMeetings.map(m => (
-                      <div key={m.id} className={`w-full text-left p-3 rounded-lg flex items-start gap-3 transition-colors ${selectedMeetingId === m.id ? 'bg-white/80' : 'hover:bg-white/50'}`}>
-                          <button onClick={() => handleSelectMeeting(m)} className="flex-1 overflow-hidden" aria-label="Select meeting">
-                              <p className="font-bold text-slate-800 truncate flex items-center gap-2">
-                                {(m.source === 'google' || addedToCalendarIds.has(m.id)) && <GoogleIcon className="w-4 h-4 shrink-0" title="From Google Calendar" />}
-                                {m.title}
-                              </p>
-                              <p className="text-sm text-slate-600 flex items-center gap-1.5 mt-1"><ClockIcon className="w-4 h-4" /> {m.startTime} - {m.endTime}</p>
+              <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-6">
+                <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Loại cuộc họp</h3>
+                    <div className="space-y-1">
+                      {(['Nội bộ', 'Giao ban', 'Đối tác / khách hàng', 'Phỏng vấn'] as MeetingType[]).map(type => (
+                          <button key={type} onClick={() => toggleFilter('type', type)} className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 transition-all ${activeFilters.type.includes(type) ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50'}`}>
+                              <input type="checkbox" readOnly checked={activeFilters.type.includes(type)} className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
+                              <span className="text-xs font-semibold">{type}</span>
                           </button>
-                          <div className="flex flex-col items-end gap-2 shrink-0">
-                              <div className={`text-xs font-semibold px-2 py-1 rounded-full ${statusConfig[m.status].bg} ${statusConfig[m.status].text}`}>{m.status}</div>
-                              <div className="flex items-center gap-1">
-                                  {m.status === 'Sắp diễn ra' && m.source !== 'google' && !addedToCalendarIds.has(m.id) && (
-                                      <button onClick={(e) => { e.stopPropagation(); handleAddToCalendar(m); }} className="text-slate-400 hover:text-green-600 p-1.5 rounded-md hover:bg-black/5 transition-colors" title={t('addToCalendar')}>
-                                          <CalendarPlusIcon className="w-4 h-4" />
-                                      </button>
-                                  )}
-                                  {m.meetLink && (
-                                      <button onClick={(e) => { e.stopPropagation(); copyToClipboard(m.meetLink); }} className="text-slate-400 hover:text-indigo-600 p-1.5 rounded-md hover:bg-black/5 transition-colors" title="Copy Google Meet Link">
-                                          <CopyIcon className="w-4 h-4" />
-                                      </button>
-                                  )}
-                                  <button onClick={(e) => { e.stopPropagation(); handleShare(m); }} className="text-slate-400 hover:text-indigo-600 p-1.5 rounded-md hover:bg-black/5 transition-colors" title="Chia sẻ liên kết">
-                                      <ShareIcon className="w-4 h-4" />
+                      ))}
+                    </div>
+                </div>
+                <div>
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Trạng thái</h3>
+                    <div className="space-y-1">
+                      {(['Sắp diễn ra', 'Đã kết thúc', 'Huỷ'] as MeetingStatus[]).map(status => (
+                          <button key={status} onClick={() => toggleFilter('status', status)} className={`w-full text-left px-3 py-2 rounded-lg flex items-center gap-2.5 transition-all ${activeFilters.status.includes(status) ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50'}`}>
+                              <input type="checkbox" readOnly checked={activeFilters.status.includes(status)} className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500" />
+                              <span className="text-xs font-semibold">{statusConfig[status].icon} {status}</span>
+                          </button>
+                      ))}
+                    </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Center Pane: Meeting List */}
+            <div className="w-1/3 max-w-[380px] border-r border-gray-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900">
+                <div className="p-4 border-b border-gray-200 dark:border-slate-800 shrink-0">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Danh sách ({filteredMeetings.length})</h3>
+                </div>
+                <div className="flex-1 overflow-y-auto no-scrollbar p-3 space-y-2">
+                    {filteredMeetings.map(m => (
+                        <div 
+                          key={m.id} 
+                          onClick={() => handleSelectMeeting(m)}
+                          className={`w-full text-left p-3.5 rounded-xl flex items-start gap-3 transition-all cursor-pointer border ${selectedMeetingId === m.id ? 'bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-900/50' : 'bg-transparent border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/40'}`}
+                        >
+                            <div className="flex-1 overflow-hidden">
+                                <p className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate flex items-center gap-2">
+                                  {(m.source === 'google' || addedToCalendarIds.has(m.id)) && <GoogleIcon className="w-4 h-4 shrink-0" title="From Google Calendar" />}
+                                  {m.title}
+                                </p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-1.5 font-medium">
+                                  <ClockIcon className="w-3.5 h-3.5 text-slate-400" /> {m.startTime} - {m.endTime}
+                                </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2.5 shrink-0">
+                                <div className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-tighter ${statusConfig[m.status].bg} ${statusConfig[m.status].text}`}>{m.status}</div>
+                                <div className="flex items-center gap-1">
+                                    {m.status === 'Sắp diễn ra' && m.source !== 'google' && !addedToCalendarIds.has(m.id) && (
+                                        <button onClick={(e) => { e.stopPropagation(); handleAddToCalendar(m); }} className="text-slate-400 hover:text-green-600 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title={t('addToCalendar')}>
+                                            <CalendarPlusIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    {m.meetLink && (
+                                        <button onClick={(e) => { e.stopPropagation(); copyToClipboard(m.meetLink); }} className="text-slate-400 hover:text-indigo-600 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Copy Google Meet Link">
+                                            <CopyIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <button onClick={(e) => { e.stopPropagation(); handleShare(m); }} className="text-slate-400 hover:text-indigo-600 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Chia sẻ liên kết">
+                                        <ShareIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Right Pane: Meeting Details */}
+            <div className="flex-1 flex flex-col min-w-0 bg-white/50 dark:bg-slate-900/30">
+                {selectedMeeting ? (
+                    <>
+                    <div className="p-5 border-b border-gray-200 dark:border-slate-800 shrink-0 flex justify-between items-start bg-white dark:bg-slate-900">
+                        <div>
+                          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            {(selectedMeeting.source === 'google' || addedToCalendarIds.has(selectedMeeting.id)) && <GoogleIcon className="w-5 h-5 shrink-0" title="From Google Calendar" />}
+                            {selectedMeeting.title}
+                          </h2>
+                          <p className="text-xs font-bold mt-1.5 text-indigo-600 dark:text-indigo-400 uppercase tracking-wide">{selectedMeeting.type}</p>
+                        </div>
+                        {selectedMeeting.status === 'Sắp diễn ra' && selectedMeeting.source !== 'google' && !addedToCalendarIds.has(selectedMeeting.id) && (
+                            <button onClick={() => handleAddToCalendar(selectedMeeting)} className="flex items-center gap-1.5 py-1.5 px-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-all transform active:scale-95">
+                                <CalendarPlusIcon className="w-4 h-4 text-indigo-600" />
+                                <span>{t('addToCalendar')}</span>
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex-1 overflow-y-auto no-scrollbar p-5 space-y-6">
+                        <div className="flex gap-2">
+                            <a href={selectedMeeting.meetLink} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-br from-green-500 to-cyan-600 text-white font-bold rounded-xl shadow-md hover:shadow-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all transform hover:scale-[1.01] text-xs">
+                              <VideoIcon className="w-4 h-4" /> <span>Tham gia bằng Google Meet</span>
+                            </a>
+                            <button onClick={() => copyToClipboard(selectedMeeting.meetLink)} className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors focus:ring-2 focus:ring-indigo-400" title="Copy Meeting Link">
+                                <CopyIcon className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleShare(selectedMeeting)} className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-600 rounded-xl shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors focus:ring-2 focus:ring-indigo-400" title="Chia sẻ liên kết">
+                                <ShareIcon className="w-4 h-4" />
+                            </button>
+                        </div>
+                        
+                        <div>
+                            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><UsersIcon className="w-4 h-4" /> Người tham dự ({selectedMeeting.attendees.length})</h3>
+                            <div className="flex flex-wrap gap-2.5">
+                                {selectedMeeting.attendees.map(a => (
+                                    <div key={a.name} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80" title={a.name}>
+                                        <div className="w-7 h-7 rounded-full bg-cyan-500 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                            {a.avatar.startsWith('http') ? <img src={a.avatar} alt={a.name} className="w-full h-full object-cover rounded-full" /> : getInitials(a.name)}
+                                        </div>
+                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]">{a.name}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {selectedMeeting.agenda && (
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">Chương trình họp (Agenda)</h3>
+                                <div className="p-3.5 bg-slate-50/50 dark:bg-slate-800/20 rounded-xl border border-slate-200/50 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 whitespace-pre-wrap text-xs font-medium leading-relaxed">
+                                    {selectedMeeting.agenda}
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedMeeting.attachments && selectedMeeting.attachments.length > 0 && (
+                            <div>
+                                <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">Tài liệu đính kèm</h3>
+                                <div className="flex flex-col gap-2">
+                                    {selectedMeeting.attachments.map((file, idx) => (
+                                        <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800/30 rounded-xl border border-slate-200 dark:border-slate-800/80 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/10 hover:border-indigo-200 transition-all">
+                                            <div className="p-2 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                                              {file.name.endsWith('.pdf') ? <FilePdfIcon className="w-4 h-4" /> : <FileTextIcon className="w-4 h-4" />}
+                                            </div>
+                                            <span className="font-bold text-xs text-indigo-700 dark:text-indigo-400 hover:underline flex-1 truncate">{file.name}</span>
+                                            <DownloadIcon className="w-3.5 h-3.5 text-slate-400" />
+                                        </a>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div>
+                            <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">Ghi chú nhanh</h3>
+                            <textarea 
+                                defaultValue={selectedMeeting.notes}
+                                placeholder="Thêm ghi chú cho cuộc họp..."
+                                className="w-full p-3 bg-white dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-xs font-medium"
+                            />
+                        </div>
+                        
+                        <div className="p-4 bg-indigo-50/30 dark:bg-indigo-950/10 rounded-xl border border-indigo-100/30 dark:border-indigo-900/30">
+                            <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm mb-3">Biên bản họp</h3>
+                            <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 font-medium">
+                              <p><strong className="text-slate-500">Nội dung:</strong> {selectedMeeting.minutes.content}</p>
+                              {selectedMeeting.minutes.actionItems.length > 0 && (
+                                  <div>
+                                      <strong className="text-slate-500">Giao việc:</strong>
+                                      <ul className="list-disc pl-5 mt-1.5 space-y-1">
+                                          {selectedMeeting.minutes.actionItems.map((item, i) => (
+                                              <li key={i}>
+                                                  {item.task} - <span className="font-bold text-slate-800 dark:text-slate-200">{item.owner}</span> (Hạn: {item.deadline})
+                                              </li>
+                                          ))}
+                                      </ul>
+                                  </div>
+                              )}
+                              <div className="flex justify-end pt-2">
+                                  <button className="flex items-center gap-1.5 py-1.5 px-3 bg-indigo-600 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 shadow-sm transition-colors uppercase tracking-wider">
+                                      <MailIcon className="w-3.5 h-3.5" />
+                                      <span>Gửi qua Email</span>
                                   </button>
                               </div>
-                          </div>
-                      </div>
-                  ))}
-              </div>
-          </div>
+                            </div>
+                        </div>
 
-          {/* Right Pane: Meeting Details */}
-          <div className="flex-1 flex flex-col min-w-0">
-              {selectedMeeting ? (
-                  <>
-                  <div className="p-4 border-b border-white/50 shrink-0 flex justify-between items-start">
-                      <div>
-                        <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                          {(selectedMeeting.source === 'google' || addedToCalendarIds.has(selectedMeeting.id)) && <GoogleIcon className="w-6 h-6 shrink-0" title="From Google Calendar" />}
-                          {selectedMeeting.title}
-                        </h2>
-                        <p className="text-sm font-semibold mt-1 text-indigo-600">{selectedMeeting.type}</p>
-                      </div>
-                      {selectedMeeting.status === 'Sắp diễn ra' && selectedMeeting.source !== 'google' && !addedToCalendarIds.has(selectedMeeting.id) && (
-                          <button onClick={() => handleAddToCalendar(selectedMeeting)} className="flex items-center gap-2 py-2 px-4 bg-white border border-slate-200 text-slate-700 font-semibold rounded-lg shadow-sm hover:bg-slate-50 transition-all transform active:scale-95">
-                              <CalendarPlusIcon className="w-5 h-5 text-indigo-600" />
-                              <span>{t('addToCalendar')}</span>
-                          </button>
-                      )}
+                    </div>
+                    </>
+                ) : (
+                    <div className="flex-1 flex items-center justify-center bg-white dark:bg-slate-900">
+                        <p className="text-xs text-slate-400 font-bold">Chọn một cuộc họp để xem chi tiết</p>
+                    </div>
+                )}
+            </div>
+          </ContentCard>
+        </div>
+      ) : (
+        /* Minutes Tab View */
+        <div className="flex flex-col gap-4 animate-fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {meetings.filter(m => m.minutes.content || (m.minutes.actionItems && m.minutes.actionItems.length > 0)).map(m => (
+              <ContentCard key={m.id} className="hover:shadow-md transition-all flex flex-col justify-between p-6">
+                <div>
+                  <div className="flex justify-between items-start gap-4 mb-3">
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">{m.title}</h4>
+                      <p className="text-[10px] text-slate-400 mt-0.5 font-bold uppercase tracking-wider">{m.type} • {m.startTime} - {m.endTime}</p>
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter ${statusConfig[m.status].bg} ${statusConfig[m.status].text}`}>{m.status}</span>
                   </div>
-                  <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-6">
-                      <div className="flex gap-2">
-                          <a href={selectedMeeting.meetLink} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-br from-green-500 to-cyan-600 text-white font-bold rounded-lg shadow-lg hover:shadow-cyan-500/40 focus:outline-none focus:ring-2 focus:ring-cyan-400 transition-all transform hover:scale-105">
-                            <VideoIcon className="w-5 h-5" /> <span>Tham gia bằng Google Meet</span>
-                          </a>
-                          <button onClick={() => copyToClipboard(selectedMeeting.meetLink)} className="p-3 bg-white border border-slate-200 text-slate-700 rounded-lg shadow-sm hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-indigo-400" title="Copy Meeting Link">
-                              <CopyIcon className="w-5 h-5" />
-                          </button>
-                          <button onClick={() => handleShare(selectedMeeting)} className="p-3 bg-white border border-slate-200 text-slate-700 rounded-lg shadow-sm hover:bg-slate-50 transition-colors focus:ring-2 focus:ring-indigo-400 text-indigo-600" title="Chia sẻ liên kết">
-                              <ShareIcon className="w-5 h-5" />
-                          </button>
-                      </div>
-                      
-                      <div>
-                          <h3 className="font-bold text-slate-700 mb-2 flex items-center gap-2"><UsersIcon className="w-5 h-5" /> Người tham dự ({selectedMeeting.attendees.length})</h3>
-                          <div className="flex flex-wrap gap-3">
-                              {selectedMeeting.attendees.map(a => (
-                                  <div key={a.name} className="flex items-center gap-2 p-2 bg-white/50 rounded-lg" title={a.name}>
-                                      <div className="w-8 h-8 rounded-full bg-cyan-500 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                                          {a.avatar.startsWith('http') ? <img src={a.avatar} alt={a.name} className="w-full h-full object-cover rounded-full" /> : getInitials(a.name)}
-                                      </div>
-                                      <span className="font-medium text-slate-700 truncate max-w-[100px]">{a.name}</span>
-                                  </div>
-                              ))}
-                          </div>
-                      </div>
+                  
+                  {m.minutes.content && (
+                    <div className="mb-4">
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tóm tắt biên bản</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 leading-relaxed italic">
+                        "{m.minutes.content}"
+                      </p>
+                    </div>
+                  )}
 
-                      {selectedMeeting.agenda && (
-                          <div>
-                              <h3 className="font-bold text-slate-700 mb-2">Chương trình họp (Agenda)</h3>
-                              <div className="p-3 bg-white/60 rounded-lg border border-slate-300/70 text-slate-800 whitespace-pre-wrap text-sm">
-                                  {selectedMeeting.agenda}
-                              </div>
-                          </div>
-                      )}
-
-                      {selectedMeeting.attachments && selectedMeeting.attachments.length > 0 && (
-                          <div>
-                              <h3 className="font-bold text-slate-700 mb-2">Tài liệu đính kèm</h3>
-                              <div className="flex flex-col gap-2">
-                                  {selectedMeeting.attachments.map((file, idx) => (
-                                      <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-white/60 rounded-lg border border-slate-300/70 hover:bg-indigo-50/50 hover:border-indigo-300 transition-colors">
-                                          <div className="p-2 bg-indigo-100 text-indigo-600 rounded">
-                                            {file.name.endsWith('.pdf') ? <FilePdfIcon className="w-5 h-5" /> : <FileTextIcon className="w-5 h-5" />}
-                                          </div>
-                                          <span className="font-medium text-sm text-indigo-700 hover:underline flex-1 truncate">{file.name}</span>
-                                          <DownloadIcon className="w-4 h-4 text-slate-400" />
-                                      </a>
-                                  ))}
-                              </div>
-                          </div>
-                      )}
-
-                      <div>
-                          <h3 className="font-bold text-slate-700 mb-2">Ghi chú nhanh</h3>
-                          <textarea 
-                              defaultValue={selectedMeeting.notes}
-                              placeholder="Thêm ghi chú cho cuộc họp..."
-                              className="w-full p-3 bg-white/60 rounded-lg border border-slate-300/70 min-h-[80px] focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                          />
-                      </div>
-                      
-                      <div className="p-4 bg-indigo-50/50 rounded-lg">
-                          <h3 className="font-bold text-slate-700 mb-3">Biên bản họp</h3>
-                          <div className="space-y-4 text-sm text-slate-800">
-                            <p><strong className="text-slate-600">Nội dung:</strong> {selectedMeeting.minutes.content}</p>
-                            {selectedMeeting.minutes.actionItems.length > 0 && (
-                                <div>
-                                    <strong className="text-slate-600">Giao việc:</strong>
-                                    <ul className="list-disc pl-5 mt-1 space-y-1">
-                                        {selectedMeeting.minutes.actionItems.map((item, i) => (
-                                            <li key={i}>
-                                                {item.task} - <span className="font-semibold">{item.owner}</span> (Deadline: {item.deadline})
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                            <div className="flex justify-end pt-2">
-                                <button className="flex items-center gap-2 py-2 px-3 bg-indigo-500 text-white text-xs font-semibold rounded-lg hover:bg-indigo-600 shadow-md transition-colors">
-                                    <MailIcon className="w-4 h-4" />
-                                    <span>Gửi biên bản qua Email</span>
-                                </button>
+                  {m.minutes.actionItems && m.minutes.actionItems.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Công việc được giao</p>
+                      <div className="space-y-1.5">
+                        {m.minutes.actionItems.map((item, i) => (
+                          <div key={i} className="flex items-center justify-between text-xs p-2 bg-indigo-50/20 dark:bg-indigo-950/10 border border-indigo-500/10 rounded-lg">
+                            <span className="font-medium text-slate-700 dark:text-slate-300">{item.task}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded text-[10px]">{item.owner}</span>
+                              <span className="text-[10px] text-slate-400 font-bold">Hạn: {item.deadline}</span>
                             </div>
                           </div>
+                        ))}
                       </div>
+                    </div>
+                  )}
+                </div>
 
-                  </div>
-                  </>
-              ) : (
-                  <div className="flex-1 flex items-center justify-center">
-                      <p className="text-slate-500">Chọn một cuộc họp để xem chi tiết</p>
-                  </div>
-              )}
+                <div className="flex justify-end gap-2 mt-5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <button className="flex items-center gap-1 py-1 px-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold rounded-lg transition-colors">
+                    <FileTextIcon className="w-3.5 h-3.5" /> Chi tiết
+                  </button>
+                  <button className="flex items-center gap-1.5 py-1 px-3 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-lg transition-colors">
+                    <MailIcon className="w-3.5 h-3.5" /> Gửi Biên bản
+                  </button>
+                </div>
+              </ContentCard>
+            ))}
           </div>
-
         </div>
-      </div>
+      )}
+
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-[9999] bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 animate-fade-in-up">
           <div className="w-2 h-2 rounded-full bg-green-400"></div>
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
-    </main>
+    </LayoutWrapper>
   );
 };
 

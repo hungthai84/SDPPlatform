@@ -696,6 +696,7 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
   const [toastMessage, setToastMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [notesActiveTab, setNotesActiveTab] = useState<'notes' | 'tags'>('notes');
   const [isSyncingKeep, setIsSyncingKeep] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [sharingNote, setSharingNote] = useState<Note | null>(null);
@@ -978,77 +979,74 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
             <button onClick={handleSyncWithKeep} disabled={isSyncingKeep} className={`flex items-center gap-1.5 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-all ${isSyncingKeep ? 'animate-pulse' : ''}`}>
               <RefreshCw className="w-3.5 h-3.5" /> Đồng bộ Keep
             </button>
-            <button onClick={() => createNoteRef.current?.focus()} className="flex items-center gap-1.5 bg-white text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
+            <button onClick={() => { setNotesActiveTab('notes'); setTimeout(() => createNoteRef.current?.focus(), 100); }} className="flex items-center gap-1.5 bg-white text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
               <Plus className="w-3.5 h-3.5" /> Ghi chú mới
             </button>
           </div>
         }
       />
 
-      <div className="flex flex-col gap-6 mt-6">
-        <ContentCard>
-          <CreateNote 
-            ref={createNoteRef} 
-            onAddNote={handleAddNote} 
-          />
-        </ContentCard>
+      {/* Pill-style sub-navigation tabs matching the Projects layout */}
+      <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border overflow-x-auto no-scrollbar mt-6">
+        <button
+          onClick={() => setNotesActiveTab('notes')}
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            notesActiveTab === 'notes'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+          }`}
+        >
+          <StickyNote className="w-4 h-4" />
+          <span>Tất cả Ghi chú</span>
+        </button>
+        <button
+          onClick={() => setNotesActiveTab('tags')}
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            notesActiveTab === 'tags'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+          }`}
+        >
+          <Tag className="w-4 h-4" />
+          <span>Bộ sưu tập Nhãn ({allTags.length})</span>
+        </button>
+      </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="w-full lg:w-64 shrink-0">
+      <div className="flex flex-col gap-6">
+        {notesActiveTab === 'notes' ? (
+          <>
             <ContentCard>
-              <aside className="space-y-6">
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                  <div className="relative">
-                    <input 
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Tìm ghi chú..."
-                      className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                    />
-                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
-                  </div>
-                </div>
+              <CreateNote 
+                ref={createNoteRef} 
+                onAddNote={handleAddNote} 
+              />
+            </ContentCard>
 
-                <div className="space-y-1">
-                  <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Thư mục</h3>
-                  {[
-                    { id: null, label: 'Tất cả ghi chú', icon: <StickyNote className="w-4 h-4" /> },
-                    { id: 'pinned', label: 'Đã ghim', icon: <Pin className="w-4 h-4" /> },
-                    { id: 'archive', label: 'Lưu trữ', icon: <Archive className="w-4 h-4" /> },
-                  ].map(item => (
-                  <button
-                    key={item.id || 'all'}
-                    onClick={() => setActiveTag(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTag === item.id ? 'bg-orange-50 text-orange-600 shadow-sm border border-orange-100' : 'text-slate-600 hover:bg-gray-100'}`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                ))}
+            {/* Quick Search and Filter Bar */}
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="relative w-full sm:max-w-md">
+                <input 
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Tìm ghi chú theo tiêu đề hoặc nội dung..."
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                />
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
               </div>
 
-              {allTags.length > 0 && (
-                <div className="space-y-1 pt-4 border-t border-gray-100">
-                  <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Nhãn phổ biến</h3>
-                  <div className="flex flex-wrap gap-1.5 px-3">
-                    {allTags.map(tag => (
-                      <button
-                        key={tag}
-                        onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                        className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${activeTag === tag ? 'bg-orange-500 text-white' : 'bg-gray-100 text-slate-600 hover:bg-gray-200'}`}
-                      >
-                        #{tag}
-                      </button>
-                    ))}
-                  </div>
+              {activeTag && (
+                <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                  <span className="text-xs text-slate-500 font-bold">Bộ lọc:</span>
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full border border-indigo-150">
+                    #{activeTag}
+                    <button onClick={() => setActiveTag(null)} className="text-indigo-400 hover:text-indigo-600 font-bold">×</button>
+                  </span>
                 </div>
               )}
-            </aside>
-            </ContentCard>
-          </div>
+            </div>
 
-          <div className="flex-1">
+            <div className="flex-1">
               {pinnedNotes.length > 0 && (
                 <div className="mb-8">
                   <div className="flex items-center gap-2 mb-4 px-2">
@@ -1105,8 +1103,91 @@ const NotesView: React.FC<{ user: User; onSync?: () => void }> = ({ user, onSync
                 </div>
               )}
             </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-1">
+              <ContentCard>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-2">Thư mục nhãn</h3>
+                    <p className="text-[10px] text-slate-500">Chọn một nhãn để xem các ghi chú tương ứng.</p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setActiveTag(null)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${!activeTag ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}`}
+                    >
+                      Tất cả nhãn
+                    </button>
+                    {allTags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => setActiveTag(tag)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${activeTag === tag ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-850 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}`}
+                      >
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+
+                  {allTags.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">Chưa có nhãn ghi chú nào được tạo.</p>
+                  )}
+
+                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Tính năng khác</h4>
+                    <button 
+                      onClick={handleSyncWithKeep} 
+                      disabled={isSyncingKeep}
+                      className="w-full flex items-center justify-center gap-2 bg-slate-50 dark:bg-slate-850 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all border border-slate-200/50 dark:border-slate-700/50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncingKeep ? 'animate-spin' : ''}`} />
+                      Đồng bộ Google Keep
+                    </button>
+                  </div>
+                </div>
+              </ContentCard>
+            </div>
+
+            <div className="lg:col-span-3 space-y-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-indigo-600" />
+                  Danh sách ghi chú: {activeTag ? `#${activeTag}` : 'Tất cả nhãn'}
+                </h3>
+                <span className="text-xs text-slate-500 font-medium">Tìm thấy {filteredNotes.length} ghi chú</span>
+              </div>
+
+              <div className="columns-1 sm:columns-2 gap-5 [column-fill:_balance]">
+                {filteredNotes.map(note => (
+                  <div key={note.id} className="break-inside-avoid mb-5">
+                    <NoteCard 
+                      note={note} 
+                      onClick={() => setEditingNote(note)}
+                      onTogglePin={() => handleTogglePin(note.id)}
+                      onDeleteNote={() => handleDeleteNote(note.id)}
+                      onShareNote={() => handleShareNote(note)}
+                      onCopyLink={() => handleCopyShareLink(note)}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {filteredNotes.length === 0 && (
+                <div className="text-center py-20 bg-gray-50 dark:bg-slate-850/30 rounded-3xl border border-gray-100 dark:border-slate-800 border-dashed">
+                  <div className="w-16 h-16 bg-white dark:bg-slate-900 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300 shadow-sm border border-gray-100 dark:border-slate-800">
+                    <Search className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 tracking-tight">Không tìm thấy ghi chú nào</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-450 mt-2">Hãy tạo ghi chú mới hoặc chọn một nhãn khác.</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+      </div>
 
       {/* Edit Note Modal */}
       {editingNote && (

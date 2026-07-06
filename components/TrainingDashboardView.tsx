@@ -462,7 +462,44 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
                 }
             />
 
-            <div className="flex flex-col gap-6 mt-6">
+            {/* Sub-navigation Tabs (Consistent with Project and Drive layouts) */}
+            <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border animate-fade-in-down mt-6">
+                <button
+                    onClick={() => setProgressFilter('all')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        progressFilter === 'all'
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <Book className="w-4 h-4" />
+                    <span>Tất cả khoá học</span>
+                </button>
+                <button
+                    onClick={() => setProgressFilter('in-progress')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        progressFilter === 'in-progress'
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <GraduationCap className="w-4 h-4" />
+                    <span>Đang học</span>
+                </button>
+                <button
+                    onClick={() => setProgressFilter('completed')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        progressFilter === 'completed'
+                            ? 'bg-emerald-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <BookOpen className="w-4 h-4" />
+                    <span>Đã hoàn thành</span>
+                </button>
+            </div>
+
+            <div className="flex flex-col gap-6">
                 {/* Statistics Section matching Project Management style */}
                 <ContentCard>
                   <div className="flex flex-col gap-4">
@@ -552,23 +589,6 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
                                         className="w-full bg-white border border-gray-200 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all"
                                     />
                                 </div>
-                            </div>
-                            
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 mr-2">{t('filter')}:</span>
-                                {[
-                                    { id: 'all', label: t('all') || 'Tất cả', count: classes.length },
-                                    { id: 'completed', label: t('completed') || 'Hoàn thành', count: classes.filter(c => localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true').length },
-                                    { id: 'in-progress', label: t('learning') || 'Đang học', count: classes.filter(c => (parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10) > 0 && localStorage.getItem(`course_completed_${c.id}_${user.id}`) !== 'true')).length },
-                                ].map(filter => (
-                                    <button
-                                        key={filter.id}
-                                        onClick={() => setProgressFilter(filter.id as 'all' | 'completed' | 'in-progress')}
-                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all ${progressFilter === filter.id ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-500 border border-gray-200 hover:border-emerald-200'}`}
-                                    >
-                                        {filter.label} ({filter.count})
-                                    </button>
-                                ))}
                             </div>
                         </div>
                     </div>

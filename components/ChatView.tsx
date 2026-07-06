@@ -123,6 +123,7 @@ const ChatView: React.FC<ChatViewProps> = ({ user, allUsers = [] }) => {
     const [isSelectingContact, setIsSelectingContact] = useState(false);
     const [contactSearchTerm, setContactSearchTerm] = useState('');
     const [selectTab, setSelectTab] = useState<'employees' | 'contacts'>('employees');
+    const [activeTab, setActiveTab] = useState<'chat' | 'directory'>('chat');
 
     const [isListening, setIsListening] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -663,8 +664,35 @@ const ChatView: React.FC<ChatViewProps> = ({ user, allUsers = [] }) => {
                 }
             />
 
+            {/* Sub-navigation Tabs (Consistent with Project and Drive layouts) */}
+            <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border animate-fade-in-down mt-6">
+                <button
+                    onClick={() => setActiveTab('chat')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        activeTab === 'chat'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <MessageSquare className="w-4 h-4" />
+                    <span>Cuộc trò chuyện</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('directory')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        activeTab === 'directory'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <UserCircleIcon className="w-4 h-4" />
+                    <span>Danh bạ thành viên</span>
+                </button>
+            </div>
+
             <div className="mt-6">
-                <ContentCard className="!p-0 overflow-hidden">
+                {activeTab === 'chat' ? (
+                    <ContentCard className="!p-0 overflow-hidden">
                     <div className="flex h-[calc(100vh-280px)] min-h-[580px] bg-white rounded-xl overflow-hidden">
                         {/* Left Pane: Channels and DMs */}
                         <div className="w-64 bg-white/30 backdrop-blur-lg border-r border-white/50 flex flex-col">
@@ -982,6 +1010,56 @@ const ChatView: React.FC<ChatViewProps> = ({ user, allUsers = [] }) => {
                         </div>
                     </div>
                 </ContentCard>
+                ) : (
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm animate-fade-in-up">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200">Danh bạ thành viên</h3>
+                            <div className="relative w-64">
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm thành viên..."
+                                    value={contactSearchTerm}
+                                    onChange={e => setContactSearchTerm(e.target.value)}
+                                    className="w-full text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-semibold"
+                                />
+                                <SearchIcon className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {(allUsers.length > 0 ? allUsers : [
+                               { id: 'u1', name: 'Nguyễn Hùng Thái', avatar: 'https://i.ibb.co/VcwGhfRp/Logo-mau-xanh-Lark-CV-Nguyen-H-ng-Th-i.png', role: 'CEO & Founder', email: 'thai.nguyen@company.com' },
+                               { id: 'u2', name: 'Trần Thị Thu', avatar: 'T', role: 'COO / Giám đốc Vận hành', email: 'thu.tran@company.com' },
+                               { id: 'u3', name: 'Lê Văn Nam', avatar: 'N', role: 'Trưởng phòng Kỹ thuật', email: 'nam.le@company.com' }
+                            ]).filter(u => u.name.toLowerCase().includes(contactSearchTerm.toLowerCase())).map((u) => (
+                                <div key={u.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 hover:shadow-sm transition-all duration-200 animate-fade-in-up">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-sm overflow-hidden">
+                                            {u.avatar && u.avatar.startsWith('http') ? (
+                                                <img referrerPolicy="no-referrer" src={u.avatar} alt={u.name} className="w-full h-full object-cover rounded-full" />
+                                            ) : (
+                                                u.avatar || getInitials(u.name)
+                                            )}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-200">{u.name}</h4>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{u.role}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            handleSelectContactChat({ id: u.id, name: u.name, avatar: u.avatar });
+                                            setActiveTab('chat');
+                                        }}
+                                        className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-950/60 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                    >
+                                        Nhắn tin
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Modal Chọn người trong hệ thống / danh bạ để chat */}

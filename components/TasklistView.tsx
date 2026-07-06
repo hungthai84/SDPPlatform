@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import PageBanner from './PageBanner';
-import { CheckSquare } from 'lucide-react';
+import { CheckSquare, CheckCircle2 } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -11,6 +11,7 @@ import { User, AppNotification } from '../types';
 import { db, auth } from '../firebase';
 import { collection, query, where, onSnapshot, doc, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../firebase-errors';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 // --- TYPES ---
 export interface TaskComment {
@@ -1046,6 +1047,8 @@ const TasklistView: React.FC<{
   const [listeningListId, setListeningListId] = useState<string | null>(null);
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [taskTemplates, setTaskTemplates] = useState<Task[]>(mockTaskTemplates);
+  const [statsTab, setStatsTab] = useState<'chart' | 'distribution'>('chart');
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
   const handleBulkUpdate = (updates: Partial<Task>) => {
     setTaskLists(prev => prev.map(list => ({
@@ -1735,6 +1738,38 @@ const TasklistView: React.FC<{
     );
   };
 
+  // Compute statistics
+  const allTasks = taskLists.flatMap(l => l.tasks);
+  const totalTasksCount = allTasks.length;
+  const completedTasksCount = allTasks.filter(t => t.completed || t.status === 'Hoàn thành').length;
+  const pendingTasksCount = totalTasksCount - completedTasksCount;
+  
+  const statusCounts = {
+    'Cần làm': allTasks.filter(t => t.status === 'Cần làm' || (!t.status && !t.completed)).length,
+    'Đang làm': allTasks.filter(t => t.status === 'Đang làm').length,
+    'Xem xét': allTasks.filter(t => t.status === 'Xem xét').length,
+    'Hoàn thành': completedTasksCount,
+  };
+
+  const priorityCounts = {
+    'Cao': allTasks.filter(t => t.priority === 'Cao').length,
+    'Trung bình': allTasks.filter(t => t.priority === 'Trung bình' || !t.priority).length,
+    'Thấp': allTasks.filter(t => t.priority === 'Thấp').length,
+  };
+
+  const pieData = [
+    { name: 'Cần làm', value: statusCounts['Cần làm'], color: '#3B82F6' },
+    { name: 'Đang làm', value: statusCounts['Đang làm'], color: '#F59E0B' },
+    { name: 'Xem xét', value: statusCounts['Xem xét'], color: '#8B5CF6' },
+    { name: 'Hoàn thành', value: statusCounts['Hoàn thành'], color: '#10B981' },
+  ].filter(d => d.value > 0);
+
+  const listDistributionData = taskLists.map(list => ({
+    name: list.name,
+    'Số công việc': list.tasks.length,
+    'Hoàn thành': list.tasks.filter(t => t.completed).length,
+  }));
+
   return (
     <LayoutWrapper>
       <div className={`flex flex-col gap-6 ${isEmbedded ? '' : 'mt-6'}`}>
@@ -1765,9 +1800,146 @@ const TasklistView: React.FC<{
           </div>
         )}
 
+        {/* Statistics Section (Matches Projects Tab) */}
+        <ContentCard>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-gray-100 dark:border-gray-800">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  Thống kê & Phân bổ Công việc
+                </h3>
+                <p className="text-[11px] text-slate-500 font-medium">Theo dõi tiến độ, phân bổ trạng thái và mức độ ưu tiên của các đầu việc.</p>
+              </div>
+              <div className="bg-gray-100 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1 border border-gray-200 dark:border-slate-700 shadow-inner shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setStatsTab('chart')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                    statsTab === 'chart'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Trạng thái & Ưu tiên
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatsTab('distribution')}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                    statsTab === 'distribution'
+                      ? 'bg-indigo-600 text-white shadow-md'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  Phân phối danh sách
+                </button>
+              </div>
+            </div>
+
+            {statsTab === 'chart' ? (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+                <div className="lg:col-span-1 flex flex-col justify-center space-y-4">
+                  <div className="grid grid-cols-3 gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                    <div className="bg-blue-50 dark:bg-blue-950/20 p-2.5 rounded-xl border border-blue-100/50 dark:border-blue-900/30 text-center">
+                      <span className="text-lg font-extrabold text-blue-600 dark:text-blue-400 block leading-none mb-1">{totalTasksCount}</span>
+                      <span className="text-[8px] uppercase font-bold text-slate-400 dark:text-slate-500">Tổng số</span>
+                    </div>
+                    <div className="bg-amber-50 dark:bg-amber-950/20 p-2.5 rounded-xl border border-amber-100/50 dark:border-amber-900/30 text-center">
+                      <span className="text-lg font-extrabold text-amber-600 dark:text-amber-400 block leading-none mb-1">{pendingTasksCount}</span>
+                      <span className="text-[8px] uppercase font-bold text-slate-400 dark:text-slate-500">Chờ xử lý</span>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-950/20 p-2.5 rounded-xl border border-green-100/50 dark:border-green-900/30 text-center">
+                      <span className="text-lg font-extrabold text-green-600 dark:text-green-400 block leading-none mb-1">{completedTasksCount}</span>
+                      <span className="text-[8px] uppercase font-bold text-slate-400 dark:text-slate-500">Đã xong</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Cần làm', count: statusCounts['Cần làm'], color: 'bg-blue-500' },
+                      { label: 'Đang làm', count: statusCounts['Đang làm'], color: 'bg-amber-500' },
+                      { label: 'Xem xét', count: statusCounts['Xem xét'], color: 'bg-purple-500' },
+                      { label: 'Hoàn thành', count: statusCounts['Hoàn thành'], color: 'bg-emerald-500' },
+                    ].map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-xs font-bold">
+                        <span className="flex items-center gap-2 text-slate-500 dark:text-slate-400 uppercase tracking-wider text-[9px]">
+                          <span className={`w-2 h-2 rounded-full ${item.color}`}></span>
+                          {item.label}
+                        </span>
+                        <span className="text-slate-800 dark:text-slate-200">{item.count} công việc</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[9px] font-bold text-slate-400">
+                    <span>Độ ưu tiên:</span>
+                    <span className="flex gap-2.5">
+                      <span className="text-red-500">⚡ Cao: {priorityCounts['Cao']}</span>
+                      <span className="text-amber-500">● T.Bình: {priorityCounts['Trung bình']}</span>
+                      <span className="text-green-500">✓ Thấp: {priorityCounts['Thấp']}</span>
+                    </span>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 h-[200px] relative">
+                  {pieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={75}
+                          paddingAngle={4}
+                          dataKey="value"
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                            borderRadius: '12px', 
+                            border: 'none',
+                            color: '#fff',
+                            fontSize: '11px',
+                            fontWeight: 'bold'
+                          }} 
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-xs font-bold text-slate-400">Chưa có dữ liệu công việc nào.</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="h-[220px] pt-2 relative">
+                {listDistributionData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={listDistributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border-secondary)" opacity={0.5} />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: 'none', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', color: '#fff' }}
+                      />
+                      <Bar dataKey="Số công việc" fill="#4F46E5" radius={[4, 4, 0, 0]} maxBarSize={25} />
+                      <Bar dataKey="Hoàn thành" fill="#10B981" radius={[4, 4, 0, 0]} maxBarSize={25} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-xs font-bold text-slate-400">Không có danh sách công việc.</div>
+                )}
+              </div>
+            )}
+          </div>
+        </ContentCard>
+
         {/* Search and Action Bar */}
         <ContentCard>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4">
               <div className="relative flex-1 group">
                   <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                   <input 
@@ -1778,7 +1950,33 @@ const TasklistView: React.FC<{
                       className="w-full bg-white/70 backdrop-blur-md border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 outline-none transition-all shadow-sm"
                   />
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-3">
+                  {/* View Mode Toggle (Matches Projects Tab layout consistency) */}
+                  <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1 border border-slate-200 dark:border-slate-700 shadow-inner">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('kanban')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        viewMode === 'kanban'
+                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                      }`}
+                    >
+                      Kanban
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('table')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                        viewMode === 'table'
+                          ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                          : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                      }`}
+                    >
+                      Bảng
+                    </button>
+                  </div>
+
                   <button 
                     onClick={handlePrint}
                     className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl text-sm font-bold border border-slate-200 hover:bg-slate-200 transition-all flex items-center gap-2"
@@ -1811,12 +2009,137 @@ const TasklistView: React.FC<{
           </div>
         </ContentCard>
         
-        {/* Kanban Board Container */}
-        <DndContext 
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-        >
+        {/* Task Content List View - Kanban vs Table */}
+        {viewMode === 'table' ? (
+          <ContentCard>
+            <div className="overflow-x-auto rounded-xl">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Chọn</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Công việc</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Danh sách</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Người phụ trách</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Độ ưu tiên</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Trạng thái</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Hạn chót</th>
+                    <th className="py-3 px-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {taskLists.flatMap(list => list.tasks.map(task => ({ ...task, listId: list.id, listName: list.name })))
+                    .filter(task => {
+                      const searchLower = searchTerm.toLowerCase();
+                      return (
+                        task.text.toLowerCase().includes(searchLower) ||
+                        (task.assigneeName || '').toLowerCase().includes(searchLower) ||
+                        (task.priority || '').toLowerCase().includes(searchLower)
+                      );
+                    })
+                    .map(task => {
+                      const isSelected = selectedTaskIds.includes(task.id);
+                      return (
+                        <tr 
+                          key={task.id} 
+                          className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-all ${task.completed ? 'opacity-60' : ''}`}
+                        >
+                          <td className="py-3.5 px-4">
+                            <input 
+                              type="checkbox" 
+                              checked={isSelected}
+                              onChange={() => setSelectedTaskIds(prev => 
+                                isSelected ? prev.filter(id => id !== task.id) : [...prev, task.id]
+                              )}
+                              className="rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                            />
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2.5">
+                              <input 
+                                type="checkbox" 
+                                checked={task.completed} 
+                                onChange={() => handleToggleTask(task.listId, task.id)}
+                                className="w-4 h-4 rounded-full text-emerald-600 focus:ring-emerald-500"
+                              />
+                              <span 
+                                onClick={() => setEditingTask({ task, listId: task.listId })}
+                                className={`text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 transition-all ${task.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}
+                              >
+                                {task.text}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-lg text-[10px] font-bold">
+                              {task.listName}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-2">
+                              {task.assigneeAvatar ? (
+                                <img src={task.assigneeAvatar} alt={task.assigneeName} className="w-5 h-5 rounded-full object-cover border border-gray-100 shadow-sm" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="w-5 h-5 rounded-full bg-slate-200 text-slate-600 text-[10px] font-bold flex items-center justify-center uppercase">{task.assigneeName?.substring(0,2) || 'NA'}</div>
+                              )}
+                              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{task.assigneeName || 'Chưa phân công'}</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                              task.priority === 'Cao' 
+                                ? 'bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 border border-red-100/50 dark:border-red-900/20' 
+                                : task.priority === 'Thấp'
+                                  ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400 border border-green-100/50 dark:border-green-900/20'
+                                  : 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/20'
+                            }`}>
+                              {task.priority || 'Trung bình'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                              task.completed 
+                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
+                                : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
+                            }`}>
+                              {task.completed ? 'Hoàn thành' : (task.status || 'Cần làm')}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                            {task.dueDate || '-'}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex justify-end gap-1.5">
+                              <button 
+                                onClick={() => setEditingTask({ task, listId: task.listId })}
+                                className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteTask(task.listId, task.id)}
+                                className="p-1 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          </ContentCard>
+        ) : (
+          <DndContext 
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+          >
         <div 
             ref={scrollRef}
             onWheel={handleWheel}
@@ -2072,6 +2395,7 @@ const TasklistView: React.FC<{
             </div>
         </div>
         </DndContext>
+        )}
       </div>
       
       {/* Bulk actions bottom bar */}

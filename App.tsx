@@ -29,7 +29,7 @@ import { FolderIcon, StickyNoteIcon, ChecklistIcon, MailIcon, CalendarIcon, Grad
 import EventModal from './components/EventModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { db, auth, getAccessToken } from './firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, addDoc } from 'firebase/firestore';
@@ -757,7 +757,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div 
-      className="h-screen w-screen bg-transparent p-[15px] font-sans text-[--color-text-primary] overflow-hidden relative"
+      className="h-screen w-screen bg-transparent p-0 sm:p-[15px] font-sans text-[--color-text-primary] overflow-hidden relative"
       style={{
         '--sidebar-opacity': sidebarOpacity / 100,
         '--card-opacity': cardOpacity / 100,
@@ -765,7 +765,7 @@ const AppContent: React.FC = () => {
     >
       <div 
         style={{ borderStyle: 'solid' }}
-        className={`w-full h-full rounded-[10px] border shadow-3xl overflow-hidden flex flex-col relative transition-all duration-1000 ${borderColors[borderColorIndex]} ${hasWallpaper ? 'bg-[--color-surface-primary]/80 backdrop-blur-md' : 'bg-[--color-surface-primary]'}`}
+        className={`w-full h-full rounded-none sm:rounded-[10px] border-0 sm:border shadow-3xl overflow-hidden flex flex-col relative transition-all duration-1000 ${borderColors[borderColorIndex]} ${hasWallpaper ? 'bg-[--color-surface-primary]/80 backdrop-blur-md' : 'bg-[--color-surface-primary]'}`}
       >
         {(isMobileNavOpen || isMobileActivityOpen) && (
           <div 
@@ -797,6 +797,7 @@ const AppContent: React.FC = () => {
             onLogout={handleLogout}
             unreadCount={unreadCount}
             onNotificationClick={() => setRightSidebarCollapsed(!isRightSidebarCollapsed)}
+            onSearchClick={() => setCommandPaletteOpen(true)}
           />
           <AnimatePresence mode="wait">
             <motion.div 
@@ -900,12 +901,23 @@ const AppContent: React.FC = () => {
             className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center relative focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800"
           >
             <motion.div
-              animate={{ rotate: isQuickPopupOpen ? 135 : 0 }}
+              animate={{ rotate: isQuickPopupOpen ? 90 : 0 }}
               transition={{ duration: 0.2, ease: 'easeInOut' }}
               className="flex items-center justify-center"
             >
-              <Plus className="w-6 h-6" />
+              {isQuickPopupOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Sparkles className="w-6 h-6 animate-pulse" />
+              )}
             </motion.div>
+
+            {/* Notification badge above the utility icon */}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white shadow-lg animate-bounce">
+                {unreadCount}
+              </span>
+            )}
           </button>
         </div>
       </div>

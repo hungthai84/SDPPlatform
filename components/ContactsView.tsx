@@ -41,6 +41,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate })
     const [contacts, setContacts] = useState<Contact[]>(initialContacts);
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+    const [activeTab, setActiveTab] = useState<'directory' | 'personal'>('directory');
     const { t } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
     
@@ -54,6 +55,8 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate })
 
     const filteredContacts = useMemo(() => {
         return contacts.filter(c => {
+            const matchesTab = c.type === activeTab;
+
             const matchesSearch = 
                 c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,9 +66,9 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate })
                 selectedDept === 'all' || 
                 c.department === selectedDept;
 
-            return matchesSearch && matchesDept;
+            return matchesTab && matchesSearch && matchesDept;
         });
-    }, [searchTerm, selectedDept, contacts]);
+    }, [searchTerm, selectedDept, contacts, activeTab]);
         
     const handleSaveContact = (newContact: Contact) => {
         setContacts(prevContacts => [newContact, ...prevContacts]);
@@ -131,7 +134,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate })
             <PageBanner 
                 title={t('contactsTitle') || "Danh bạ & Nhân sự"}
                 subtitle={t('contactsSubtitle') || "Kết nối với đồng nghiệp, quản lý đối tác và theo dõi sơ đồ tổ chức một cách trực quan."}
-                icon={<UsersIcon className="w-full h-full" />}
+                icon={<UsersIcon className="w-full h-full text-white" />}
                 gradient="from-purple-400 to-indigo-600"
                 actions={
                     <>
@@ -152,6 +155,32 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate })
                     </>
                 }
             />
+
+            {/* Sub-navigation Tabs (Consistent with Project and Drive layouts) */}
+            <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border animate-fade-in-down">
+                <button
+                    onClick={() => { setActiveTab('directory'); setSelectedContact(null); }}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        activeTab === 'directory'
+                            ? 'bg-purple-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <UsersIcon className="w-4 h-4" />
+                    <span>Danh bạ nội bộ</span>
+                </button>
+                <button
+                    onClick={() => { setActiveTab('personal'); setSelectedContact(null); }}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        activeTab === 'personal'
+                            ? 'bg-purple-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <SitemapIcon className="w-4 h-4" />
+                    <span>Đối tác cá nhân</span>
+                </button>
+            </div>
 
             <ContentCard>
                 <div className="flex flex-col gap-6">

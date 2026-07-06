@@ -170,7 +170,38 @@ const RequestsView: React.FC<RequestsViewProps> = ({ user, users, onSaveEvent })
                 }
             />
 
-            <div className="flex flex-col gap-6 mt-6">
+            {/* Sub-navigation Tabs (Consistent with Project and Drive layouts) */}
+            <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border animate-fade-in-down mt-6">
+                <button
+                    onClick={() => setActiveTab('mine')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        activeTab === 'mine'
+                            ? 'bg-rose-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <ClipboardList className="w-4 h-4" />
+                    <span>Yêu cầu của tôi</span>
+                </button>
+                {checkHasToApprove && (
+                    <button
+                        onClick={() => setActiveTab('to-approve')}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all relative ${
+                            activeTab === 'to-approve'
+                                ? 'bg-rose-600 text-white shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        }`}
+                    >
+                        <ClipboardList className="w-4 h-4" />
+                        <span>Yêu cầu cần duyệt</span>
+                        {requests.filter(r => r.approverId === user.id && r.status === 'pending').length > 0 && (
+                            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        )}
+                    </button>
+                )}
+            </div>
+
+            <div className="flex flex-col gap-6">
                 {/* Statistics Card similar to Project Management */}
                 <ContentCard>
                     <div className="flex flex-col gap-4">
@@ -250,44 +281,15 @@ const RequestsView: React.FC<RequestsViewProps> = ({ user, users, onSaveEvent })
                 <ContentCard>
                     <div className="flex flex-col gap-6">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                            <div className="flex gap-4 border-b border-transparent">
-                                <button
-                                    onClick={() => setActiveTab('mine')}
-                                    className={`pb-1 px-1 font-bold text-xs transition-all border-b-2 whitespace-nowrap uppercase tracking-wider ${activeTab === 'mine' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                                >
-                                    {t('requests')}
-                                </button>
-                                {checkHasToApprove && (
-                                    <button
-                                        onClick={() => setActiveTab('to-approve')}
-                                        className={`relative pb-1 px-1 font-bold text-xs transition-all border-b-2 whitespace-nowrap uppercase tracking-wider ${activeTab === 'to-approve' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                                    >
-                                        {t('approvals')}
-                                        {requests.filter(r => r.approverId === user.id && r.status === 'pending').length > 0 && (
-                                            <span className="absolute top-0 -right-2.5 w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                                        )}
-                                    </button>
-                                )}
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
-                                <div className="relative flex items-center flex-1 sm:flex-initial">
-                                    <Search className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
-                                    <input 
-                                        type="text"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        placeholder={t('search')}
-                                        className="w-full sm:w-64 bg-white border border-slate-200 text-xs text-slate-800 rounded-xl py-2 pl-9 pr-4 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all placeholder:text-slate-400 font-semibold"
-                                    />
-                                </div>
-                                <button 
-                                    onClick={() => setCreateModalOpen(true)}
-                                    className="bg-rose-600 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center justify-center gap-2 hover:bg-rose-700 transition-all shadow-md active:scale-98"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    <span>{t('newRequest')}</span>
-                                </button>
+                            <div className="relative flex items-center w-full md:w-64">
+                                <Search className="absolute left-3 w-4 h-4 text-slate-400 pointer-events-none" />
+                                <input 
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder={t('search')}
+                                    className="w-full bg-white border border-slate-200 text-xs text-slate-800 rounded-xl py-2 pl-9 pr-4 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all placeholder:text-slate-400 font-semibold"
+                                />
                             </div>
                         </div>
 

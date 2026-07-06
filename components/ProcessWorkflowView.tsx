@@ -29,6 +29,31 @@ const ProcessWorkflowView: React.FC<ProcessWorkflowViewProps> = ({ user }) => {
   const [processName, setProcessName] = useState('Quy trình mới');
   const [isSaved, setIsSaved] = useState(false);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'designer' | 'templates'>('designer');
+
+  const mockTemplates = [
+    {
+      title: 'Quy trình Onboarding Nhân sự mới',
+      category: 'Hành chính - Nhân sự',
+      steps: 5,
+      duration: '5 ngày',
+      description: 'Chuẩn bị thiết bị, tài liệu đào tạo, hướng dẫn nội quy và bàn giao công việc cho nhân viên mới.'
+    },
+    {
+      title: 'Quy trình Phê duyệt Ngân sách Dự án',
+      category: 'Tài chính - Kế toán',
+      steps: 4,
+      duration: '3 ngày',
+      description: 'Lập đề xuất, Trưởng phòng duyệt, Giám đốc phê duyệt và thực hiện thanh toán/tạm ứng.'
+    },
+    {
+      title: 'Quy trình Giải quyết Khiếu nại Khách hàng',
+      category: 'Chăm sóc Khách hàng',
+      steps: 6,
+      duration: '24 giờ',
+      description: 'Tiếp nhận thông tin, phân loại sự cố, liên hệ phòng ban chuyên môn, phản hồi khách hàng và đóng khiếu nại.'
+    }
+  ];
   
   // Form State
   const [newNodeType, setNewNodeType] = useState<'step' | 'action'>('step');
@@ -205,161 +230,220 @@ const ProcessWorkflowView: React.FC<ProcessWorkflowViewProps> = ({ user }) => {
         }
       />
 
-      <div className="flex flex-col gap-6 mt-6">
-        {/* Designer Canvas Area */}
-        <div 
-          ref={containerRef}
-          className="h-[650px] min-h-[650px] relative bg-white/40 border border-[--color-border-secondary] backdrop-blur-md rounded-2xl shadow-inner overflow-auto cursor-crosshair diagram-bg"
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+      {/* Sub-navigation Tabs (Consistent with Project and Drive layouts) */}
+      <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border animate-fade-in-down mt-6">
+        <button
+          onClick={() => setActiveTab('designer')}
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+            activeTab === 'designer'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+          }`}
         >
-        {nodes.length === 0 ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
-              <div className="w-20 h-20 bg-[--color-accent-100] text-[--color-accent-600] rounded-full flex items-center justify-center mb-6 shadow-sm border border-[--color-accent-200]">
-                 <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                 </svg>
-              </div>
-              <h2 className="text-xl font-bold text-[--color-text-primary] mb-3">Chưa có thẻ quy trình nào</h2>
-              <p className="text-[--color-text-secondary] text-sm max-w-md">Bấm "Tạo thẻ quy trình mới" để bắt đầu thiết kế lưu đồ.</p>
-            </div>
-        ) : (
-            <Xwrapper>
-                {/* Render Nodes */}
-                {nodes.map(node => {
-                    const isAction = node.type === 'action';
-                    return (
-                    <div
-                        key={node.id}
-                        id={node.id}
-                        onMouseDown={(e) => handleMouseDown(e, node.id)}
-                        onDragStart={handleDragStart}
-                        style={{ left: Math.max(0, node.x), top: Math.max(0, node.y) }}
-                        className={`absolute z-10 cursor-grab active:cursor-grabbing group`}
-                    >
-                        {isAction ? (
-                            <div className="relative w-56 h-56 flex items-center justify-center">
-                                {/* Diamond Background */}
-                                <div className={`absolute w-36 h-36 bg-white border ${draggingNodeId === node.id ? 'border-amber-400 shadow-2xl scale-[1.02] z-50' : 'border-[--color-border-secondary] shadow-lg z-10'} rounded-2xl rotate-45 transition-all duration-200`} />
-                                
-                                {/* Actions Wrapper */}
-                                <div className="absolute top-4 right-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-[60]">
-                                    <button 
-                                        onClick={(e) => handleEditNodeClick(e, node)}
-                                        className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-200 hover:scale-110 shadow-sm"
-                                    >
-                                        <PencilIcon className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button 
-                                        onClick={(e) => handleDeleteNode(e, node.id)}
-                                        className="w-7 h-7 bg-red-100 text-red-600 rounded-full flex items-center justify-center hover:bg-red-200 hover:scale-110 shadow-sm"
-                                    >
-                                        <XIcon className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
+          <WorkflowIcon className="w-4 h-4" />
+          <span>Thiết kế quy trình</span>
+        </button>
+        <button
+          onClick={() => setActiveTab('templates')}
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+            activeTab === 'templates'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+          }`}
+        >
+          <ChecklistIcon className="w-4 h-4" />
+          <span>Quy trình mẫu ({mockTemplates.length})</span>
+        </button>
+      </div>
 
-                                {/* Content */}
-                                <div className="relative z-20 flex flex-col items-center justify-center p-2 w-32 text-center">
-                                    <LightningIcon className="w-6 h-6 text-amber-500 mb-1" />
-                                    <h3 className="font-bold text-[--color-text-primary] text-xs mb-1.5 line-clamp-2">{node.name}</h3>
-                                    {node.tasks && node.tasks.length > 0 && (
-                                        <div className="flex flex-col w-full items-center gap-1 mt-1">
-                                            {node.tasks.slice(0, 2).map((task, i) => {
-                                                const taskLower = task.toLowerCase();
-                                                const isAgree = taskLower === 'đồng ý';
-                                                const isDisagree = taskLower === 'không đồng ý';
-                                                return (
-                                                <span key={i} className={`text-[11px] font-semibold px-2 py-1 rounded-md shadow-sm border truncate w-full max-w-[100px] ${isAgree ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : isDisagree ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
-                                                    {task}
-                                                </span>
-                                            )})}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className={`w-72 bg-[--color-surface-secondary] border ${draggingNodeId === node.id ? 'border-[--color-accent-500] shadow-2xl scale-[1.02] z-50' : 'border-[--color-border-secondary] shadow-lg z-10'} rounded-2xl p-5 transition-all duration-200 relative`}>
-                                {/* Actions Wrapper */}
-                                <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-50">
-                                    <button 
-                                        onClick={(e) => handleEditNodeClick(e, node)}
-                                        className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-200 hover:scale-110 shadow-sm border border-blue-200"
-                                    >
-                                        <PencilIcon className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button 
-                                        onClick={(e) => handleDeleteNode(e, node.id)}
-                                        className="w-7 h-7 bg-red-100 text-red-600 rounded-full flex items-center justify-center hover:bg-red-200 hover:scale-110 shadow-sm border border-red-200"
-                                    >
-                                        <XIcon className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                                
-                                <div className="flex items-center gap-3 mb-3 pb-3 border-b border-[--color-border-secondary]">
-                                <div className="w-10 h-10 rounded-full bg-[--color-accent-100] text-[--color-accent-600] flex items-center justify-center shrink-0">
-                                    <WorkflowIcon className="w-5 h-5" />
-                                </div>
-                                <h3 className="font-bold text-[--color-text-primary] truncate pr-2 text-base">{node.name}</h3>
-                                </div>
-                                {node.description && (
-                                    <p className="text-sm text-[--color-text-secondary] line-clamp-2 mb-4">{node.description}</p>
-                                )}
-                                <div className="flex flex-col gap-2 mb-4">
-                                    {node.assignee && (
-                                        <div className="flex items-center gap-2 text-xs font-medium text-[--color-text-tertiary] bg-[--color-surface-primary]/50 p-2 rounded-lg border border-[--color-border-secondary]">
-                                            <UserIcon className="w-4 h-4 shrink-0" />
-                                            <span className="truncate">{node.assignee}</span>
-                                        </div>
-                                    )}
-                                    {node.duration && (
-                                        <div className="flex items-center gap-2 text-xs font-medium text-[--color-text-tertiary] bg-[--color-surface-primary]/50 p-2 rounded-lg border border-[--color-border-secondary]">
-                                            <ClockIcon className="w-4 h-4 shrink-0" />
-                                            <span className="truncate">{node.duration}</span>
-                                        </div>
-                                    )}
-                                </div>
-                                {node.tasks && node.tasks.length > 0 && (
-                                    <div>
-                                        <div className="flex items-center gap-1.5 text-xs font-bold text-[--color-text-secondary] uppercase tracking-wider mb-2">
-                                            <ChecklistIcon className="w-4 h-4" />
-                                            <span>Công việc ({node.tasks.length})</span>
-                                        </div>
-                                        <ul className="space-y-1.5 max-h-32 overflow-y-auto no-scrollbar">
-                                            {node.tasks.map((task, i) => (
-                                                <li key={i} className="flex items-start gap-2 text-xs font-medium text-[--color-text-tertiary] bg-[--color-surface-primary]/50 p-2 rounded-lg border border-[--color-border-secondary]">
-                                                    <div className="w-3.5 h-3.5 mt-[1px] rounded-sm border border-[--color-border-secondary] flex-shrink-0" />
-                                                    <span className="leading-snug">{task}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )})}
-                
-                {/* Render Edges */}
-                {nodes.map(node => {
-                    if (node.linkedToNodeId) {
-                        return (
-                            <Xarrow
-                                key={`edge-${node.linkedToNodeId}-${node.id}`}
-                                start={node.linkedToNodeId} /* Arrow points FROM the linked node */
-                                end={node.id}             /* TO the new node */
-                                color="var(--color-accent-500)"
-                                strokeWidth={1.5}
-                                path="smooth"
-                                headSize={4}
-                                zIndex={0}
-                                showHead={true}
-                            />
-                        );
-                    }
-                    return null;
-                })}
-            </Xwrapper>
+      <div className="flex flex-col gap-6">
+        {activeTab === 'designer' ? (
+          /* Designer Canvas Area */
+          <div 
+            ref={containerRef}
+            className="h-[650px] min-h-[650px] relative bg-white/40 border border-[--color-border-secondary] backdrop-blur-md rounded-2xl shadow-inner overflow-auto cursor-crosshair diagram-bg"
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+          >
+          {nodes.length === 0 ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8">
+                <div className="w-20 h-20 bg-[--color-accent-100] text-[--color-accent-600] rounded-full flex items-center justify-center mb-6 shadow-sm border border-[--color-accent-200]">
+                   <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                   </svg>
+                </div>
+                <h2 className="text-xl font-bold text-[--color-text-primary] mb-3">Chưa có thẻ quy trình nào</h2>
+                <p className="text-[--color-text-secondary] text-sm max-w-md">Bấm "Tạo thẻ quy trình mới" để bắt đầu thiết kế lưu đồ.</p>
+              </div>
+          ) : (
+              <Xwrapper>
+                  {/* Render Nodes */}
+                  {nodes.map(node => {
+                      const isAction = node.type === 'action';
+                      return (
+                      <div
+                          key={node.id}
+                          id={node.id}
+                          onMouseDown={(e) => handleMouseDown(e, node.id)}
+                          onDragStart={handleDragStart}
+                          style={{ left: Math.max(0, node.x), top: Math.max(0, node.y) }}
+                          className={`absolute z-10 cursor-grab active:cursor-grabbing group`}
+                      >
+                          {isAction ? (
+                              <div className="relative w-56 h-56 flex items-center justify-center">
+                                  {/* Diamond Background */}
+                                  <div className={`absolute w-36 h-36 bg-white border ${draggingNodeId === node.id ? 'border-amber-400 shadow-2xl scale-[1.02] z-50' : 'border-[--color-border-secondary] shadow-lg z-10'} rounded-2xl rotate-45 transition-all duration-200`} />
+                                  
+                                  {/* Actions Wrapper */}
+                                  <div className="absolute top-4 right-4 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-[60]">
+                                      <button 
+                                          onClick={(e) => handleEditNodeClick(e, node)}
+                                          className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-200 hover:scale-110 shadow-sm"
+                                      >
+                                          <PencilIcon className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button 
+                                          onClick={(e) => handleDeleteNode(e, node.id)}
+                                          className="w-7 h-7 bg-red-100 text-red-600 rounded-full flex items-center justify-center hover:bg-red-200 hover:scale-110 shadow-sm"
+                                      >
+                                          <XIcon className="w-3.5 h-3.5" />
+                                      </button>
+                                  </div>
+  
+                                  {/* Content */}
+                                  <div className="relative z-20 flex flex-col items-center justify-center p-2 w-32 text-center">
+                                      <LightningIcon className="w-6 h-6 text-amber-500 mb-1" />
+                                      <h3 className="font-bold text-[--color-text-primary] text-xs mb-1.5 line-clamp-2">{node.name}</h3>
+                                      {node.tasks && node.tasks.length > 0 && (
+                                          <div className="flex flex-col w-full items-center gap-1 mt-1">
+                                              {node.tasks.slice(0, 2).map((task, i) => {
+                                                  const taskLower = task.toLowerCase();
+                                                  const isAgree = taskLower === 'đồng ý';
+                                                  const isDisagree = taskLower === 'không đồng ý';
+                                                  return (
+                                                  <span key={i} className={`text-[11px] font-semibold px-2 py-1 rounded-md shadow-sm border truncate w-full max-w-[100px] ${isAgree ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : isDisagree ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
+                                                      {task}
+                                                  </span>
+                                              )})}
+                                          </div>
+                                      )}
+                                  </div>
+                              </div>
+                          ) : (
+                              <div className={`w-72 bg-[--color-surface-secondary] border ${draggingNodeId === node.id ? 'border-[--color-accent-500] shadow-2xl scale-[1.02] z-50' : 'border-[--color-border-secondary] shadow-lg z-10'} rounded-2xl p-5 transition-all duration-200 relative`}>
+                                  {/* Actions Wrapper */}
+                                  <div className="absolute -top-3 -right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                                      <button 
+                                          onClick={(e) => handleEditNodeClick(e, node)}
+                                          className="w-7 h-7 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-200 hover:scale-110 shadow-sm border border-blue-200"
+                                      >
+                                          <PencilIcon className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button 
+                                          onClick={(e) => handleDeleteNode(e, node.id)}
+                                          className="w-7 h-7 bg-red-100 text-red-600 rounded-full flex items-center justify-center hover:bg-red-200 hover:scale-110 shadow-sm border border-red-200"
+                                      >
+                                          <XIcon className="w-3.5 h-3.5" />
+                                      </button>
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-3 mb-3 pb-3 border-b border-[--color-border-secondary]">
+                                  <div className="w-10 h-10 rounded-full bg-[--color-accent-100] text-[--color-accent-600] flex items-center justify-center shrink-0">
+                                      <WorkflowIcon className="w-5 h-5" />
+                                  </div>
+                                  <h3 className="font-bold text-[--color-text-primary] truncate pr-2 text-base">{node.name}</h3>
+                                  </div>
+                                  {node.description && (
+                                      <p className="text-sm text-[--color-text-secondary] line-clamp-2 mb-4">{node.description}</p>
+                                  )}
+                                  <div className="flex flex-col gap-2 mb-4">
+                                      {node.assignee && (
+                                          <div className="flex items-center gap-2 text-xs font-medium text-[--color-text-tertiary] bg-[--color-surface-primary]/50 p-2 rounded-lg border border-[--color-border-secondary]">
+                                              <UserIcon className="w-4 h-4 shrink-0" />
+                                              <span className="truncate">{node.assignee}</span>
+                                          </div>
+                                      )}
+                                      {node.duration && (
+                                          <div className="flex items-center gap-2 text-xs font-medium text-[--color-text-tertiary] bg-[--color-surface-primary]/50 p-2 rounded-lg border border-[--color-border-secondary]">
+                                              <ClockIcon className="w-4 h-4 shrink-0" />
+                                              <span className="truncate">{node.duration}</span>
+                                          </div>
+                                      )}
+                                  </div>
+                                  {node.tasks && node.tasks.length > 0 && (
+                                      <div>
+                                          <div className="flex items-center gap-1.5 text-xs font-bold text-[--color-text-secondary] uppercase tracking-wider mb-2">
+                                              <ChecklistIcon className="w-4 h-4" />
+                                              <span>Công việc ({node.tasks.length})</span>
+                                          </div>
+                                          <ul className="space-y-1.5 max-h-32 overflow-y-auto no-scrollbar">
+                                              {node.tasks.map((task, i) => (
+                                                  <li key={i} className="flex items-start gap-2 text-xs font-medium text-[--color-text-tertiary] bg-[--color-surface-primary]/50 p-2 rounded-lg border border-[--color-border-secondary]">
+                                                      <div className="w-3.5 h-3.5 mt-[1px] rounded-sm border border-[--color-border-secondary] flex-shrink-0" />
+                                                      <span className="leading-snug">{task}</span>
+                                                  </li>
+                                              ))}
+                                          </ul>
+                                      </div>
+                                  )}
+                              </div>
+                          )}
+                      </div>
+                  )})}
+                  
+                  {/* Render Edges */}
+                  {nodes.map(node => {
+                      if (node.linkedToNodeId) {
+                          return (
+                              <Xarrow
+                                  key={`edge-${node.linkedToNodeId}-${node.id}`}
+                                  start={node.linkedToNodeId} /* Arrow points FROM the linked node */
+                                  end={node.id}             /* TO the new node */
+                                  color="var(--color-accent-500)"
+                                  strokeWidth={1.5}
+                                  path="smooth"
+                                  headSize={4}
+                                  zIndex={0}
+                                  showHead={true}
+                              />
+                          );
+                      }
+                      return null;
+                  })}
+              </Xwrapper>
+          )}
+        </div>
+        ) : (
+          /* Process Templates View */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up">
+            {mockTemplates.map((tpl, i) => (
+              <div key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                      {tpl.category}
+                    </span>
+                    <span className="text-xs text-slate-400 font-medium">{tpl.duration}</span>
+                  </div>
+                  <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-200 mb-2 truncate">
+                    {tpl.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                    {tpl.description}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-xs font-bold text-slate-500">
+                    Số bước: <span className="text-indigo-600">{tpl.steps} bước</span>
+                  </span>
+                  <button className="text-xs font-extrabold text-indigo-600 hover:underline">
+                    Áp dụng mẫu &rarr;
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
 
@@ -508,7 +592,6 @@ const ProcessWorkflowView: React.FC<ProcessWorkflowViewProps> = ({ user }) => {
            background-size: 24px 24px;
         }
       `}</style>
-      </div>
     </StandardPageLayout>
   );
 }

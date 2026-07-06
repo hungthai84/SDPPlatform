@@ -161,6 +161,36 @@ const EmailClient: React.FC<EmailClientProps> = ({ onItemViewed }) => {
             }
         />
 
+        {/* Sub-navigation Tabs (Consistent with Project, Drive and Chat layouts) */}
+        <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border animate-fade-in-down mt-6">
+            {[
+                { id: 'primary', label: t('primary') || 'Chính', icon: Inbox },
+                { id: 'starred', label: t('starred') || 'Đã gắn sao', icon: Star },
+                { id: 'promotions', label: t('promotions') || 'Quảng cáo', icon: TagIcon },
+                { id: 'social', label: t('social') || 'Mạng xã hội', icon: UsersIcon },
+            ].map(item => (
+                <button
+                    key={item.id}
+                    onClick={() => { setActiveCategory(item.id as 'primary' | 'promotions' | 'social' | 'starred'); setSelectedEmail(null); }}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        activeCategory === item.id
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <item.icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                    {item.id === 'primary' && emails.filter(e => !e.read).length > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            activeCategory === 'primary' ? 'bg-white text-indigo-600' : 'bg-indigo-600 text-white'
+                        }`}>
+                            {emails.filter(e => !e.read).length}
+                        </span>
+                    )}
+                </button>
+            ))}
+        </div>
+
         <ContentCard>
             <div className="flex flex-col lg:flex-row gap-8 min-h-[600px]">
                 {/* Sidebar Navigation */}
@@ -174,29 +204,6 @@ const EmailClient: React.FC<EmailClientProps> = ({ onItemViewed }) => {
                             placeholder={t('emailSearchPlaceholder') || "Tìm kiếm email..."}
                             className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-4 pl-10 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                         />
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                        {[
-                            { id: 'primary', label: t('primary'), icon: Inbox },
-                            { id: 'starred', label: t('starred'), icon: Star },
-                            { id: 'promotions', label: t('promotions'), icon: TagIcon },
-                            { id: 'social', label: t('social'), icon: UsersIcon },
-                        ].map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => { setActiveCategory(item.id as 'primary' | 'promotions' | 'social' | 'starred'); setSelectedEmail(null); }}
-                                className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${activeCategory === item.id ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-gray-50'}`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <item.icon className="w-4 h-4" />
-                                    <span>{item.label}</span>
-                                </div>
-                                {item.id === 'primary' && emails.filter(e => !e.read).length > 0 && (
-                                    <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded-full text-[10px]">{emails.filter(e => !e.read).length}</span>
-                                )}
-                            </button>
-                        ))}
                     </div>
                 </div>
 

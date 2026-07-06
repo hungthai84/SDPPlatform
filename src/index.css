@@ -2,7 +2,12 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Play", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Play", "Inter", "Outfit", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Play", "Outfit", sans-serif;
+}
+
+*, *::before, *::after {
+  font-family: "Play", "Inter", sans-serif !important;
 }
 
 :root {

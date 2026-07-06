@@ -905,7 +905,7 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
             <PageBanner 
                 title={t('newsfeed')}
                 subtitle="Cập nhật tin tức mới nhất, chia sẻ ý tưởng và kết nối với đồng nghiệp trong công ty."
-                icon={<RssIcon className="w-full h-full" />}
+                icon={<RssIcon className="w-full h-full text-white" />}
                 gradient="from-orange-500 to-red-600"
                 actions={
                     <>
@@ -918,6 +918,43 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
                     </>
                 }
             />
+
+            {/* Sub-navigation Tabs (Consistent with Project and Drive layouts) */}
+            <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border animate-fade-in-down">
+                <button
+                    onClick={() => { setFilter('all'); setSearchResults(null); }}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        filter === 'all'
+                            ? 'bg-orange-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <ListIcon className="w-4 h-4" />
+                    <span>Tất cả bài viết</span>
+                </button>
+                <button
+                    onClick={() => { setFilter('pinned'); setSearchResults(null); }}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        filter === 'pinned'
+                            ? 'bg-orange-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <PinIconLc className="w-4 h-4" />
+                    <span>Tin tức đã ghim</span>
+                </button>
+                <button
+                    onClick={() => { setFilter('saved'); setSearchResults(null); }}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+                        filter === 'saved'
+                            ? 'bg-orange-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <BookmarkIconLc className="w-4 h-4" />
+                    <span>Mục đã lưu</span>
+                </button>
+            </div>
 
             <ContentCard>
                 <div className="flex flex-col lg:flex-row gap-8">
@@ -971,24 +1008,6 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
                                     <button onClick={clearSearch} className="text-[10px] font-bold text-red-500 uppercase tracking-wider hover:underline">Xóa kết quả ({searchResults.length})</button>
                                 </div>
                             )}
-                        </div>
-
-                        <div className="space-y-1">
-                            <h3 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Bộ lọc</h3>
-                            {[
-                                { id: 'all', label: 'Tất cả bài viết', icon: <ListIcon className="w-4 h-4" /> },
-                                { id: 'pinned', label: 'Tin tức đã ghim', icon: <PinIconLc className="w-4 h-4" /> },
-                                { id: 'saved', label: 'Mục đã lưu', icon: <BookmarkIconLc className="w-4 h-4" /> },
-                            ].map(item => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setFilter(item.id as FilterType)}
-                                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${filter === item.id ? 'bg-orange-50 text-orange-600 shadow-sm border border-orange-100' : 'text-slate-600 hover:bg-gray-100'}`}
-                                >
-                                    {item.icon}
-                                    {item.label}
-                                </button>
-                            ))}
                         </div>
 
                         <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-5 rounded-2xl text-white">

@@ -10,8 +10,9 @@ import {
     SaveIcon, MailIcon, XIcon as CloseIcon
 } from './icons';
 import UserManagementView from './UserManagementView';
-import AccountSettingsBanner from './AccountSettingsBanner';
 import WebsiteDataView from './WebsiteDataView';
+import PageBanner from './PageBanner';
+import StandardPageLayout from './StandardPageLayout';
 
 enum OperationType {
   CREATE = 'create',
@@ -1087,40 +1088,37 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     };
     
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[15px] gap-3 pb-24 md:pb-8">
-            <div className="shrink-0">
-                <AccountSettingsBanner />
-            </div>
+        <StandardPageLayout>
+            <PageBanner
+                title={t('accountSettings')}
+                subtitle={t('accountSlogan')}
+                icon={<SettingsIcon className="w-full h-full text-white" />}
+                gradient="from-slate-700 via-gray-800 to-slate-900"
+            />
 
-            {/* Horizontal Navigation Tabs */}
-            <div className="shrink-0 border-b border-[--color-border-secondary] overflow-x-auto no-scrollbar -mx-4 px-4">
-                <nav className="flex gap-2 min-w-max pb-1">
-                    {sections.map(section => (
-                        <button 
-                            key={section.id} 
-                            onClick={() => setActiveSection(section.id)}
-                            className={`flex items-center gap-2 px-4 py-3 border-b-2 font-bold text-sm whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                                activeSection === section.id 
-                                    ? 'border-[--color-accent-600] text-[--color-accent-600]' 
-                                    : 'border-transparent text-[--color-text-secondary] hover:text-[--color-text-primary] hover:border-[--color-border-secondary]'
-                            }`}
-                        >
-                            <span className={activeSection === section.id ? 'text-[--color-accent-600]' : 'text-[--color-text-subtle]'}>
-                                {section.icon}
-                            </span>
-                            <span>{section.label}</span>
-                        </button>
-                    ))}
-                </nav>
+            {/* Pill-style sub-navigation tabs matching the Projects layout */}
+            <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border overflow-x-auto no-scrollbar">
+                {sections.map(section => (
+                    <button 
+                        key={section.id} 
+                        onClick={() => setActiveSection(section.id)}
+                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                            activeSection === section.id 
+                                ? 'bg-indigo-600 text-white shadow-sm' 
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        }`}
+                    >
+                        <span>{section.icon}</span>
+                        <span>{section.label}</span>
+                    </button>
+                ))}
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto no-scrollbar pr-2 -mr-2 mt-2">
-                <div className="space-y-6">
-                    {renderSectionContent()}
-                </div>
+            <div className="space-y-6">
+                {renderSectionContent()}
             </div>
-        </main>
+        </StandardPageLayout>
     );
 };
 

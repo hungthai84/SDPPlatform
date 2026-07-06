@@ -6,7 +6,7 @@ import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import MeetingView from './MeetingView';
 import { User, RecentItem } from '../types';
 import { mockTaskLists } from './TasklistView';
-import { MapPin, Video as LucideVideo, List as LucideList } from 'lucide-react';
+import { MapPin, Video as LucideVideo, List as LucideList, LayoutGrid, CheckCircle2 } from 'lucide-react';
 import { getAccessToken } from '../firebase';
 
 export interface CalendarEvent {
@@ -52,7 +52,7 @@ interface GoogleCalendarItem {
 }
 
 const CalendarView: React.FC<CalendarViewProps> = ({ user, events, onSaveEvent, onEditEvent, onOpenModal, onItemViewed }) => {
-    const [activeTab, setActiveTab] = useState<'calendar' | 'meetings'>('calendar');
+    const [activeTab, setActiveTab] = useState<'calendar' | 'schedule' | 'minutes'>('schedule');
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [isSyncing, setIsSyncing] = useState(false);
@@ -171,40 +171,61 @@ const CalendarView: React.FC<CalendarViewProps> = ({ user, events, onSaveEvent, 
     return (
         <StandardPageLayout>
             <PageBanner 
-                title={t('calendarTitle') || "Lịch biểu & Cuộc hẹn"}
-                subtitle={t('calendarSubtitle') || "Quản lý thời gian, sắp xếp lịch họp và tối ưu hóa hiệu suất làm việc hàng ngày của Anh."}
-                icon={<CalendarIcon className="w-full h-full" />}
-                gradient="from-blue-400 to-indigo-600"
+                title="Lịch làm việc"
+                subtitle="Quản lý thời gian, sắp xếp cuộc họp và theo dõi tiến độ dự án trực quan."
+                icon={<CalendarIcon className="w-full h-full text-white" />}
+                gradient="from-indigo-600 to-blue-700"
                 actions={
                     <>
-                        <div className="flex bg-white/10 p-1 rounded-xl shadow-sm border border-white/20 mr-2">
-                            <button 
-                                onClick={() => setActiveTab('calendar')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'calendar' ? 'bg-white text-blue-600 shadow-sm' : 'text-white hover:bg-white/10'}`}
-                            >
-                                {t('calendar')}
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('meetings')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'meetings' ? 'bg-white text-blue-600 shadow-sm' : 'text-white hover:bg-white/10'}`}
-                            >
-                                {t('meeting')}
-                            </button>
-                        </div>
-                        <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                        <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-white">
                             <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} /> {t('sync')}
                         </button>
-                        <button onClick={onOpenModal} className="flex items-center gap-2 bg-white text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
+                        <button onClick={onOpenModal} className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
                             <PlusIcon className="w-4 h-4" /> {t('newEvent') || 'Sự kiện mới'}
                         </button>
                     </>
                 }
             />
 
-            <ContentCard>
-                {activeTab === 'meetings' ? (
-                    <MeetingView user={user} onItemViewed={onItemViewed} isEmbedded={true} />
-                ) : (
+            {/* Sub-navigation Tabs (Consistent with Project and Drive Page Layouts) */}
+            <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border animate-fade-in-down overflow-x-auto no-scrollbar">
+                <button
+                    onClick={() => setActiveTab('calendar')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                        activeTab === 'calendar'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <CalendarIcon className="w-4 h-4" />
+                    <span>Lịch biểu</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('schedule')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                        activeTab === 'schedule'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <LayoutGrid className="w-4 h-4" />
+                    <span>Lịch họp & Chi tiết</span>
+                </button>
+                <button
+                    onClick={() => setActiveTab('minutes')}
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
+                        activeTab === 'minutes'
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                    }`}
+                >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Biên bản & Giao việc</span>
+                </button>
+            </div>
+
+            {activeTab === 'calendar' ? (
+                <ContentCard>
                     <div className="flex flex-col lg:flex-row gap-8">
                         {/* Calendar Main Section */}
                         <div className="flex-1">
@@ -329,8 +350,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ user, events, onSaveEvent, 
                             </button>
                         </div>
                     </div>
-                )}
-            </ContentCard>
+                </ContentCard>
+            ) : (
+                <MeetingView 
+                    user={user} 
+                    onItemViewed={onItemViewed} 
+                    activeTab={activeTab === 'schedule' ? 'schedule' : 'minutes'} 
+                    showTabs={false} 
+                    isEmbedded={true}
+                />
+            )}
         </StandardPageLayout>
     );
 };

@@ -688,13 +688,13 @@ const MainContent: React.FC<MainContentProps> = ({ user, recentlyViewed, events,
             title={t('welcomeUser', { userName: user.name })}
             subtitle={t('welcomeDesc')}
             icon={<LightningIcon className="w-full h-full" />}
-            gradient="from-cyan-600 to-blue-700"
+            gradient="from-indigo-600 to-blue-700"
             actions={
                 <>
-                    <button className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                    <button className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-white">
                         <FilterIcon className="w-4 h-4" /> Lọc dữ liệu
                     </button>
-                    <button onClick={() => setIsCustomizeModalOpen(true)} className="flex items-center gap-2 bg-white text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
+                    <button onClick={() => setIsCustomizeModalOpen(true)} className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
                         <SettingsIcon className="w-4 h-4" /> {t('customizeDashboard')}
                     </button>
                 </>
