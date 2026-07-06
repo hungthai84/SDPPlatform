@@ -13,7 +13,8 @@ import {
   WorkflowIcon, 
   ChevronLeftIcon, 
   ChevronRightIcon,
-  SearchIcon
+  SearchIcon,
+  TargetIcon
 } from './icons';
 import { View, User } from '../types';
 import { useLanguage } from './LanguageContext';
@@ -40,6 +41,12 @@ interface MenuItem {
   view?: View;
 }
 
+interface MenuGroup {
+  id: string;
+  title: string;
+  items: MenuItem[];
+}
+
 const LeftSidebar: React.FC<LeftSidebarProps> = ({ 
   isCollapsed, 
   onToggleCollapse, 
@@ -54,66 +61,35 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const { t } = useLanguage();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  const menuItems: MenuItem[] = [
+  const menuGroups: MenuGroup[] = [
     {
-      id: 'dashboard',
-      label: t('dashboard') || 'Trang chủ',
-      icon: <HomeIcon className="w-5 h-5 text-indigo-500" />,
-      view: 'dashboard'
+      id: 'work_goals',
+      title: 'Công việc & Mục tiêu',
+      items: [
+        { id: 'dashboard', label: t('dashboard') || 'Trang chủ', icon: <HomeIcon className="w-5 h-5 text-indigo-500" />, view: 'dashboard' },
+        { id: 'objectives', label: 'Mục tiêu (OKRs)', icon: <TargetIcon className="w-5 h-5 text-red-500" />, view: 'objectives' },
+        { id: 'projects', label: 'Dự án', icon: <ChecklistIcon className="w-5 h-5 text-teal-600" />, view: 'projects' },
+        { id: 'process', label: 'Quy trình', icon: <WorkflowIcon className="w-5 h-5 text-fuchsia-500" />, view: 'process' },
+        { id: 'requests', label: 'Yêu cầu', icon: <ClipboardListIcon className="w-5 h-5 text-rose-500" />, view: 'requests' }
+      ]
     },
     {
-      id: 'projects',
-      label: 'Dự án',
-      icon: <ChecklistIcon className="w-5 h-5 text-teal-600" />,
-      view: 'projects'
+      id: 'comm_internal',
+      title: 'Giao tiếp & Nội bộ',
+      items: [
+        { id: 'newsfeed', label: t('newsfeed') || 'Bảng tin', icon: <RssIcon className="w-5 h-5 text-orange-500" />, view: 'newsfeed' },
+        { id: 'blog', label: t('blog') || 'Bài viết', icon: <BookOpenIcon className="w-5 h-5 text-emerald-500" />, view: 'blog' },
+        { id: 'training', label: t('training') || 'Đào tạo', icon: <GraduationCapIcon className="w-5 h-5 text-violet-500" />, view: 'training' }
+      ]
     },
     {
-      id: 'process',
-      label: 'Quy trình',
-      icon: <WorkflowIcon className="w-5 h-5 text-fuchsia-500" />,
-      view: 'process'
-    },
-    {
-      id: 'drive',
-      label: t('drive') || 'Lưu trữ',
-      icon: <FolderIcon className="w-5 h-5 text-yellow-500" />,
-      view: 'drive'
-    },
-    {
-      id: 'blog',
-      label: t('blog') || 'Bài viết',
-      icon: <BookOpenIcon className="w-5 h-5 text-emerald-500" />,
-      view: 'blog'
-    },
-    {
-      id: 'calendar',
-      label: 'Lịch hẹn',
-      icon: <CalendarIcon className="w-5 h-5 text-red-500" />,
-      view: 'calendar'
-    },
-    {
-      id: 'contacts',
-      label: t('contacts') || 'Danh bạ',
-      icon: <UsersIcon className="w-5 h-5 text-cyan-500" />,
-      view: 'contacts'
-    },
-    {
-      id: 'newsfeed',
-      label: t('newsfeed') || 'Bảng tin',
-      icon: <RssIcon className="w-5 h-5 text-orange-500" />,
-      view: 'newsfeed'
-    },
-    {
-      id: 'training',
-      label: t('training') || 'Đào tạo',
-      icon: <GraduationCapIcon className="w-5 h-5 text-violet-500" />,
-      view: 'training'
-    },
-    {
-      id: 'requests',
-      label: 'Yêu cầu',
-      icon: <ClipboardListIcon className="w-5 h-5 text-rose-500" />,
-      view: 'requests'
+      id: 'personal_utils',
+      title: 'Cá nhân & Tiện ích',
+      items: [
+        { id: 'drive', label: t('drive') || 'Lưu trữ', icon: <FolderIcon className="w-5 h-5 text-yellow-500" />, view: 'drive' },
+        { id: 'calendar', label: 'Lịch hẹn', icon: <CalendarIcon className="w-5 h-5 text-red-500" />, view: 'calendar' },
+        { id: 'contacts', label: t('contacts') || 'Danh bạ', icon: <UsersIcon className="w-5 h-5 text-cyan-500" />, view: 'contacts' }
+      ]
     }
   ];
 
@@ -202,37 +178,48 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         </div>
 
         {/* PART 2: CENTER (Main Navigation Items) */}
-        <nav className={`flex-1 flex flex-col justify-center gap-1.5 w-full overflow-y-auto scrollbar-none py-4 ${isCollapsed ? 'items-center' : 'items-stretch'}`}>
-          {menuItems.map((item) => {
-            const isActive = activeView === item.view;
+        <nav className={`flex-1 flex flex-col justify-start gap-4 w-full overflow-y-auto scrollbar-none py-4 ${isCollapsed ? 'items-center' : 'items-stretch'}`}>
+          {menuGroups.map((group) => (
+            <div key={group.id} className="flex flex-col gap-1 w-full">
+              {!isCollapsed && (
+                <div className="px-4 pb-1">
+                  <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    {group.title}
+                  </span>
+                </div>
+              )}
+              {group.items.map((item) => {
+                const isActive = activeView === item.view;
 
-            return (
-              <div key={item.id} className={`relative w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'}`}>
-                <button
-                  onClick={() => handleItemClick(item)}
-                  className={`flex items-center transition-all duration-200 ${
-                    isCollapsed 
-                      ? 'w-10 h-10 justify-center rounded-xl animate-fade-in' 
-                      : 'w-full gap-3 px-4 py-2.5 justify-start rounded-xl'
-                  } ${
-                    isActive 
-                      ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm border border-indigo-100/50 dark:border-indigo-900/50' 
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100'
-                  }`}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  <div className="w-5 h-5 flex items-center justify-center shrink-0">
-                    {item.icon}
+                return (
+                  <div key={item.id} className={`relative w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'}`}>
+                    <button
+                      onClick={() => handleItemClick(item)}
+                      className={`flex items-center transition-all duration-200 ${
+                        isCollapsed 
+                          ? 'w-10 h-10 justify-center rounded-xl animate-fade-in' 
+                          : 'w-full gap-3 px-4 py-2.5 justify-start rounded-xl'
+                      } ${
+                        isActive 
+                          ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold shadow-sm border border-indigo-100/50 dark:border-indigo-900/50' 
+                          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-100'
+                      }`}
+                      title={isCollapsed ? item.label : undefined}
+                    >
+                      <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                        {item.icon}
+                      </div>
+                      {!isCollapsed && (
+                        <span className="text-sm font-semibold truncate text-left leading-none animate-fade-in">
+                          {item.label}
+                        </span>
+                      )}
+                    </button>
                   </div>
-                  {!isCollapsed && (
-                    <span className="text-sm font-semibold truncate text-left leading-none animate-fade-in">
-                      {item.label}
-                    </span>
-                  )}
-                </button>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* PART 3: BOTTOM (Profile) */}

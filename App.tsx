@@ -24,6 +24,7 @@ import UserManagementView from './components/UserManagementView';
 import RequestsView from './components/RequestsView';
 import ProjectManagementView from './components/ProjectManagementView';
 import ProcessWorkflowView from './components/ProcessWorkflowView';
+import ObjectivesView from './components/ObjectivesView';
 import CommandPalette from './components/CommandPalette';
 import { FolderIcon, StickyNoteIcon, ChecklistIcon, MailIcon, CalendarIcon, GraduationCapIcon, BloggerIcon, ChatIcon, VideoIcon } from './components/icons';
 import EventModal from './components/EventModal';
@@ -651,6 +652,8 @@ const AppContent: React.FC = () => {
     switch(activeView) {
       case 'check-in':
         return <CheckInView user={user} log={checkInLog} activityLog={activityLog} onCheckIn={handleCheckIn} onCheckOut={handleCheckOut} />;
+      case 'objectives':
+        return <ObjectivesView user={user} />;
       case 'requests':
         return <RequestsView user={user} users={allUsers} onSaveEvent={handleSaveEvent} />;
       case 'projects':
