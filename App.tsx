@@ -775,12 +775,16 @@ const AppContent: React.FC = () => {
           />
         )}
 
-        {isEventModalOpen && <EventModal 
-            onClose={() => { setEventModalOpen(false); setEditingEvent(null); setDefaultEventTitle(null); }} 
-            onSave={handleSaveEvent}
-            initialEvent={editingEvent || undefined}
-            defaultTitle={defaultEventTitle || undefined}
-          />}
+        <AnimatePresence>
+          {isEventModalOpen && (
+            <EventModal 
+              onClose={() => { setEventModalOpen(false); setEditingEvent(null); setDefaultEventTitle(null); }} 
+              onSave={handleSaveEvent}
+              initialEvent={editingEvent || undefined}
+              defaultTitle={defaultEventTitle || undefined}
+            />
+          )}
+        </AnimatePresence>
         
         <div className="flex flex-1 min-h-0">
           <LeftSidebar 

@@ -51,6 +51,26 @@ interface GoogleCalendarItem {
     summary?: string;
 }
 
+const getColorClass = (color: CalendarEvent['color']) => {
+    switch (color) {
+        case 'blue': return 'bg-blue-500 text-white';
+        case 'orange': return 'bg-orange-500 text-white';
+        case 'red': return 'bg-red-500 text-white';
+        case 'green': return 'bg-emerald-500 text-white';
+        default: return 'bg-slate-500 text-white';
+    }
+};
+
+const getDotColorClass = (color: CalendarEvent['color']) => {
+    switch (color) {
+        case 'blue': return 'bg-blue-500';
+        case 'orange': return 'bg-orange-500';
+        case 'red': return 'bg-red-500';
+        case 'green': return 'bg-emerald-500';
+        default: return 'bg-slate-500';
+    }
+};
+
 const CalendarView: React.FC<CalendarViewProps> = ({ user, events, onSaveEvent, onEditEvent, onOpenModal, onItemViewed }) => {
     const [activeTab, setActiveTab] = useState<'calendar' | 'schedule' | 'minutes'>('schedule');
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -259,10 +279,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ user, events, onSaveEvent, 
                                     const dailyEvents = events.filter(e => doesEventOccurOnDate(e, date));
                                     const isExpanded = expandedDays.has(day);
                                     return (
-                                        <button 
+                                        <div 
                                             key={day} 
                                             onClick={() => handleDayClick(day)} 
-                                            className={`bg-white p-2 min-h-[100px] lg:min-h-[140px] flex flex-col gap-1.5 text-left transition-all hover:bg-blue-50/30 relative group ${isSelected ? 'ring-2 ring-inset ring-blue-500 bg-blue-50/20' : ''}`}
+                                            className={`bg-white p-2 min-h-[100px] lg:min-h-[140px] flex flex-col gap-1.5 text-left transition-all hover:bg-blue-50/30 relative group cursor-pointer ${isSelected ? 'ring-2 ring-inset ring-blue-500 bg-blue-50/20' : ''}`}
                                         >
                                             <span className={`inline-flex items-center justify-center w-7 h-7 text-xs font-bold rounded-xl transition-all ${isToday ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : isSelected ? 'text-blue-600' : 'text-slate-700'}`}>{day}</span>
                                             <div className="flex flex-col gap-1">
@@ -270,7 +290,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ user, events, onSaveEvent, 
                                                     <div 
                                                         key={i} 
                                                         onClick={(e) => { e.stopPropagation(); onEditEvent(event); }}
-                                                        className={`px-1.5 py-0.5 rounded-lg text-[9px] font-bold text-white truncate shadow-sm transition-all hover:scale-105 active:scale-95 bg-${event.color}-500`}
+                                                        className={`px-1.5 py-0.5 rounded-lg text-[9px] font-bold text-white truncate shadow-sm transition-all hover:scale-105 active:scale-95 ${getColorClass(event.color)}`}
                                                     >
                                                         {event.title}
                                                     </div>
@@ -281,7 +301,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ user, events, onSaveEvent, 
                                                     </div>
                                                 )}
                                             </div>
-                                        </button>
+                                        </div>
                                     );
                                 })}
                             </div>
@@ -305,7 +325,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ user, events, onSaveEvent, 
                                                     className="group bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95"
                                                 >
                                                     <div className="flex items-start gap-3">
-                                                        <div className={`mt-1 w-2 h-2 rounded-full bg-${event.color}-500 shrink-0 shadow-sm`} />
+                                                        <div className={`mt-1 w-2 h-2 rounded-full ${getDotColorClass(event.color)} shrink-0 shadow-sm`} />
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-xs font-bold text-slate-800 tracking-tight group-hover:text-blue-600 transition-colors">{event.title}</p>
                                                             <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{event.startTime} - {event.endTime}</p>
