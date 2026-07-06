@@ -4,10 +4,9 @@ import { User, ServiceState, ServiceName, View } from '../App';
 import { useLanguage } from './LanguageContext';
 import { db, auth } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { linkWithPopup, GoogleAuthProvider, unlink } from 'firebase/auth';
 import { 
-    GoogleIcon, SettingsIcon, UserCircleIcon, SunIcon, GlobeIcon, ZapIcon, RobotIcon,
-    CheckIcon, MoonIcon, LaptopIcon, ChevronDownIcon,
+    SettingsIcon, UserCircleIcon, SunIcon, GlobeIcon, ZapIcon, RobotIcon,
+    CheckIcon, MoonIcon, LaptopIcon,
     SaveIcon, MailIcon, XIcon as CloseIcon
 } from './icons';
 import UserManagementView from './UserManagementView';
@@ -285,7 +284,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     allUsers, 
     onUsersChange, 
     initialSection, 
-    onNavigate,
     theme,
     setTheme,
     accentColor,
@@ -306,111 +304,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const [editAvatar, setEditAvatar] = useState(user.avatar || '');
     const [editPhone, setEditPhone] = useState(user.phoneNumber || '');
     const [profileMessage, setProfileMessage] = useState('');
-
-    const [isGoogleLinked, setIsGoogleLinked] = useState<boolean>(user.isGoogleLinked || false);
-    const [googleEmail, setGoogleEmail] = useState<string>(user.googleEmail || '');
-    const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {
-        if (auth.currentUser) {
-            const linked = auth.currentUser.providerData.some(p => p.providerId === 'google.com');
-            setIsGoogleLinked(linked);
-            const googleProvider = auth.currentUser.providerData.find(p => p.providerId === 'google.com');
-            if (googleProvider) {
-                setGoogleEmail(googleProvider.email || '');
-            }
-        }
-    }, [auth.currentUser]);
-
-    const handleLinkGoogle = async () => {
-        if (!auth.currentUser) return;
-        setIsLoading(true);
-        setProfileMessage('');
-        try {
-            const provider = new GoogleAuthProvider();
-            provider.addScope('https://www.googleapis.com/auth/calendar.events');
-            provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
-            provider.addScope('https://www.googleapis.com/auth/gmail.readonly');
-            provider.setCustomParameters({ prompt: 'select_account' });
-            
-            const result = await linkWithPopup(auth.currentUser, provider);
-            
-            // Caching token to window for Google APIs
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            if (credential?.accessToken) {
-                (window as unknown as { _googleAccessToken?: string })._googleAccessToken = credential.accessToken;
-            }
-            
-            setIsGoogleLinked(true);
-            setGoogleEmail(result.user.email || '');
-
-            // Update user in Firestore
-            if (!user.id.startsWith('user-') && !user.id.startsWith('demo-')) {
-                await updateDoc(doc(db, 'users', user.id), {
-                    isGoogleLinked: true,
-                    googleEmail: result.user.email || ''
-                });
-            }
-            
-            // Sync current user status
-            const updatedUser: User = {
-                ...user,
-                isGoogleLinked: true,
-                googleEmail: result.user.email || ''
-            };
-            onUsersChange(allUsers.map(u => u.id === user.id ? updatedUser : u));
-
-            setProfileMessage('Liên kết tài khoản Google thành công!');
-        } catch (err) {
-            console.error("Link Google Error:", err);
-            const errCode = (err as { code?: string }).code || '';
-            const errMsg = (err as Error).message || 'Lỗi không xác định';
-            if (errCode === 'auth/credential-already-in-use') {
-                setProfileMessage('Tài khoản Google này đã được liên kết với một tài khoản khác.');
-            } else {
-                setProfileMessage('Liên kết tài khoản Google thất bại: ' + errMsg);
-            }
-        } finally {
-            setIsLoading(false);
-            setTimeout(() => setProfileMessage(''), 4000);
-        }
-    };
-
-    const handleUnlinkGoogle = async () => {
-        if (!auth.currentUser) return;
-        setIsLoading(true);
-        setProfileMessage('');
-        try {
-            await unlink(auth.currentUser, 'google.com');
-            setIsGoogleLinked(false);
-            setGoogleEmail('');
-            
-            // Update user in Firestore
-            if (!user.id.startsWith('user-') && !user.id.startsWith('demo-')) {
-                await updateDoc(doc(db, 'users', user.id), {
-                    isGoogleLinked: false,
-                    googleEmail: ''
-                });
-            }
-
-            // Sync current user status
-            const updatedUser: User = {
-                ...user,
-                isGoogleLinked: false,
-                googleEmail: ''
-            };
-            onUsersChange(allUsers.map(u => u.id === user.id ? updatedUser : u));
-
-            setProfileMessage('Đã hủy liên kết tài khoản Google thành công!');
-        } catch (err) {
-            console.error("Unlink Google Error:", err);
-            const errMsg = (err as Error).message || 'Lỗi không xác định';
-            setProfileMessage('Hủy liên kết tài khoản Google thất bại: ' + errMsg);
-        } finally {
-            setIsLoading(false);
-            setTimeout(() => setProfileMessage(''), 4000);
-        }
-    };
 
     const handleSaveProfile = async () => {
         const updatedUser: User = {
@@ -615,12 +508,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
     const sections = [
         { id: 'profile', label: t('profile'), icon: <UserCircleIcon className="w-5 h-5"/>, description: t('manageYourProfile') },
-        { id: 'appearance', label: 'Theme Preferences', icon: <SunIcon className="w-5 h-5"/>, description: 'Customize your application theme and colors' },
+        { id: 'appearance', label: t('appearance') || 'Tùy chỉnh Giao diện', icon: <SunIcon className="w-5 h-5"/>, description: t('customizeAppearance') || 'Tùy chỉnh chủ đề và màu sắc của ứng dụng' },
         { id: 'language', label: t('language'), icon: <GlobeIcon className="w-5 h-5"/>, description: t('chooseLanguage') },
         { id: 'effects', label: t('effectsAndSound'), icon: <ZapIcon className="w-5 h-5"/>, description: t('manageEffects') },
         { id: 'ai_voice', label: t('aiVoiceSettings'), icon: <RobotIcon className="w-5 h-5"/>, description: t('configureAiAssistant') },
         { id: 'zimbra', label: t('zimbraSettings'), icon: <MailIcon className="w-5 h-5"/>, description: t('zimbraSettingsDesc') },
-        { id: 'website-admin', label: 'Quản trị website', icon: <GlobeIcon className="w-5 h-5"/>, description: 'Cấu hình website, trang tĩnh và email' },
+        { id: 'website-admin', label: t('websiteAdmin') || 'Quản trị Website', icon: <GlobeIcon className="w-5 h-5"/>, description: t('websiteAdminDesc') || 'Cấu hình website, trang tĩnh và email' },
     ];
 
     const renderSectionContent = () => {
@@ -717,53 +610,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         </div>
                     )}
 
-                    {/* Section: Google Account Link (Consistent display below) */}
-                    <div className="w-full max-w-md mt-6 p-5 rounded-2xl border border-[--color-border-secondary] bg-[--color-surface-primary] space-y-4 shadow-sm animate-fade-in text-left">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-red-500/10 rounded-xl text-red-500 dark:bg-red-500/20">
-                                    <GoogleIcon className="w-6 h-6" />
-                                </div>
-                                <div className="text-left">
-                                    <h4 className="font-bold text-sm text-[--color-text-primary]">Liên kết Google Account</h4>
-                                    <p className="text-xs text-[--color-text-subtle] mt-0.5">
-                                        {isGoogleLinked ? 'Lưu lịch sử & tác vụ qua Gmail, Calendar' : 'Kích hoạt đồng bộ hoá Lịch & Gmail của bạn'}
-                                    </p>
-                                </div>
-                            </div>
-                            {isGoogleLinked ? (
-                                <span className="text-[10px] font-bold px-2 py-0.5 bg-green-500/10 text-green-500 rounded-md border border-green-500/20 uppercase tracking-wider">Đã kết nối</span>
-                            ) : (
-                                <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-md border border-amber-500/20 uppercase tracking-wider">Chưa kết nối</span>
-                            )}
-                        </div>
-                        
-                        <div className="flex items-center justify-between text-xs pt-3 border-t border-[--color-border-primary]/50">
-                            <span className="font-mono text-[--color-text-secondary] truncate max-w-[180px] self-center">
-                                {isGoogleLinked ? (googleEmail || user.email) : 'Chưa liên kết tài khoản Google'}
-                            </span>
-                            {isGoogleLinked ? (
-                                <button
-                                    type="button"
-                                    onClick={handleUnlinkGoogle}
-                                    disabled={isLoading}
-                                    className="font-bold text-xs text-red-650 dark:text-red-400 bg-red-500/10 hover:bg-red-500/15 active:scale-95 transition-all px-3 py-1.5 rounded-lg border border-red-500/20 cursor-pointer"
-                                >
-                                    {isLoading ? 'Đang xử lý...' : 'Hủy liên kết'}
-                                </button>
-                            ) : (
-                                <button
-                                    type="button"
-                                    onClick={handleLinkGoogle}
-                                    disabled={isLoading}
-                                    className="font-bold text-xs text-white bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 active:scale-95 transition-all px-4 py-2 rounded-xl shadow-md hover:shadow-lg shadow-red-500/10 duration-150 cursor-pointer flex items-center gap-1.5"
-                                >
-                                    <GoogleIcon className="w-3.5 h-3.5 fill-white" />
-                                    {isLoading ? 'Đang kết nối...' : 'Liên kết tài khoản Google'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
                     {profileMessage && (
                         <div className={`w-full max-w-md p-3 text-center rounded-lg font-bold border animate-fade-in ${profileMessage === t('profileUpdateError') ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
                             {profileMessage}
@@ -1026,27 +872,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                     </div>
                 </div>
             );
-            case 'sync': return (
-                <>
-                    <div className="mb-6 p-6 bg-[--color-surface-secondary] rounded-xl ring-1 ring-[--color-border-primary] shadow-sm flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <GoogleIcon className="w-10 h-10 shrink-0"/>
-                            <div>
-                                <h3 className="text-lg font-bold text-[--color-text-primary]">{t('connectGoogleAccount')}</h3>
-                                <p className="text-sm text-[--color-text-secondary]">{t('connectedAs')}: <span className="font-semibold">{user.email}</span></p>
-                            </div>
-                        </div>
-                        <button className="py-2 px-5 rounded-lg text-sm font-semibold text-red-700 bg-red-100 hover:bg-red-200 transition-colors">
-                            {t('disconnect')}
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {services.map(service => (
-                            <ServiceCard key={service.id} service={service} onToggleSync={onToggleSync} onToggleConnection={onToggleConnection} />
-                        ))}
-                    </div>
-                </>
-            );
             case 'zimbra':
                 return (
                  <div className="bg-[--color-surface-secondary] rounded-xl shadow-lg p-6 space-y-6">
@@ -1262,51 +1087,37 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     };
     
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[3px] gap-3 pb-24 md:pb-8">
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[15px] gap-3 pb-24 md:pb-8">
             <div className="shrink-0">
                 <AccountSettingsBanner />
             </div>
 
-            <div className="flex-1 flex flex-col md:flex-row gap-8 min-h-0">
-                {/* Left Navigation (Desktop) */}
-                <aside className="w-full md:w-1/4 lg:w-1/5 shrink-0 hidden md:block">
-                    <nav className="flex flex-col gap-1">
-                        {sections.map(section => (
-                             <button 
-                                key={section.id} 
-                                onClick={() => setActiveSection(section.id)}
-                                className={`w-full text-left p-3 rounded-lg transition-colors flex items-start gap-3 ${activeSection === section.id ? 'bg-[--color-surface-secondary]' : 'hover:bg-[--color-surface-secondary]/60'}`}
-                            >
-                                <div className={`mt-0.5 ${activeSection === section.id ? 'text-[--color-accent-600]' : 'text-[--color-text-subtle]'}`}>{section.icon}</div>
-                                <div>
-                                    <h3 className={`font-bold ${activeSection === section.id ? 'text-[--color-text-primary]' : 'text-[--color-text-secondary]'}`}>{section.label}</h3>
-                                    <p className="text-xs text-[--color-text-subtle] hidden lg:block">{section.description}</p>
-                                </div>
-                            </button>
-                        ))}
-                    </nav>
-                </aside>
+            {/* Horizontal Navigation Tabs */}
+            <div className="shrink-0 border-b border-[--color-border-secondary] overflow-x-auto no-scrollbar -mx-4 px-4">
+                <nav className="flex gap-2 min-w-max pb-1">
+                    {sections.map(section => (
+                        <button 
+                            key={section.id} 
+                            onClick={() => setActiveSection(section.id)}
+                            className={`flex items-center gap-2 px-4 py-3 border-b-2 font-bold text-sm whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                                activeSection === section.id 
+                                    ? 'border-[--color-accent-600] text-[--color-accent-600]' 
+                                    : 'border-transparent text-[--color-text-secondary] hover:text-[--color-text-primary] hover:border-[--color-border-secondary]'
+                            }`}
+                        >
+                            <span className={activeSection === section.id ? 'text-[--color-accent-600]' : 'text-[--color-text-subtle]'}>
+                                {section.icon}
+                            </span>
+                            <span>{section.label}</span>
+                        </button>
+                    ))}
+                </nav>
+            </div>
 
-                 {/* Top Navigation (Mobile) */}
-                <div className="relative block md:hidden mb-4">
-                     <select 
-                        value={activeSection}
-                        onChange={(e) => setActiveSection(e.target.value)}
-                        className="w-full appearance-none bg-[--color-surface-secondary] text-[--color-text-primary] font-bold p-3 rounded-lg border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none"
-                    >
-                        {sections.map(section => (
-                            <option key={section.id} value={section.id}>{section.label}</option>
-                        ))}
-                    </select>
-                    <ChevronDownIcon className="w-5 h-5 text-[--color-text-subtle] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"/>
-                </div>
-
-
-                {/* Right Content */}
-                <div className="flex-1 overflow-y-auto no-scrollbar pr-2 -mr-2">
-                    <div className="space-y-6">
-                        {renderSectionContent()}
-                    </div>
+            {/* Content Area */}
+            <div className="flex-1 overflow-y-auto no-scrollbar pr-2 -mr-2 mt-2">
+                <div className="space-y-6">
+                    {renderSectionContent()}
                 </div>
             </div>
         </main>

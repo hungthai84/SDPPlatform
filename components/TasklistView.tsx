@@ -120,8 +120,6 @@ export const mockTaskTemplates = [
     { id: 'tpl-3', text: 'Duyệt mã nguồn (Code Review)', priority: 'Cao' as const }
 ];
 
-import { fetchTaskLists, fetchTasks, getAccessToken } from '../googleTasks';
-
 // --- EDIT MODAL ---
 const TaskEditModal: React.FC<{ 
     task: Task, 
@@ -140,31 +138,6 @@ const TaskEditModal: React.FC<{
     const [showLinkPicker, setShowLinkPicker] = useState<boolean>(false);
     const [linkSearchTerm, setLinkSearchTerm] = useState('');
     const [subtaskText, setSubtaskText] = useState('');
-    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-
-    const saveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
-    const isFirstRender = React.useRef(true);
-
-    React.useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
-
-        setSaveStatus('saving');
-        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-
-        saveTimerRef.current = setTimeout(() => {
-            onSave({ ...task, updatedAt: Date.now() });
-            setSaveStatus('saved');
-            setTimeout(() => setSaveStatus('idle'), 2000);
-        }, 1500);
-
-        return () => {
-            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-        };
-    }, [task, onSave]);
-
     const handleAddSubtask = (e?: React.KeyboardEvent | React.MouseEvent) => {
         if (e) e.preventDefault();
         if (!subtaskText.trim()) return;
@@ -332,83 +305,66 @@ const TaskEditModal: React.FC<{
     const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
 
     return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9999] flex justify-center items-center p-4">
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm z-[9999] flex justify-center items-center p-0 md:p-4 animate-fade-in">
              <div className="absolute inset-0" onClick={onClose}></div>
-             <div className="relative w-[80%] h-[80%] overflow-hidden bg-[#F4F5F7] rounded-xl shadow-2xl flex flex-col animate-fade-in-up">
-                 <header className="p-4 border-b border-slate-200/80 flex justify-between items-center sticky top-0 bg-[#F4F5F7] z-10">
+             <div className="relative w-full md:w-[90%] lg:w-[85%] xl:w-[80%] max-w-5xl h-full md:h-[85vh] max-h-screen md:max-h-[85vh] overflow-hidden bg-[#F4F5F7] dark:bg-slate-900 rounded-none md:rounded-xl shadow-2xl flex flex-col animate-fade-in-up">
+                 <header className="p-4 border-b border-slate-200/80 dark:border-slate-800 flex justify-between items-center sticky top-0 bg-[#F4F5F7] dark:bg-slate-900 z-10">
                     <div className="flex flex-col">
                         <div className="flex items-center gap-3">
-                            <h2 className="text-lg font-semibold text-slate-800">Chỉnh sửa công việc</h2>
-                            {saveStatus === 'saving' && (
-                                <span className="text-[10px] text-blue-500 font-medium animate-pulse flex items-center gap-1 bg-blue-50 px-1.5 py-0.5 rounded-full border border-blue-100 uppercase tracking-wider">
-                                    <svg className="animate-spin h-2.5 w-2.5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Đang lưu
-                                </span>
-                            )}
-                            {saveStatus === 'saved' && (
-                                <span className="text-[10px] text-green-500 font-medium flex items-center gap-1 bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100 uppercase tracking-wider">
-                                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Đã lưu
-                                </span>
-                            )}
+                            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Chỉnh sửa công việc</h2>
                         </div>
                         <div className="flex gap-4 mt-2">
                              <button 
                                 onClick={() => setActiveTab('details')}
-                                className={`text-[10px] font-bold uppercase tracking-wider pb-1 border-b-2 transition-all ${activeTab === 'details' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                className={`text-[10px] font-bold uppercase tracking-wider pb-1 border-b-2 transition-all ${activeTab === 'details' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                              >
                                 Chi tiết
                              </button>
                              <button 
                                 onClick={() => setActiveTab('history')}
-                                className={`text-[10px] font-bold uppercase tracking-wider pb-1 border-b-2 transition-all ${activeTab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                                className={`text-[10px] font-bold uppercase tracking-wider pb-1 border-b-2 transition-all ${activeTab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
                              >
                                 Lịch sử thay đổi
                              </button>
                         </div>
                     </div>
-                    <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-slate-400/20"><XIcon className="w-5 h-5"/></button>
+                    <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-slate-400/20 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"><XIcon className="w-5 h-5"/></button>
                  </header>
                  
-                 <div className="flex-1 overflow-y-auto flex flex-col lg:flex-row min-h-0">
+                 <div className="flex-1 overflow-y-auto lg:overflow-hidden flex flex-col lg:flex-row min-h-0 bg-slate-50 dark:bg-[#111827]">
                     {activeTab === 'details' ? (
-                        <form onSubmit={handleSave} className="flex-1 p-6 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200/50">
+                        <form onSubmit={handleSave} className="flex-1 p-6 space-y-6 border-b lg:border-b-0 lg:border-r border-slate-200/50 dark:border-slate-800 lg:h-full lg:overflow-y-auto no-scrollbar">
                             <div className="space-y-4">
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Tên công việc</label>
-                                    <input type="text" value={task.text} onChange={e => setTask({...task, text: e.target.value})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-3 font-medium text-lg focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" required />
+                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Tên công việc</label>
+                                    <input type="text" value={task.text} onChange={e => setTask({...task, text: e.target.value})} className="w-full bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-3 font-semibold text-base md:text-lg text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none" required />
                                 </div>
                                 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-4">
                                         {/* Assignee Selection */}
                                         <div>
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Người phụ trách</label>
+                                            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Người phụ trách</label>
                                             <div className="relative">
                                                 <button 
                                                     type="button"
                                                     onClick={() => setShowUserPicker(showUserPicker === 'assignee' ? null : 'assignee')}
-                                                    className="w-full flex items-center gap-3 bg-white/70 border border-slate-300/50 rounded-lg p-2.5 hover:bg-white transition-colors text-left"
+                                                    className="w-full flex items-center gap-3 bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left"
                                                 >
                                                     {task.assigneeId ? (
                                                         <>
                                                             <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-[10px]">
                                                                 {allUsers.find(u => u.id === task.assigneeId)?.name.charAt(0) || 'U'}
                                                             </div>
-                                                            <span className="text-sm font-medium text-slate-700">{allUsers.find(u => u.id === task.assigneeId)?.name}</span>
+                                                            <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{allUsers.find(u => u.id === task.assigneeId)?.name}</span>
                                                         </>
                                                     ) : (
-                                                        <span className="text-sm text-slate-400 italic">Chọn người phụ trách</span>
+                                                        <span className="text-sm text-slate-400 dark:text-slate-500 italic">Chọn người phụ trách</span>
                                                     )}
                                                 </button>
                                                 
                                                 {showUserPicker === 'assignee' && (
-                                                    <div className="absolute top-full left-0 w-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 z-20 max-h-48 overflow-y-auto p-1">
+                                                    <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-20 max-h-48 overflow-y-auto p-1">
                                                         {allUsers.map(u => (
                                                             <button 
                                                                 key={u.id}
@@ -417,20 +373,20 @@ const TaskEditModal: React.FC<{
                                                                     setTask({ ...task, assigneeId: u.id, assigneeName: u.name, assigneeAvatar: u.avatar });
                                                                     setShowUserPicker(null);
                                                                 }}
-                                                                className="w-full flex items-center gap-2 p-2 hover:bg-slate-50 rounded-md transition-colors"
+                                                                className="w-full flex items-center gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md transition-colors"
                                                             >
-                                                                <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">{u.name.charAt(0)}</div>
-                                                                <span className="text-xs text-slate-700">{u.name}</span>
+                                                                <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-850 dark:text-slate-200">{u.name.charAt(0)}</div>
+                                                                <span className="text-xs text-slate-700 dark:text-slate-200">{u.name}</span>
                                                             </button>
                                                         ))}
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
-    
+                                    
                                         <div>
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Trạng thái</label>
-                                            <select value={task.status || 'Cần làm'} onChange={e => setTask({...task, status: e.target.value as 'Cần làm' | 'Đang làm' | 'Xem xét' | 'Hoàn thành'})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium">
+                                            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Trạng thái</label>
+                                            <select value={task.status || 'Cần làm'} onChange={e => setTask({...task, status: e.target.value as 'Cần làm' | 'Đang làm' | 'Xem xét' | 'Hoàn thành'})} className="w-full bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-2.5 outline-none text-sm font-medium text-slate-800 dark:text-slate-100">
                                                 <option value="Cần làm">Cần làm</option>
                                                 <option value="Đang làm">Đang làm</option>
                                                 <option value="Xem xét">Xem xét</option>
@@ -438,29 +394,29 @@ const TaskEditModal: React.FC<{
                                             </select>
                                         </div>
                                     </div>
-    
+        
                                     <div className="space-y-4">
                                          {/* Related/Followers Selection */}
                                         <div>
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Người liên quan</label>
+                                            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Người liên quan</label>
                                             <div className="relative">
                                                 <button 
                                                     type="button"
                                                     onClick={() => setShowUserPicker(showUserPicker === 'related' ? null : 'related')}
-                                                    className="w-full flex items-center justify-between bg-white/70 border border-slate-300/50 rounded-lg p-2.5 hover:bg-white transition-colors"
+                                                    className="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                                 >
                                                     <div className="flex -space-x-2">
                                                         {(task.relatedUserIds || []).length > 0 ? (
                                                             task.relatedUserIds!.slice(0, 3).map(id => (
-                                                                <div key={id} className="w-7 h-7 rounded-full bg-slate-400 flex items-center justify-center text-white ring-2 ring-white text-[10px] font-bold">
+                                                                <div key={id} className="w-7 h-7 rounded-full bg-slate-400 dark:bg-slate-600 flex items-center justify-center text-white ring-2 ring-white dark:ring-slate-800 text-[10px] font-bold">
                                                                     {allUsers.find(u => u.id === id)?.name.charAt(0) || 'U'}
                                                                 </div>
                                                             ))
                                                         ) : (
-                                                            <span className="text-sm text-slate-400 italic">Thêm người liên quan</span>
+                                                            <span className="text-sm text-slate-400 dark:text-slate-500 italic">Thêm người liên quan</span>
                                                         )}
                                                         {(task.relatedUserIds || []).length > 3 && (
-                                                            <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 ring-2 ring-white text-[10px] font-bold">
+                                                            <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 ring-2 ring-white dark:ring-slate-800 text-[10px] font-bold">
                                                                 +{(task.relatedUserIds || []).length - 3}
                                                             </div>
                                                         )}
@@ -469,7 +425,7 @@ const TaskEditModal: React.FC<{
                                                 </button>
                                                 
                                                 {showUserPicker === 'related' && (
-                                                    <div className="absolute top-full left-0 w-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 z-20 max-h-48 overflow-y-auto p-1">
+                                                    <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-20 max-h-48 overflow-y-auto p-1">
                                                         {allUsers.map(u => (
                                                             <button 
                                                                 key={u.id}
@@ -478,13 +434,13 @@ const TaskEditModal: React.FC<{
                                                                     e.stopPropagation();
                                                                     toggleRelatedUser(u.id);
                                                                 }}
-                                                                className={`w-full flex items-center justify-between p-2 hover:bg-slate-50 rounded-md transition-colors ${task.relatedUserIds?.includes(u.id) ? 'bg-blue-50' : ''}`}
+                                                                className={`w-full flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md transition-colors ${task.relatedUserIds?.includes(u.id) ? 'bg-blue-50 dark:bg-blue-900/30' : ''}`}
                                                             >
                                                                 <div className="flex items-center gap-2">
-                                                                    <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold">{u.name.charAt(0)}</div>
-                                                                    <span className="text-xs text-slate-700">{u.name}</span>
+                                                                    <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-800 dark:text-slate-200">{u.name.charAt(0)}</div>
+                                                                    <span className="text-xs text-slate-700 dark:text-slate-200">{u.name}</span>
                                                                 </div>
-                                                                {task.relatedUserIds?.includes(u.id) && <div className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
+                                                                {task.relatedUserIds?.includes(u.id) && <div className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />}
                                                             </button>
                                                         ))}
                                                     </div>
@@ -493,8 +449,8 @@ const TaskEditModal: React.FC<{
                                         </div>
                                         
                                         <div>
-                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Độ ưu tiên</label>
-                                            <select value={task.priority || 'Trung bình'} onChange={e => setTask({...task, priority: e.target.value as 'Thấp' | 'Trung bình' | 'Cao'})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium">
+                                            <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Độ ưu tiên</label>
+                                            <select value={task.priority || 'Trung bình'} onChange={e => setTask({...task, priority: e.target.value as 'Thấp' | 'Trung bình' | 'Cao'})} className="w-full bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-2.5 outline-none text-sm font-medium text-slate-800 dark:text-slate-100">
                                                 <option value="Thấp">Thấp</option>
                                                 <option value="Trung bình">Trung bình</option>
                                                 <option value="Cao">Cao</option>
@@ -503,52 +459,52 @@ const TaskEditModal: React.FC<{
                                     </div>
                                 </div>
     
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Liên kết thông tin</label>
+                                        <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Liên kết thông tin</label>
                                         <div className="relative">
                                             <button 
                                                 type="button"
                                                 onClick={() => setShowLinkPicker(!showLinkPicker)}
-                                                className="w-full flex items-center justify-between bg-white/70 border border-slate-300/50 rounded-lg p-2.5 hover:bg-white transition-colors"
+                                                className="w-full flex items-center justify-between bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                                             >
-                                                <span className="text-sm text-slate-700 truncate min-w-0 pr-2">
+                                                <span className="text-sm text-slate-700 dark:text-slate-200 truncate min-w-0 pr-2">
                                                     {((task.linkedNoteIds?.length || 0) + (task.linkedEmailIds?.length || 0) + (task.linkedChatIds?.length || 0)) > 0 
                                                         ? `${(task.linkedNoteIds?.length || 0) + (task.linkedEmailIds?.length || 0) + (task.linkedChatIds?.length || 0)} liên kết` 
                                                         : 'Thêm liên kết'}
                                                 </span>
-                                                <PaperclipIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                                                <PaperclipIcon className="w-4 h-4 text-slate-400" />
                                             </button>
                                             {showLinkPicker && (
-                                                <div className="absolute top-full left-0 w-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 z-20 overflow-hidden flex flex-col">
-                                                    <div className="p-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+                                                <div className="absolute top-full left-0 w-full mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-20 overflow-hidden flex flex-col">
+                                                    <div className="p-2 border-b border-slate-100 dark:border-slate-700 flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50">
                                                         <SearchIcon className="w-4 h-4 text-slate-400 shrink-0" />
                                                         <input 
                                                             type="text" 
                                                             placeholder="Tìm kiếm..."
                                                             value={linkSearchTerm}
                                                             onChange={e => setLinkSearchTerm(e.target.value)}
-                                                            className="w-full bg-transparent border-none text-xs text-slate-700 focus:outline-none placeholder-slate-400"
+                                                            className="w-full bg-transparent border-none text-xs text-slate-700 dark:text-slate-200 focus:outline-none placeholder-slate-400 dark:placeholder-slate-500"
                                                         />
                                                     </div>
                                                     <div className="max-h-56 overflow-y-auto p-1">
-                                                        <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ghi chú</div>
+                                                        <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Ghi chú</div>
                                                         {mockNotes.filter(n => n.title.toLowerCase().includes(linkSearchTerm.toLowerCase())).map(n => (
-                                                            <label key={n.id} className={`w-full flex items-start gap-2 p-2 hover:bg-slate-50 rounded-md transition-colors text-xs cursor-pointer ${task.linkedNoteIds?.includes(n.id) ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>
+                                                            <label key={n.id} className={`w-full flex items-start gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md transition-colors text-xs cursor-pointer ${task.linkedNoteIds?.includes(n.id) ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'}`}>
                                                                 <input type="checkbox" checked={task.linkedNoteIds?.includes(n.id) || false} onChange={() => toggleLinkedItem('note', n.id)} className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                                                                 <span className="flex-1 min-w-0 font-medium leading-snug">{n.title}</span>
                                                             </label>
                                                         ))}
-                                                        <div className="px-2 py-1.5 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email</div>
+                                                        <div className="px-2 py-1.5 mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Email</div>
                                                         {mockEmails.filter(em => em.subject.toLowerCase().includes(linkSearchTerm.toLowerCase())).map(em => (
-                                                            <label key={em.id} className={`w-full flex items-start gap-2 p-2 hover:bg-slate-50 rounded-md transition-colors text-xs cursor-pointer ${task.linkedEmailIds?.includes(em.id) ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>
+                                                            <label key={em.id} className={`w-full flex items-start gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md transition-colors text-xs cursor-pointer ${task.linkedEmailIds?.includes(em.id) ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'}`}>
                                                                 <input type="checkbox" checked={task.linkedEmailIds?.includes(em.id) || false} onChange={() => toggleLinkedItem('email', em.id)} className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                                                                 <span className="flex-1 min-w-0 font-medium leading-snug">{em.subject}</span>
                                                             </label>
                                                         ))}
-                                                        <div className="px-2 py-1.5 mt-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trò chuyện</div>
+                                                        <div className="px-2 py-1.5 mt-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Trò chuyện</div>
                                                         {mockChats.filter(c => c.title.toLowerCase().includes(linkSearchTerm.toLowerCase())).map(c => (
-                                                            <label key={c.id} className={`w-full flex items-start gap-2 p-2 hover:bg-slate-50 rounded-md transition-colors text-xs cursor-pointer ${task.linkedChatIds?.includes(c.id) ? 'bg-blue-50 text-blue-700' : 'text-slate-600'}`}>
+                                                            <label key={c.id} className={`w-full flex items-start gap-2 p-2 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-md transition-colors text-xs cursor-pointer ${task.linkedChatIds?.includes(c.id) ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' : 'text-slate-600 dark:text-slate-300'}`}>
                                                                 <input type="checkbox" checked={task.linkedChatIds?.includes(c.id) || false} onChange={() => toggleLinkedItem('chat', c.id)} className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                                                                 <span className="flex-1 min-w-0 font-medium leading-snug">{c.title}</span>
                                                             </label>
@@ -559,12 +515,12 @@ const TaskEditModal: React.FC<{
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Ngày hết hạn</label>
-                                        <input type="date" value={task.dueDate || ''} onChange={e => setTask({...task, dueDate: e.target.value})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium" />
+                                        <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Ngày hết hạn</label>
+                                        <input type="date" value={task.dueDate || ''} onChange={e => setTask({...task, dueDate: e.target.value})} className="w-full bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-2.5 outline-none text-sm font-medium text-slate-800 dark:text-slate-100" />
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Định kỳ</label>
-                                        <select value={task.recurring || 'none'} onChange={e => setTask({...task, recurring: e.target.value as 'daily' | 'weekly' | 'monthly' | 'none'})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium">
+                                        <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Định kỳ</label>
+                                        <select value={task.recurring || 'none'} onChange={e => setTask({...task, recurring: e.target.value as 'daily' | 'weekly' | 'monthly' | 'none'})} className="w-full bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-2.5 outline-none text-sm font-medium text-slate-800 dark:text-slate-100">
                                             <option value="none">Không định kỳ</option>
                                             <option value="daily">Hàng ngày</option>
                                             <option value="weekly">Hàng tuần</option>
@@ -572,11 +528,11 @@ const TaskEditModal: React.FC<{
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Phụ thuộc vào</label>
+                                        <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Phụ thuộc vào</label>
                                         <select 
                                             value={task.dependencyId || ''} 
                                             onChange={e => setTask({...task, dependencyId: e.target.value || undefined})} 
-                                            className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium"
+                                            className="w-full bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-2.5 outline-none text-sm font-medium text-slate-800 dark:text-slate-100"
                                         >
                                             <option value="">Không có</option>
                                             {allTasks.filter(t => t.id !== task.id).map(t => (
@@ -587,18 +543,18 @@ const TaskEditModal: React.FC<{
                                 </div>
     
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Danh sách công việc phụ</label>
-                                    <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2">Danh sách công việc phụ</label>
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                                         {(task.subtasks || []).map(st => (
-                                            <div key={st.id} className="flex items-center gap-2 group relative">
+                                            <div key={st.id} className="flex items-center gap-2 group relative py-1 hover:bg-slate-100/50 dark:hover:bg-slate-800/40 px-2 rounded-lg transition-colors">
                                                 <input type="checkbox" checked={st.completed} onChange={() => handleToggleSubtask(st.id)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer transition-colors" />
-                                                <span className={`flex-1 text-sm min-w-0 break-words ${st.completed ? 'text-slate-400 line-through decoration-slate-300' : 'text-slate-700'}`}>{st.text}</span>
+                                                <span className={`flex-1 text-sm min-w-0 break-words ${st.completed ? 'text-slate-400 dark:text-slate-500 line-through decoration-slate-300 dark:decoration-slate-600' : 'text-slate-700 dark:text-slate-200 font-medium'}`}>{st.text}</span>
                                                 
                                                 <div className="relative shrink-0 flex items-center">
                                                     <button 
                                                         type="button" 
                                                         onClick={() => setShowSubtaskUserPickerId(showSubtaskUserPickerId === st.id ? null : st.id)}
-                                                        className={`p-1 rounded transition-all flex items-center ${st.assigneeId ? 'opacity-100 hover:opacity-80' : 'opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                                                        className={`p-1 rounded transition-all flex items-center ${st.assigneeId ? 'opacity-100 hover:opacity-80' : 'opacity-0 group-hover:opacity-100 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20'}`}
                                                         title={st.assigneeName || "Chỉ định người phụ trách"}
                                                     >
                                                         {st.assigneeAvatar ? (
@@ -612,36 +568,36 @@ const TaskEditModal: React.FC<{
                                                         )}
                                                     </button>
                                                     {showSubtaskUserPickerId === st.id && (
-                                                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-slate-200 z-[60] py-1">
-                                                            <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">Chọn người</div>
+                                                        <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-[60] py-1">
+                                                            <div className="px-3 py-2 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">Chọn người</div>
                                                             <div className="max-h-40 overflow-y-auto no-scrollbar">
                                                                 {allUsers.map(u => (
                                                                     <button
                                                                         key={u.id}
                                                                         type="button"
                                                                         onClick={() => handleSetSubtaskAssignee(st.id, u)}
-                                                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 transition-colors text-left"
+                                                                        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-left"
                                                                     >
                                                                         {u.avatar ? (
                                                                             <img src={u.avatar} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
                                                                         ) : (
-                                                                            <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 shrink-0">{u.name.charAt(0)}</div>
+                                                                            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">{u.name.charAt(0)}</div>
                                                                         )}
-                                                                        <span className="text-xs font-medium text-slate-700 truncate">{u.name}</span>
-                                                                        {st.assigneeId === u.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />}
+                                                                        <span className="text-xs font-medium text-slate-700 dark:text-slate-200 truncate">{u.name}</span>
+                                                                        {st.assigneeId === u.id && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />}
                                                                     </button>
                                                                 ))}
                                                             </div>
                                                         </div>
                                                     )}
                                                 </div>
-    
-                                                <button type="button" onClick={() => handleDeleteSubtask(st.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 rounded transition-all shrink-0">
+            
+                                                <button type="button" onClick={() => handleDeleteSubtask(st.id)} className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded transition-all shrink-0">
                                                     <TrashIcon className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         ))}
-                                        <div className="flex items-center gap-2 mt-2">
+                                        <div className="flex items-center gap-2 mt-2 bg-white/40 dark:bg-slate-800/25 p-2 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                                             <PlusIcon className="w-4 h-4 text-slate-400" />
                                             <input 
                                                 type="text" 
@@ -649,17 +605,17 @@ const TaskEditModal: React.FC<{
                                                 onChange={e => setSubtaskText(e.target.value)} 
                                                 onKeyDown={e => { if (e.key === 'Enter') handleAddSubtask(e); }}
                                                 placeholder="Thêm việc phụ..."
-                                                className="flex-1 bg-transparent border-none text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-0" 
+                                                className="flex-1 bg-transparent border-none text-sm text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-0" 
                                             />
-                                            <button type="button" onClick={handleAddSubtask} disabled={!subtaskText.trim()} className="text-xs font-bold text-blue-600 disabled:opacity-50 hover:text-blue-700 transition-colors uppercase tracking-wider">Thêm</button>
+                                            <button type="button" onClick={handleAddSubtask} disabled={!subtaskText.trim()} className="text-xs font-bold text-blue-600 dark:text-blue-400 disabled:opacity-50 hover:text-blue-700 dark:hover:text-blue-300 transition-colors uppercase tracking-wider">Thêm</button>
                                         </div>
                                     </div>
                                 </div>
                                 
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2 flex justify-between items-center">
+                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-2 flex justify-between items-center">
                                         Tệp đính kèm
-                                        <label className="cursor-pointer text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1">
+                                        <label className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors flex items-center gap-1 text-xs">
                                             <MicIcon className="w-3.5 h-3.5" /> Chụp ảnh / Chọn tệp
                                             <input type="file" multiple className="hidden" onChange={handleFileUpload} accept="image/*" capture="environment" />
                                         </label>
@@ -667,26 +623,26 @@ const TaskEditModal: React.FC<{
                                     {(task.attachments && task.attachments.length > 0) ? (
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                             {task.attachments.map(att => (
-                                                <div key={att.id} className="flex items-center justify-between p-2 bg-white/70 border border-slate-200 rounded-lg hover:border-slate-300 transition-colors group">
+                                                <div key={att.id} className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-slate-300 dark:hover:border-slate-600 transition-colors group">
                                                     <div className="flex items-center gap-2 min-w-0">
-                                                        <div className="w-8 h-8 rounded bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                                                        <div className="w-8 h-8 rounded bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
                                                             <PaperclipIcon className="w-4 h-4" />
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="text-xs font-semibold text-slate-700 truncate">{att.name}</p>
-                                                            <p className="text-[10px] text-slate-400">{(att.size / 1024).toFixed(1)} KB</p>
+                                                            <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate">{att.name}</p>
+                                                            <p className="text-[10px] text-slate-400 dark:text-slate-500">{(att.size / 1024).toFixed(1)} KB</p>
                                                         </div>
                                                     </div>
-                                                    <button type="button" onClick={() => handleDeleteAttachment(att.id)} className="p-1.5 text-slate-400 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 rounded-md transition-all shrink-0">
+                                                    <button type="button" onClick={() => handleDeleteAttachment(att.id)} className="p-1.5 text-slate-400 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-md transition-all shrink-0">
                                                         <XIcon className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-slate-300/50 border-dashed rounded-lg cursor-pointer bg-white/40 hover:bg-white/60 transition-colors">
+                                        <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-slate-300/50 dark:border-slate-700/50 border-dashed rounded-lg cursor-pointer bg-white/40 dark:bg-slate-850/20 hover:bg-white/60 dark:hover:bg-slate-800/40 transition-colors">
                                             <div className="flex flex-col items-center justify-center pt-2 pb-3">
-                                                <p className="max-w-xs text-xs text-slate-500 text-center"><span className="font-semibold text-blue-600">Nhấp để tải lên</span> hoặc kéo thả</p>
+                                                <p className="max-w-xs text-xs text-slate-500 dark:text-slate-400 text-center"><span className="font-semibold text-blue-600 dark:text-blue-400">Nhấp để tải lên</span> hoặc kéo thả</p>
                                             </div>
                                             <input type="file" className="hidden" multiple onChange={handleFileUpload} />
                                         </label>
@@ -694,20 +650,20 @@ const TaskEditModal: React.FC<{
                                 </div>
                                 
                                 <div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Ghi chú</label>
-                                    <textarea value={task.notes || ''} onChange={e => setTask({...task, notes: e.target.value})} rows={3} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-3 resize-none outline-none text-sm" placeholder="Mô tả chi tiết công việc..." />
+                                    <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">Ghi chú</label>
+                                    <textarea value={task.notes || ''} onChange={e => setTask({...task, notes: e.target.value})} rows={3} className="w-full bg-white dark:bg-slate-800 border border-slate-300/50 dark:border-slate-700 rounded-lg p-3 resize-none outline-none text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-1 focus:ring-blue-500/20" placeholder="Mô tả chi tiết công việc..." />
                                 </div>
                             </div>
                             
-                            <div className="pt-4 flex justify-between items-center bg-transparent">
-                                <button type="button" onClick={() => { onDelete(task.id); onClose(); }} className="py-2 px-4 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg font-semibold flex items-center gap-2 transition-colors text-sm">
+                            <div className="pt-4 flex justify-between items-center bg-transparent border-t border-slate-200/60 dark:border-slate-800">
+                                <button type="button" onClick={() => { onDelete(task.id); onClose(); }} className="py-2 px-4 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg font-semibold flex items-center gap-2 transition-colors text-sm">
                                     <TrashIcon className="w-4 h-4" /> Xóa
                                 </button>
                                 <div className="flex gap-3">
                                     <button 
                                         type="button" 
                                         onClick={() => onSaveAsTemplate(task)} 
-                                        className="py-2 px-4 bg-amber-100 text-amber-700 hover:bg-amber-200 rounded-lg font-semibold flex items-center gap-2 transition-colors text-sm"
+                                        className="py-2 px-4 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 border border-amber-200/50 dark:border-amber-900/40 rounded-lg font-semibold flex items-center gap-2 transition-colors text-sm"
                                         title="Lưu thành mẫu công việc để dùng lại sau này"
                                     >
                                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -715,46 +671,46 @@ const TaskEditModal: React.FC<{
                                         </svg>
                                         Lưu làm mẫu
                                     </button>
-                                    <button type="button" onClick={onClose} className="py-2 px-5 rounded-lg font-semibold text-slate-600 hover:bg-slate-100 transition-colors text-sm">Hủy</button>
+                                    <button type="button" onClick={onClose} className="py-2 px-5 rounded-lg font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-sm">Hủy</button>
                                     <button type="submit" className="py-2.5 px-8 bg-blue-600 text-white font-bold rounded-lg shadow-lg shadow-blue-500/30 hover:scale-105 active:scale-95 transition-all text-sm">Lưu</button>
                                 </div>
                             </div>
                         </form>
                     ) : (
-                        <div className="flex-1 p-6 space-y-4">
-                            <h3 className="text-sm font-bold text-slate-500 uppercase">Lịch sử thay đổi</h3>
+                        <div className="flex-1 p-6 space-y-4 lg:h-full lg:overflow-y-auto">
+                            <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase">Lịch sử thay đổi</h3>
                             {(task.history && task.history.length > 0) ? (
-                                <div className="space-y-4 border-l-2 border-slate-200 ml-2 pl-6">
+                                <div className="space-y-4 border-l-2 border-slate-200 dark:border-slate-700 ml-2 pl-6">
                                     {task.history.sort((a,b) => b.timestamp - a.timestamp).map(item => (
                                         <div key={item.id} className="relative">
-                                            <div className="absolute -left-[31px] top-1 w-3 h-3 rounded-full bg-blue-500 border-2 border-white"></div>
-                                            <div className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
+                                            <div className="absolute -left-[31px] top-1 w-3 h-3 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900"></div>
+                                            <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">
                                                 <div className="flex justify-between items-center mb-1">
-                                                    <span className="font-bold text-slate-800 text-xs">{item.action}</span>
-                                                    <span className="text-[10px] text-slate-400">{new Date(item.timestamp).toLocaleString()}</span>
+                                                    <span className="font-bold text-slate-800 dark:text-slate-200 text-xs">{item.action}</span>
+                                                    <span className="text-[10px] text-slate-400 dark:text-slate-500">{new Date(item.timestamp).toLocaleString()}</span>
                                                 </div>
-                                                <p className="text-xs text-slate-600">{item.details}</p>
+                                                <p className="text-xs text-slate-600 dark:text-slate-400">{item.details}</p>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-center text-slate-400 py-10 text-sm italic">Chưa có lịch sử thay đổi nào được ghi lại.</p>
+                                <p className="text-center text-slate-400 dark:text-slate-500 py-10 text-sm italic">Chưa có lịch sử thay đổi nào được ghi lại.</p>
                             )}
                         </div>
                     )}
 
                     {/* Comments Section */}
-                    <div className="w-full lg:w-96 flex flex-col bg-[#F4F5F7] border-l border-slate-200 min-h-0">
-                        <header className="px-4 py-3 flex items-center gap-2">
+                    <div className="w-full lg:w-96 flex flex-col bg-[#F4F5F7] dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 lg:h-full min-h-[300px]">
+                        <header className="px-4 py-3 flex items-center gap-2 border-b border-slate-200/50 dark:border-slate-800 shrink-0">
                             <MessageSquareIcon className="w-4 h-4 text-slate-500" />
-                            <h3 className="font-bold text-slate-700 text-sm">Thảo luận</h3>
-                            <span className="bg-slate-300/50 text-slate-600 px-1.5 py-0.5 rounded-md text-[10px] font-bold">{(task.comments || []).length}</span>
+                            <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm">Thảo luận</h3>
+                            <span className="bg-slate-300/50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded-md text-[10px] font-bold">{(task.comments || []).length}</span>
                         </header>
                         
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar min-h-0">
                             {(task.comments || []).length === 0 ? (
-                                <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-60 py-10">
+                                <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-2 opacity-60 py-10">
                                     <MessageSquareIcon className="w-10 h-10" />
                                     <p className="text-xs font-medium">Chưa có bình luận nào</p>
                                 </div>
@@ -772,11 +728,11 @@ const TaskEditModal: React.FC<{
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-xs font-bold text-slate-800 truncate">{comment.authorName}</span>
-                                                <span className="text-[10px] font-medium text-slate-400 shrink-0">{new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{comment.authorName}</span>
+                                                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 shrink-0">{new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                             </div>
-                                            <div className="bg-white p-2.5 rounded-2xl rounded-tl-none shadow-sm transition-colors w-fit max-w-[90%]">
-                                                <p className="text-[13px] text-slate-700 whitespace-pre-wrap leading-relaxed">{comment.text}</p>
+                                            <div className="bg-white dark:bg-slate-800 p-2.5 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-700/50 transition-colors w-fit max-w-[95%]">
+                                                <p className="text-[13px] text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{comment.text}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -784,14 +740,14 @@ const TaskEditModal: React.FC<{
                             )}
                         </div>
 
-                        <div className="px-4 pb-4 pt-2">
-                             <div className="relative bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm focus-within:border-blue-300 focus-within:ring-1 focus-within:ring-blue-300 transition-all">
+                        <div className="px-4 pb-4 pt-2 border-t border-slate-200/50 dark:border-slate-800 bg-[#F4F5F7] dark:bg-slate-900 shrink-0">
+                             <div className="relative bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm focus-within:border-blue-300 focus-within:ring-1 focus-within:ring-blue-300 transition-all">
                                 <textarea 
                                     value={commentText}
                                     onChange={e => setCommentText(e.target.value)}
                                     placeholder="Viết phản hồi..."
                                     rows={2}
-                                    className="w-full bg-transparent border-none p-3 pt-3 pr-12 text-sm focus:ring-0 outline-none resize-none"
+                                    className="w-full bg-transparent border-none p-3 pt-3 pr-12 text-sm text-slate-800 dark:text-slate-100 focus:ring-0 outline-none resize-none placeholder-slate-400 dark:placeholder-slate-500"
                                     onKeyDown={e => {
                                         if (e.key === 'Enter' && !e.shiftKey) {
                                             e.preventDefault();
@@ -1025,8 +981,9 @@ const TasklistView: React.FC<{
   user: User, 
   allUsers: User[], 
   initialListId?: string,
-  onSendNotification?: (notifData: Omit<AppNotification, 'id' | 'createdAt'>) => void
-}> = ({ user, allUsers, onSendNotification }) => {
+  onSendNotification?: (notifData: Omit<AppNotification, 'id' | 'createdAt'>) => void,
+  isEmbedded?: boolean
+}> = ({ user, allUsers, onSendNotification, isEmbedded = false }) => {
   const [taskLists, setTaskLists] = useState<TaskList[]>([]);
   useEffect(() => {
     if (!user || user.id.startsWith('user-')) {
@@ -1076,53 +1033,6 @@ const TasklistView: React.FC<{
 
     return () => unsubscribe();
   }, [user?.id]);
-
-  const [isSyncingTasks, setIsSyncingTasks] = useState(false);
-  
-  const handleSyncGoogleTasks = async () => {
-      setIsSyncingTasks(true);
-      showToast('Đang kết nối Google Tasks...');
-      try {
-          const token = await getAccessToken();
-          if (!token) throw new Error("Chưa xác thực Google");
-          
-          const gLists = await fetchTaskLists(token);
-          
-          const syncedLists: TaskList[] = [];
-          for (const gList of gLists) {
-              const gTasks = await fetchTasks(token, gList.id);
-              const mappedTasks: Task[] = gTasks.map(t => ({
-                 id: t.id,
-                 text: t.title,
-                 notes: t.notes,
-                 dueDate: t.due ? t.due.split('T')[0] : undefined,
-                 completed: t.status === 'completed',
-                 status: t.status === 'completed' ? 'Hoàn thành' : 'Cần làm',
-                 priority: 'Trung bình',
-                 source: 'google'
-              }));
-              syncedLists.push({
-                  id: gList.id,
-                  name: `(Google) ${gList.title}`,
-                  tasks: mappedTasks,
-                  source: 'google',
-                  sharedUserIds: []
-              });
-          }
-          
-          setTaskLists(prev => {
-              const prevWithoutGoogle = prev.filter(l => l.source !== 'google');
-              return [...prevWithoutGoogle, ...syncedLists];
-          });
-          
-          showToast('Đồng bộ Google Tasks thành công!');
-      } catch (err) {
-          console.error('Lỗi quy trình đồng bộ Google Tasks:', err);
-          showToast('Đồng bộ thất bại. Vui lòng kết nối Google Tasks trong Cài đặt.');
-      } finally {
-          setIsSyncingTasks(false);
-      }
-  };
 
   const [newTaskTexts, setNewTaskTexts] = useState<Record<string, string>>({});
   const [newTaskPriorities, setNewTaskPriorities] = useState<Record<string, 'Thấp' | 'Trung bình' | 'Cao'>>({});
@@ -1808,25 +1718,26 @@ const TasklistView: React.FC<{
     setShowTemplateMenuId(null);
   };
 
-  return (
-    <StandardPageLayout>
-      <PageBanner 
-        title="Quản lý công việc"
-        subtitle="“Việc nhỏ – nhưng nhớ kỹ. Đồng bộ, nhắc đúng, xử lý gọn.”"
-        icon={<CheckSquare className="w-full h-full text-white" />}
-        gradient="from-indigo-600 to-blue-700"
-        actions={
-          <button 
-            onClick={handleSyncGoogleTasks} 
-            disabled={isSyncingTasks}
-            className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all disabled:opacity-50"
-          >
-            {isSyncingTasks ? 'Đang đồng bộ...' : 'Đồng bộ Google Tasks'}
-          </button>
-        }
-      />
+  const LayoutWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (isEmbedded) {
+      return <>{children}</>;
+    }
+    return (
+      <StandardPageLayout>
+        <PageBanner 
+          title="Quản lý công việc"
+          subtitle="“Việc nhỏ – nhưng nhớ kỹ. Nhắc đúng, xử lý gọn.”"
+          icon={<CheckSquare className="w-full h-full text-white" />}
+          gradient="from-indigo-600 to-blue-700"
+        />
+        {children}
+      </StandardPageLayout>
+    );
+  };
 
-      <div className="flex flex-col gap-6 mt-6">
+  return (
+    <LayoutWrapper>
+      <div className={`flex flex-col gap-6 ${isEmbedded ? '' : 'mt-6'}`}>
         {editingTask && <TaskEditModal 
             task={editingTask.task} 
             user={user}
@@ -2269,7 +2180,7 @@ const TasklistView: React.FC<{
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
       )}
-    </StandardPageLayout>
+    </LayoutWrapper>
   );
 };
 

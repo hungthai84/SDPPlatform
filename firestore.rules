@@ -219,9 +219,9 @@ service cloud.firestore {
     }
 
     match /users {
-      allow list: if true;
+      allow list: if isSignedIn();
       match /{userId} {
-        allow read: if true;
+        allow read: if isSignedIn() && isValidId(userId);
         allow create: if isSignedIn() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming());
         allow update: if isSignedIn() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming()) && incoming().email == existing().email && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'avatar', 'role', 'phoneNumber']);
       }

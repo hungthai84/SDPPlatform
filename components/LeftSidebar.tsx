@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   HomeIcon, 
   CalendarIcon, 
-  StickyNoteIcon, 
   ChecklistIcon, 
   UsersIcon, 
   FolderIcon, 
@@ -11,15 +10,10 @@ import {
   GraduationCapIcon, 
   XIcon, 
   ClipboardListIcon, 
-  SitemapIcon, 
   WorkflowIcon, 
   ChevronLeftIcon, 
   ChevronRightIcon,
-  SettingsIcon,
   BellIcon,
-  MailIcon,
-  ChatIcon,
-  GlobeIcon,
   SearchIcon
 } from './icons';
 import { View, User } from '../types';
@@ -142,12 +136,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       view: 'projects'
     },
     {
-      id: 'tasklist',
-      label: t('tasklist') || 'Công việc',
-      icon: <ChecklistIcon className="w-5 h-5 text-green-500" />,
-      view: 'tasklist'
-    },
-    {
       id: 'process',
       label: 'Quy trình',
       icon: <WorkflowIcon className="w-5 h-5 text-fuchsia-500" />,
@@ -158,12 +146,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       label: t('drive') || 'Lưu trữ',
       icon: <FolderIcon className="w-5 h-5 text-yellow-500" />,
       view: 'drive'
-    },
-    {
-      id: 'notes',
-      label: t('notes') || 'Ghi chú',
-      icon: <StickyNoteIcon className="w-5 h-5 text-amber-500" />,
-      view: 'notes'
     },
     {
       id: 'blog',
@@ -190,18 +172,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       view: 'newsfeed'
     },
     {
-      id: 'email',
-      label: t('email') || 'Hộp thư',
-      icon: <MailIcon className="w-5 h-5 text-red-500 fill-current" />,
-      view: 'email'
-    },
-    {
-      id: 'chat',
-      label: t('chat') || 'Trò chuyện',
-      icon: <ChatIcon className="w-5 h-5 text-green-500 fill-current" />,
-      view: 'chat'
-    },
-    {
       id: 'training',
       label: t('training') || 'Đào tạo',
       icon: <GraduationCapIcon className="w-5 h-5 text-violet-500" />,
@@ -212,12 +182,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       label: 'Yêu cầu',
       icon: <ClipboardListIcon className="w-5 h-5 text-rose-500" />,
       view: 'requests'
-    },
-    {
-      id: 'org-chart',
-      label: 'Sơ đồ',
-      icon: <SitemapIcon className="w-5 h-5 text-cyan-600" />,
-      view: 'org-chart'
     }
   ];
 
@@ -234,7 +198,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
     >
       <aside 
         style={{ 
-          backgroundColor: 'rgba(255, 255, 255, var(--sidebar-opacity, 1))',
+          backgroundColor: 'rgba(var(--color-card-bg-rgb, 255, 255, 255), var(--sidebar-opacity, 1))',
           backdropFilter: 'blur(12px)'
         }}
         className={`relative flex flex-col p-4 h-full border-r border-gray-100 dark:border-gray-800 transition-all duration-300 ease-in-out shrink-0 ${isCollapsed ? 'w-20' : 'w-64'}`}
@@ -379,25 +343,6 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
             </button>
           </div>
 
-          {/* Settings Button */}
-          <div className="w-full flex justify-center">
-            <button
-              onClick={() => onNavigate('settings')}
-              className={`flex items-center hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${
-                isCollapsed 
-                  ? 'w-11 h-11 justify-center rounded-xl' 
-                  : 'w-full gap-3 px-4 py-2.5 rounded-xl'
-              } ${activeView === 'settings' ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600' : ''}`}
-              title={isCollapsed ? "Cài đặt" : undefined}
-            >
-              <SettingsIcon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
-              {!isCollapsed && (
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  Cài đặt
-                </span>
-              )}
-            </button>
-          </div>
 
           {/* Profile Section (User Menu) */}
           <div className="w-full flex justify-center pt-1">

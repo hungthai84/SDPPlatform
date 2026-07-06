@@ -6,7 +6,6 @@ import EmailClient from './components/EmailClient';
 import CalendarView, { CalendarEvent, mockEvents } from './components/CalendarView';
 import ChatView from './components/ChatView';
 import NotesView from './components/NotesView';
-import TasklistView from './components/TasklistView';
 import ContactsView from './components/ContactsView';
 import MeetingView from './components/MeetingView';
 import DriveView from './components/DriveView';
@@ -22,9 +21,7 @@ import ClassDetailView from './components/ClassDetailView';
 import SettingsView from './components/SettingsView';
 import CheckInView from './components/CheckInView';
 import UserManagementView from './components/UserManagementView';
-import OrgChartView from './components/OrgChartView';
 import RequestsView from './components/RequestsView';
-import WebsiteDataView from './components/WebsiteDataView';
 import ProjectManagementView from './components/ProjectManagementView';
 import ProcessWorkflowView from './components/ProcessWorkflowView';
 import CommandPalette from './components/CommandPalette';
@@ -32,9 +29,10 @@ import { FolderIcon, StickyNoteIcon, ChecklistIcon, MailIcon, CalendarIcon, Grad
 import EventModal from './components/EventModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import { motion, AnimatePresence } from 'motion/react';
+import { Plus } from 'lucide-react';
 import { db, auth, getAccessToken } from './firebase';
 import { signOut } from 'firebase/auth';
-import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, addDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, addDoc } from 'firebase/firestore';
 import NotificationToast from './components/NotificationToast';
 import { handleFirestoreError, OperationType } from './firebase-errors';
 import { User, View, ServiceName, ServiceState, CheckInEntry, RecentItem, ActivityItem, AppNotification } from './types';
@@ -122,10 +120,12 @@ const AppContent: React.FC = () => {
   }, [user?.id]);
   const [isRightSidebarCollapsed, setRightSidebarCollapsed] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
+  const [projectActiveTab, setProjectActiveTab] = useState<'projects' | 'tasks'>('projects');
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
   const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
   const [activeSettingsSection, setActiveSettingsSection] = useState<string | null>(null);
   const [isAiWidgetOpen, setAiWidgetOpen] = useState(false);
+  const [isQuickPopupOpen, setQuickPopupOpen] = useState(false);
   const [activeTaskListId, setActiveTaskListId] = useState<string | undefined>(undefined);
   const [checkInLog, setCheckInLog] = useState<CheckInEntry[]>([]);
   const [activityLog] = useState<ActivityItem[]>(mockActivityLog);
@@ -564,7 +564,16 @@ const AppContent: React.FC = () => {
   }
 
   const handleNavigate = React.useCallback((view: View, section?: string) => {
-    setActiveView(view);
+    if (view === 'tasklist') {
+      setActiveView('projects');
+      setProjectActiveTab('tasks');
+    } else {
+      setActiveView(view);
+      if (view === 'projects') {
+        setProjectActiveTab('projects');
+      }
+    }
+
     if (view === 'settings' && section) {
       setActiveSettingsSection(section);
     } else {
@@ -588,7 +597,8 @@ const AppContent: React.FC = () => {
 
   const handleNavigateToTasks = (taskListId: string) => {
       setActiveTaskListId(taskListId);
-      setActiveView('tasklist');
+      setActiveView('projects');
+      setProjectActiveTab('tasks');
   };
 
   const handleSendNotification = React.useCallback(async (notifData: Omit<AppNotification, 'id' | 'createdAt'>) => {
@@ -644,11 +654,19 @@ const AppContent: React.FC = () => {
       case 'requests':
         return <RequestsView user={user} users={allUsers} onSaveEvent={handleSaveEvent} />;
       case 'projects':
-        return <ProjectManagementView user={user} onNavigateToTasks={handleNavigateToTasks} onSendNotification={handleSendNotification} />;
+        return (
+          <ProjectManagementView 
+            user={user} 
+            allUsers={allUsers}
+            onSendNotification={handleSendNotification} 
+            initialTab={projectActiveTab}
+            onTabChange={setProjectActiveTab}
+            onNavigateToTasks={handleNavigateToTasks}
+            initialListId={activeTaskListId}
+          />
+        );
       case 'user-management':
         return <UserManagementView currentUser={user} users={allUsers} onUsersChange={handleUsersChange} />;
-      case 'org-chart':
-        return <OrgChartView user={user} allUsers={allUsers} />;
       case 'process':
         return <ProcessWorkflowView user={user} onNavigate={handleNavigate} />;
       case 'drive':
@@ -656,7 +674,17 @@ const AppContent: React.FC = () => {
       case 'meeting':
         return <MeetingView user={user} onItemViewed={handleItemViewed} />;
       case 'tasklist':
-        return <TasklistView user={user} allUsers={allUsers} initialListId={activeTaskListId} onSendNotification={handleSendNotification} />;
+        return (
+          <ProjectManagementView 
+            user={user} 
+            allUsers={allUsers}
+            onSendNotification={handleSendNotification} 
+            initialTab="tasks"
+            onTabChange={setProjectActiveTab}
+            onNavigateToTasks={handleNavigateToTasks}
+            initialListId={activeTaskListId}
+          />
+        );
       case 'contacts':
         return <ContactsView user={user} onItemViewed={handleItemViewed} onNavigate={handleNavigate} />;
       case 'calendar':
@@ -737,7 +765,7 @@ const AppContent: React.FC = () => {
     >
       <div 
         style={{ borderStyle: 'solid' }}
-        className={`w-full h-full rounded-[10px] border-4 shadow-3xl overflow-hidden flex flex-col relative transition-all duration-1000 ${borderColors[borderColorIndex]} ${hasWallpaper ? 'bg-[--color-surface-primary]/80 backdrop-blur-md' : 'bg-[--color-surface-primary]'}`}
+        className={`w-full h-full rounded-[10px] border shadow-3xl overflow-hidden flex flex-col relative transition-all duration-1000 ${borderColors[borderColorIndex]} ${hasWallpaper ? 'bg-[--color-surface-primary]/80 backdrop-blur-md' : 'bg-[--color-surface-primary]'}`}
       >
         {(isMobileNavOpen || isMobileActivityOpen) && (
           <div 
@@ -777,9 +805,11 @@ const AppContent: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -5 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="flex-1 flex flex-col min-w-0 overflow-hidden"
+              className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300"
               style={{
                 boxShadow: '0 4px 30px rgba(0, 0, 0, 0.05)',
+                backgroundColor: 'rgba(var(--color-card-bg-rgb, 255, 255, 255), var(--card-opacity, 1))',
+                backdropFilter: 'blur(12px)',
               }}
             >
               {renderMainView()}
@@ -810,6 +840,74 @@ const AppContent: React.FC = () => {
             onClose={() => setCommandPaletteOpen(false)} 
             onNavigate={handleNavigate}
         />
+
+        {/* QUICK ACCESS FLOATING POPUP WIDGET */}
+        <div className="fixed bottom-24 md:bottom-8 right-6 md:right-8 z-[90] flex flex-col items-end">
+          <AnimatePresence>
+            {isQuickPopupOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 15, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 15, scale: 0.9 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="flex flex-col gap-3 mb-4 items-end"
+              >
+                {/* Email Item */}
+                <div 
+                  className="flex items-center group cursor-pointer" 
+                  onClick={() => { handleNavigate('email'); setQuickPopupOpen(false); }}
+                >
+                  <span className="bg-slate-900/90 dark:bg-slate-800/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl mr-3 shadow-md border border-white/10 select-none whitespace-nowrap">
+                    Email
+                  </span>
+                  <button className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-purple-600 dark:text-purple-400 border border-slate-100 dark:border-slate-700 shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center">
+                    <MailIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </button>
+                </div>
+
+                {/* Trao đổi Item */}
+                <div 
+                  className="flex items-center group cursor-pointer" 
+                  onClick={() => { handleNavigate('chat'); setQuickPopupOpen(false); }}
+                >
+                  <span className="bg-slate-900/90 dark:bg-slate-800/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl mr-3 shadow-md border border-white/10 select-none whitespace-nowrap">
+                    Trao đổi
+                  </span>
+                  <button className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-green-500 dark:text-green-400 border border-slate-100 dark:border-slate-700 shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center">
+                    <ChatIcon className="w-5 h-5 text-green-500 dark:text-green-400 fill-current" />
+                  </button>
+                </div>
+
+                {/* Ghi chú Item */}
+                <div 
+                  className="flex items-center group cursor-pointer" 
+                  onClick={() => { handleNavigate('notes'); setQuickPopupOpen(false); }}
+                >
+                  <span className="bg-slate-900/90 dark:bg-slate-800/90 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl mr-3 shadow-md border border-white/10 select-none whitespace-nowrap">
+                    Ghi chú
+                  </span>
+                  <button className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 text-amber-500 dark:text-amber-400 border border-slate-100 dark:border-slate-700 shadow-xl hover:shadow-2xl hover:scale-110 active:scale-95 transition-all flex items-center justify-center">
+                    <StickyNoteIcon className="w-5 h-5 text-amber-500 dark:text-amber-400" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Main Toggle Button */}
+          <button
+            onClick={() => setQuickPopupOpen(!isQuickPopupOpen)}
+            className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center relative focus:outline-none focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800"
+          >
+            <motion.div
+              animate={{ rotate: isQuickPopupOpen ? 135 : 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+              className="flex items-center justify-center"
+            >
+              <Plus className="w-6 h-6" />
+            </motion.div>
+          </button>
+        </div>
       </div>
     </div>
   );

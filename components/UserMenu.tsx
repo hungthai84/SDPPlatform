@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, View } from '../App';
 import { useLanguage } from './LanguageContext';
 
-import { SettingsIcon, LogoutIcon } from './icons';
+import { SettingsIcon, LogoutIcon, UserIcon } from './icons';
 
 interface UserMenuProps {
   user: User;
@@ -32,14 +32,6 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, onNavigate, directi
   const menuRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
 
-  const getInitials = (name: string) => {
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -54,26 +46,27 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, onNavigate, directi
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 rounded-full bg-[--color-accent-500] text-white flex items-center justify-center font-bold text-sm ring-2 ring-white/50 hover:ring-[--color-accent-400] transition-all"
+        className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center ring-2 ring-white/50 hover:ring-[--color-accent-400] transition-all"
         aria-label="Open user menu"
       >
-        {user.avatar ? <img src={user.avatar} alt={user.name} className="rounded-full w-full h-full object-cover" /> : getInitials(user.name)}
+        <UserIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
       </button>
       {isOpen && (
         <div className={`absolute left-0 w-64 bg-[--color-surface-tertiary] backdrop-blur-xl rounded-lg shadow-2xl ring-1 ring-black/5 z-[9999] overflow-hidden animate-fade-in-up ${direction === 'up' ? 'bottom-full mb-2' : 'mt-2'}`}>
           <div className="p-4 border-b border-[--color-border-secondary]">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[--color-accent-500] text-white flex items-center justify-center font-bold text-lg">
-                {user.avatar ? <img src={user.avatar} alt={user.name} className="rounded-full w-full h-full object-cover" /> : getInitials(user.name)}
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
+                <UserIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
               </div>
               <div>
-                <p className="font-semibold text-[--color-text-primary] truncate">{user.name}</p>
+                <p className="font-semibold text-[--color-text-primary] truncate">Tài khoản người dùng</p>
                 <p className="text-sm text-[--color-text-secondary] truncate">{user.email}</p>
               </div>
             </div>
           </div>
-          <div className="p-2">
+          <div className="p-2 border-t border-[--color-border-secondary] mt-1">
             <MenuItem icon={<SettingsIcon className="w-4 h-4 text-slate-500" />} label={t('settings')} onClick={() => { onNavigate('settings'); setIsOpen(false); }} />
+            <MenuItem icon={<LogoutIcon className="w-4 h-4 text-red-500" />} label={t('logout') || "Đăng xuất"} onClick={() => { onLogout(); setIsOpen(false); }} isDestructive />
           </div>
         </div>
       )}

@@ -5,7 +5,6 @@ import { SettingsIcon, FileTextIcon, FolderIcon, FileEditIcon, TrashIcon, PlusIc
 import { db, auth } from '../firebase';
 import { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import UserManagementView from './UserManagementView';
-import WebsiteBanner from './WebsiteBanner';
 
 interface WebsiteDataViewProps {
   user: User;

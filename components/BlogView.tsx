@@ -2,14 +2,17 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { User, View, RecentItem } from '../App';
 import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import PageBanner from './PageBanner';
-import { SearchIcon, PlusIcon, SettingsIcon, BloggerIcon, ChevronDownIcon, CalendarPlusIcon, RobotIcon, PaperAirplaneIcon, BookOpenIcon, PinIcon, ShareIcon, XIcon } from './icons';
+import { SearchIcon, PlusIcon, SettingsIcon, BloggerIcon, ChevronDownIcon, CalendarPlusIcon, RobotIcon, PaperAirplaneIcon, BookOpenIcon, PinIcon, ShareIcon, XIcon, TrashIcon } from './icons';
+import { LayoutGrid, List, Download } from 'lucide-react';
 import { useLanguage } from './LanguageContext';
 import { GoogleGenAI } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 
 import { db, auth } from '../firebase';
-import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
-import { TrashIcon } from './icons';
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Article {
   id: string;
@@ -24,6 +27,61 @@ interface Article {
   status: 'Draft' | 'Published' | 'Archived';
   createdAt?: number;
 }
+
+const fallbackArticles: Article[] = [
+  {
+    id: 'art-1',
+    title: 'Chiến lược CSKH Đột phá trong Kỷ nguyên Số 2026',
+    author: 'Trần Văn An',
+    authorId: 'user-an',
+    tags: ['Chiến lược', 'CSKH', 'Công nghệ'],
+    previewImage: 'https://images.unsplash.com/photo-1552581230-c01bc0d48403?auto=format&fit=crop&w=800&q=80',
+    source: 'Internal',
+    isPinned: true,
+    date: 'July 6, 2026',
+    status: 'Published',
+    createdAt: 1783321200000
+  },
+  {
+    id: 'art-2',
+    title: 'Tối ưu hóa SLA: Đưa thời gian xử lý yêu cầu về dưới 1 giờ',
+    author: 'Hoàng Văn Em',
+    authorId: 'user-em',
+    tags: ['Quy trình', 'Hỗ trợ', 'Tối ưu'],
+    previewImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80',
+    source: 'Internal',
+    isPinned: false,
+    date: 'July 5, 2026',
+    status: 'Published',
+    createdAt: 1783234800000
+  },
+  {
+    id: 'art-3',
+    title: 'Xây dựng Văn hóa Đồng hành cùng Khách hàng thành công',
+    author: 'Lê Thị Bình',
+    authorId: 'user-binh',
+    tags: ['Văn hóa', 'Đội ngũ', 'Khách hàng'],
+    previewImage: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=800&q=80',
+    source: 'Internal',
+    isPinned: false,
+    date: 'July 2, 2026',
+    status: 'Published',
+    createdAt: 1782975600000
+  },
+  {
+    id: 'art-4',
+    title: 'Bí quyết viết Email phản hồi phàn nàn xoa dịu khách hàng',
+    author: 'Vũ Thị Dung',
+    authorId: 'user-dung',
+    tags: ['Email', 'Kỹ năng', 'Mẫu'],
+    previewImage: 'https://images.unsplash.com/photo-1557200134-90327ee9fafa?auto=format&fit=crop&w=800&q=80',
+    source: 'Internal',
+    isPinned: false,
+    date: 'June 28, 2026',
+    status: 'Draft',
+    createdAt: 1782630000000
+  }
+];
 
 interface ArticleCardProps {
     article: Article;
@@ -242,43 +300,85 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
     const { t } = useLanguage();
     const [visibleItems, setVisibleItems] = useState(8);
     const [articles, setArticles] = useState<Article[]>([]);
+    const [statsTab, setStatsTab] = useState<'chart' | 'flowchart'>('chart');
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
     useEffect(() => {
-        if (!auth.currentUser) return;
+        const isMock = !auth || !auth.currentUser || (user && user.id.startsWith('user-'));
+        if (isMock) {
+            const saved = localStorage.getItem('blog_articles');
+            if (saved) {
+                setArticles(JSON.parse(saved));
+            } else {
+                setArticles(fallbackArticles);
+                localStorage.setItem('blog_articles', JSON.stringify(fallbackArticles));
+            }
+            return;
+        }
+
         const q = query(collection(db, 'blogArticles'), orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (snapshot.empty) {
+                // Seed fallback articles if database is completely empty for this user
+                fallbackArticles.forEach(async (art) => {
+                    await setDoc(doc(db, 'blogArticles', art.id), {
+                        title: art.title,
+                        authorName: art.author,
+                        authorId: user.id,
+                        tags: art.tags,
+                        previewImage: art.previewImage,
+                        isPinned: art.isPinned,
+                        status: art.status,
+                        createdAt: art.createdAt
+                    });
+                });
+                return;
+            }
             const articlesData = snapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
                     title: data.title,
-                    author: data.authorName,
+                    author: data.authorName || 'Anonymous',
                     authorId: data.authorId,
                     tags: data.tags || [],
                     previewImage: data.previewImage || '',
                     source: 'Internal',
                     isPinned: data.isPinned || false,
-                    date: new Date(data.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-                    status: data.status,
-                    createdAt: data.createdAt
+                    date: new Date(data.createdAt || Date.now()).toLocaleDateString('vi-VN', { month: 'long', day: 'numeric', year: 'numeric' }),
+                    status: data.status || 'Published',
+                    createdAt: data.createdAt || Date.now()
                 } as Article;
             });
             setArticles(articlesData);
+        }, (error) => {
+            console.error('Error listening to blogArticles:', error);
+            const saved = localStorage.getItem('blog_articles');
+            setArticles(saved ? JSON.parse(saved) : fallbackArticles);
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [user?.id]);
 
     const handleDeleteArticle = async (id: string) => {
         if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
+        const isMock = !auth || !auth.currentUser || (user && user.id.startsWith('user-'));
         try {
-            await deleteDoc(doc(db, 'blogArticles', id));
-            showToast("Đã xóa bài viết thành công!");
+            if (isMock) {
+                const updated = articles.filter(a => a.id !== id);
+                setArticles(updated);
+                localStorage.setItem('blog_articles', JSON.stringify(updated));
+                showToast("Đã xóa bài viết thành công!");
+            } else {
+                await deleteDoc(doc(db, 'blogArticles', id));
+                showToast("Đã xóa bài viết thành công!");
+            }
         } catch (error) {
             console.error("Delete Error:", error);
-            alert("Không thể xóa bài viết. Vui lòng thử lại.");
+            showToast("Không thể xóa bài viết. Vui lòng thử lại.");
         }
     };
+
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
@@ -382,11 +482,34 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
         return latestPosts.slice(0, visibleItems);
     }, [latestPosts, visibleItems]);
 
-
     const handleTagClick = (tag: string) => setSelectedTag(tag);
     const clearFilter = () => {
         setSelectedTag(null);
         setSelectedStatus(null);
+    };
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+        doc.text('Danh sách Bài viết & Nội dung', 14, 15);
+        const data = filteredPosts.map(a => [a.title, a.author, a.tags.join(', '), a.date, a.status]);
+        autoTable(doc, {
+            head: [['Tiêu đề', 'Tác giả', 'Thẻ phân loại', 'Ngày tạo', 'Trạng thái']],
+            body: data,
+            startY: 20
+        });
+        doc.save('danh-sach-bai-viet.pdf');
+    };
+
+    const handleExportCSV = () => {
+        const headers = ['Tiêu đề,Tác giả,Thẻ phân loại,Ngày tạo,Trạng thái'];
+        const rows = filteredPosts.map(a => `"${a.title}","${a.author}","${a.tags.join('; ')}","${a.date}","${a.status}"`);
+        const csv = [headers, ...rows].join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'danh-sach-bai-viet.csv';
+        a.click();
     };
 
     const handleAssistantSubmit = async (e: React.FormEvent) => {
@@ -439,8 +562,8 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
                 gradient="from-pink-600 to-rose-700"
                 actions={
                     <button 
-                        onClick={() => onNavigate('new-post')}
-                        className="flex items-center gap-2 bg-white text-pink-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all"
+                        onClick={() => onNavigate('new-blog-post')}
+                        className="flex items-center gap-2 bg-white text-pink-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all cursor-pointer"
                     >
                         <PlusIcon className="w-4 h-4" /> Viết bài mới
                     </button>
@@ -448,45 +571,217 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
             />
 
             <div className="flex flex-col gap-6 mt-6">
+                {/* Statistics Section (Bento style matching projects page) */}
+                <ContentCard>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-gray-100 dark:border-slate-800">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                          <BookOpenIcon className="w-4 h-4 text-pink-600" />
+                          Thống kê & Lưu đồ chuyên mục
+                        </h3>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Theo dõi phân bổ bài viết và cấu trúc danh mục nội dung.</p>
+                      </div>
+                      <div className="bg-gray-100 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1 border border-gray-200 dark:border-slate-700 shadow-inner shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setStatsTab('chart')}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                            statsTab === 'chart'
+                              ? 'bg-pink-600 text-white shadow-md'
+                              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                          }`}
+                        >
+                          Biểu đồ tỷ lệ
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setStatsTab('flowchart')}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                            statsTab === 'flowchart'
+                              ? 'bg-pink-600 text-white shadow-md'
+                              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                          }`}
+                        >
+                          Sơ đồ chuyên mục
+                        </button>
+                      </div>
+                    </div>
+
+                    {statsTab === 'chart' ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+                        <div className="lg:col-span-1 flex flex-col justify-center space-y-4">
+                          {[
+                            { label: 'Đã xuất bản (Published)', count: articles.filter(a => a.status === 'Published').length, color: 'bg-green-500' },
+                            { label: 'Bản nháp (Draft)', count: articles.filter(a => a.status === 'Draft').length, color: 'bg-slate-500' },
+                            { label: 'Lưu trữ (Archived)', count: articles.filter(a => a.status === 'Archived').length, color: 'bg-orange-500' },
+                          ].map((item, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-xs font-bold">
+                              <span className="flex items-center gap-2 text-slate-500 uppercase tracking-wider text-[10px] dark:text-slate-400">
+                                <span className={`w-2.5 h-2.5 rounded-full ${item.color}`}></span>
+                                {item.label}
+                              </span>
+                              <span className="text-slate-800 dark:text-slate-200">{item.count} bài viết</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="lg:col-span-2 h-[200px]">
+                          {articles.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                <Pie
+                                  data={[
+                                    { name: 'Đã xuất bản', value: articles.filter(a => a.status === 'Published').length, color: '#10B981' },
+                                    { name: 'Bản nháp', value: articles.filter(a => a.status === 'Draft').length, color: '#64748B' },
+                                    { name: 'Lưu trữ', value: articles.filter(a => a.status === 'Archived').length, color: '#F97316' },
+                                  ].filter(d => d.value > 0)}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={50}
+                                  outerRadius={75}
+                                  paddingAngle={4}
+                                  dataKey="value"
+                                >
+                                  {[
+                                    { name: 'Đã xuất bản', value: articles.filter(a => a.status === 'Published').length, color: '#10B981' },
+                                    { name: 'Bản nháp', value: articles.filter(a => a.status === 'Draft').length, color: '#64748B' },
+                                    { name: 'Lưu trữ', value: articles.filter(a => a.status === 'Archived').length, color: '#F97316' },
+                                  ].filter(d => d.value > 0).map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                  ))}
+                                </Pie>
+                                <Tooltip 
+                                  contentStyle={{ 
+                                    backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                                    borderRadius: '12px', 
+                                    border: 'none',
+                                    color: '#fff',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold'
+                                  }} 
+                                />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-xs font-bold text-slate-400">Chưa có dữ liệu.</div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pt-2 flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-100 dark:bg-slate-800/30 dark:border-slate-700/50">
+                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider leading-relaxed dark:text-slate-400">
+                            📁 <strong>Cấu trúc:</strong> Chuyên mục (Thẻ) → Danh sách Bài viết tương ứng.
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
+                            {allTags.length > 0 ? (
+                                allTags.map(tag => {
+                                    const tagArticles = articles.filter(a => a.tags.includes(tag));
+                                    return (
+                                        <div key={tag} className="border border-slate-100 dark:border-slate-700/50 rounded-xl p-3 bg-white dark:bg-slate-800/30">
+                                            <h4 className="text-xs font-bold text-pink-600 flex items-center gap-2 mb-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-pink-500"></span>
+                                                {tag} ({tagArticles.length})
+                                            </h4>
+                                            <ul className="space-y-1">
+                                                {tagArticles.map(art => (
+                                                    <li key={art.id} onClick={() => handleArticleView(art)} className="text-[11px] text-slate-600 dark:text-slate-300 hover:text-pink-600 cursor-pointer font-medium truncate flex items-center gap-1">
+                                                        📝 {art.title}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-center py-6 text-xs font-bold text-slate-400 col-span-full">Chưa có thẻ phân loại nào.</div>
+                            )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ContentCard>
+
                 {/* Search and Filter */}
                 <ContentCard>
-                    <div className="flex flex-col md:flex-row items-center gap-4 w-full">
-                        <div className="relative flex-1 w-full">
-                            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                            <input 
-                                type="search" 
-                                value={searchTerm} 
-                                onChange={(e) => setSearchTerm(e.target.value)} 
-                                placeholder={t('searchPlaceholderBlog')} 
-                                className="w-full bg-[--color-surface-secondary] border border-[--color-border-secondary] shadow-sm focus:ring-2 focus:ring-[--color-accent-500]/20 focus:outline-none placeholder-[--color-text-subtle] text-[--color-text-primary] rounded-full py-4 pl-12 pr-14 transition-all" 
-                            />
-                            <button 
-                                onClick={() => setAssistantOpen(!isAssistantOpen)}
-                                className={`absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full transition-all ${isAssistantOpen ? 'bg-purple-600 text-white shadow-lg' : 'bg-purple-50 text-purple-600 hover:bg-purple-100 shadow-sm'}`}
-                                title={t('blogAssistant')}
-                            >
-                                <RobotIcon className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="flex gap-3 w-full md:w-auto">
-                            <div className="relative flex-1">
-                                <select value={selectedTag || ''} onChange={(e) => setSelectedTag(e.target.value || null)} className="appearance-none w-full md:w-40 bg-white border border-slate-300 shadow-sm rounded-full py-3.5 pl-4 pr-10 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer">
-                                    <option value="">{t('allTags')}</option>
-                                    {allTags.map(tag => ( <option key={tag} value={tag}>{tag}</option> ))}
-                                </select>
-                                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <div className="flex flex-col gap-4 w-full">
+                        <div className="flex flex-col md:flex-row items-center gap-4 w-full">
+                            <div className="relative flex-1 w-full">
+                                <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                <input 
+                                    type="search" 
+                                    value={searchTerm} 
+                                    onChange={(e) => setSearchTerm(e.target.value)} 
+                                    placeholder={t('searchPlaceholderBlog')} 
+                                    className="w-full bg-[--color-surface-secondary] border border-[--color-border-secondary] shadow-sm focus:ring-2 focus:ring-[--color-accent-500]/20 focus:outline-none placeholder-[--color-text-subtle] text-[--color-text-primary] rounded-full py-4 pl-12 pr-14 transition-all" 
+                                />
+                                <button 
+                                    onClick={() => setAssistantOpen(!isAssistantOpen)}
+                                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-2.5 rounded-full transition-all cursor-pointer ${isAssistantOpen ? 'bg-purple-600 text-white shadow-lg' : 'bg-purple-50 text-purple-600 hover:bg-purple-100 shadow-sm'}`}
+                                    title={t('blogAssistant')}
+                                >
+                                    <RobotIcon className="w-5 h-5" />
+                                </button>
                             </div>
-                            <div className="relative flex-1">
-                                <select value={selectedStatus || ''} onChange={(e) => setSelectedStatus(e.target.value || null)} className="appearance-none w-full md:w-44 bg-white border border-slate-300 shadow-sm rounded-full py-3.5 pl-4 pr-10 text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer">
-                                    <option value="">{t('allStatuses')}</option>
-                                    <option value="Published">{t('statusPublished')}</option>
-                                    <option value="Draft">{t('statusDraft')}</option>
-                                    <option value="Archived">{t('statusArchived')}</option>
-                                </select>
-                                <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <div className="flex gap-3 w-full md:w-auto">
+                                <div className="relative flex-1">
+                                    <select value={selectedTag || ''} onChange={(e) => setSelectedTag(e.target.value || null)} className="appearance-none w-full md:w-40 bg-[--color-surface-secondary] border border-[--color-border-secondary] shadow-sm rounded-full py-3.5 pl-4 pr-10 text-[--color-text-primary] focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer">
+                                        <option value="">{t('allTags')}</option>
+                                        {allTags.map(tag => ( <option key={tag} value={tag}>{tag}</option> ))}
+                                    </select>
+                                    <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
+                                <div className="relative flex-1">
+                                    <select value={selectedStatus || ''} onChange={(e) => setSelectedStatus(e.target.value || null)} className="appearance-none w-full md:w-44 bg-[--color-surface-secondary] border border-[--color-border-secondary] shadow-sm rounded-full py-3.5 pl-4 pr-10 text-[--color-text-primary] focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer">
+                                        <option value="">{t('allStatuses')}</option>
+                                        <option value="Published">{t('statusPublished')}</option>
+                                        <option value="Draft">{t('statusDraft')}</option>
+                                        <option value="Archived">{t('statusArchived')}</option>
+                                    </select>
+                                    <ChevronDownIcon className="w-5 h-5 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                </div>
+                            </div>
+                            {(selectedTag || selectedStatus) && ( <button onClick={clearFilter} className="text-sm font-semibold text-pink-600 hover:text-pink-700 hover:underline shrink-0 px-2 cursor-pointer">{t('clearFilter')}</button> )}
+                        </div>
+
+                        {/* Export & View Toggle Bar (Matches projects page) */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-2 border-t border-gray-100 dark:border-slate-800">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleExportPDF}
+                                    className="flex items-center gap-1.5 text-[11px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-slate-700 dark:text-slate-300 py-2 px-3.5 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer"
+                                >
+                                    <Download className="w-3.5 h-3.5 text-pink-600" />
+                                    Xuất báo cáo PDF
+                                </button>
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="flex items-center gap-1.5 text-[11px] font-bold bg-white hover:bg-slate-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-slate-700 dark:text-slate-300 py-2 px-3.5 rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer"
+                                >
+                                    <Download className="w-3.5 h-3.5 text-pink-600" />
+                                    Xuất báo cáo CSV
+                                </button>
+                            </div>
+
+                            <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1 border border-slate-200 dark:border-slate-700 shadow-inner shrink-0">
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-pink-600 shadow-md' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                    title="Dạng lưới"
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('table')}
+                                    className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 text-pink-600 shadow-md' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'}`}
+                                    title="Dạng danh sách/bảng"
+                                >
+                                    <List className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
-                        {(selectedTag || selectedStatus) && ( <button onClick={clearFilter} className="text-sm font-semibold text-pink-600 hover:text-pink-700 hover:underline shrink-0 px-2">{t('clearFilter')}</button> )}
                     </div>
                 </ContentCard>
 
@@ -504,7 +799,7 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
                                     <RobotIcon className="w-5 h-5 text-purple-600"/>
                                     <h2 className="font-bold text-purple-800">{t('blogAssistant')}</h2>
                                 </div>
-                                <button onClick={() => setAssistantOpen(false)} className="text-slate-400 hover:text-slate-600">
+                                <button onClick={() => setAssistantOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                                     <XIcon className="w-5 h-5" />
                                 </button>
                             </div>
@@ -527,14 +822,14 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
                     )}
                 </AnimatePresence>
 
-                {pinnedPost && <div className="mb-8"><PinnedPost article={pinnedPost} onTagClick={handleTagClick} onSchedule={onSchedule} onView={() => handleArticleView(pinnedPost)} searchTerm={searchTerm} onSummarize={handleSummarize} onShare={handleShareArticle} canDelete={user.role === 'superadmin' || pinnedPost.authorId === user.id} onDelete={handleDeleteArticle} /></div>}
+                {pinnedPost && viewMode === 'grid' && <div className="mb-8"><PinnedPost article={pinnedPost} onTagClick={handleTagClick} onSchedule={onSchedule} onView={() => handleArticleView(pinnedPost)} searchTerm={searchTerm} onSummarize={handleSummarize} onShare={handleShareArticle} canDelete={user.role === 'superadmin' || pinnedPost.authorId === user.id} onDelete={handleDeleteArticle} /></div>}
 
                 <div>
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-2xl font-bold text-[--color-text-primary]">{t('latestPosts')}</h2>
                         <div className="flex items-center gap-2">
-                           <button onClick={() => onNavigate('settings', 'blog')} title={t('blogSettings')} className="p-3 bg-white/70 rounded-lg shadow-md hover:bg-white/90 text-slate-600 hover:text-pink-600 transition-colors"> <SettingsIcon className="w-5 h-5"/> </button>
-                            <button onClick={() => onNavigate('new-blog-post')} className="flex items-center gap-2 py-3 px-4 bg-gradient-to-br from-pink-500 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:shadow-purple-500/40 transition-all transform hover:scale-105">
+                           <button onClick={() => onNavigate('settings', 'blog')} title={t('blogSettings')} className="p-3 bg-white/70 dark:bg-slate-800/70 rounded-lg shadow-md hover:bg-white/90 text-slate-600 dark:text-slate-400 hover:text-pink-600 transition-colors cursor-pointer"> <SettingsIcon className="w-5 h-5"/> </button>
+                            <button onClick={() => onNavigate('new-blog-post')} className="flex items-center gap-2 py-3 px-4 bg-gradient-to-br from-pink-500 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:shadow-purple-500/40 transition-all transform hover:scale-105 cursor-pointer">
                                 <PlusIcon className="w-5 h-5"/>
                                 <span className="hidden sm:inline">{t('newPost')}</span>
                             </button>
@@ -542,19 +837,99 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
                     </div>
                     
                     {filteredPosts.length === 0 ? (
-                        <div className="py-20 text-center bg-white/50 rounded-xl border-2 border-dashed border-slate-200">
+                        <div className="py-20 text-center bg-white/50 dark:bg-slate-800/30 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                             <SearchIcon className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                            <h3 className="text-xl font-bold text-slate-600">{t('noArticlesFound')}</h3>
+                            <h3 className="text-xl font-bold text-slate-600 dark:text-slate-400">{t('noArticlesFound')}</h3>
                             <p className="text-slate-500">{t('noArticlesFoundDesc')}</p>
-                            <button onClick={() => { setSearchTerm(''); setSelectedTag(null); setSelectedStatus(null); }} className="mt-4 text-pink-600 font-bold hover:underline">{t('clearAllFilters')}</button>
+                            <button onClick={() => { setSearchTerm(''); setSelectedTag(null); setSelectedStatus(null); }} className="mt-4 text-pink-600 font-bold hover:underline cursor-pointer">{t('clearAllFilters')}</button>
                         </div>
-                    ) : (
+                    ) : viewMode === 'grid' ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {paginatedPosts.map(article => ( <ArticleCard key={article.id} article={article} onTagClick={handleTagClick} onSchedule={onSchedule} onView={() => handleArticleView(article)} searchTerm={searchTerm} onSummarize={handleSummarize} onShare={handleShareArticle} canDelete={user.role === 'superadmin' || article.authorId === user.id} onDelete={handleDeleteArticle} /> ))}
                         </div>
+                    ) : (
+                        <div className="overflow-x-auto bg-white/60 dark:bg-slate-800/60 backdrop-blur-md rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Tiêu đề bài viết</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Tác giả</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Thẻ phân loại</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Ngày tạo</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Trạng thái</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400">Nguồn</th>
+                                        <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider dark:text-slate-400 text-right">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {filteredPosts.map(article => (
+                                        <tr key={article.id} className="border-b border-slate-100 dark:border-slate-700/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group cursor-pointer" onClick={() => handleArticleView(article)}>
+                                            <td className="p-4 font-bold text-slate-800 dark:text-slate-200 text-sm group-hover:text-pink-600 transition-colors">
+                                                <div className="flex items-center gap-2">
+                                                    {article.isPinned && <PinIcon className="w-3.5 h-3.5 text-pink-500 shrink-0" />}
+                                                    <span className="truncate max-w-[280px] block">{highlightText(article.title, searchTerm)}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-slate-600 dark:text-slate-300 text-xs font-medium">{highlightText(article.author, searchTerm)}</td>
+                                            <td className="p-4">
+                                                <div className="flex gap-1 flex-wrap">
+                                                    {article.tags.map(tag => (
+                                                        <span key={tag} className="text-[10px] font-bold px-2 py-0.5 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 rounded-full border border-pink-100/50 dark:border-pink-900/30">
+                                                            {highlightText(tag, searchTerm)}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-slate-500 dark:text-slate-400 text-xs font-medium">{article.date}</td>
+                                            <td className="p-4">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                                    article.status === 'Published' ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400' :
+                                                    article.status === 'Draft' ? 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-400' :
+                                                    'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-950/20 dark:text-orange-400'
+                                                }`}>
+                                                    {article.status.toUpperCase()}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${article.source === 'Blogger' ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                                                    {article.source}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                                <div className="flex gap-1.5 justify-end">
+                                                    <button 
+                                                        onClick={() => handleSummarize(article)}
+                                                        className="p-1.5 bg-purple-50 dark:bg-purple-950/30 hover:bg-purple-100 text-purple-600 dark:text-purple-400 rounded-lg transition-all cursor-pointer"
+                                                        title="AI Summary"
+                                                    >
+                                                        <RobotIcon className="w-4 h-4" />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleShareArticle(article)}
+                                                        className="p-1.5 bg-indigo-50 dark:bg-indigo-950/30 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-400 rounded-lg transition-all cursor-pointer"
+                                                        title="Chia sẻ"
+                                                    >
+                                                        <ShareIcon className="w-4 h-4" />
+                                                    </button>
+                                                    {(user.role === 'superadmin' || article.authorId === user.id) && (
+                                                        <button 
+                                                            onClick={() => handleDeleteArticle(article.id)}
+                                                            className="p-1.5 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 text-red-600 dark:text-red-400 rounded-lg transition-all cursor-pointer"
+                                                            title="Xóa"
+                                                        >
+                                                            <TrashIcon className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
 
-                    {visibleItems < latestPosts.length && (
+                    {viewMode === 'grid' && visibleItems < latestPosts.length && (
                         <div className="flex justify-center mt-12 mb-8">
                             <div className="flex items-center gap-2 px-6 py-2 bg-slate-100 text-slate-500 rounded-full text-sm font-medium animate-pulse">
                                 <ChevronDownIcon className="w-4 h-4" />
@@ -580,7 +955,7 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
                                     <RobotIcon className="w-6 h-6 text-purple-600" />
                                     Tóm tắt AI
                                 </h3>
-                                <button onClick={() => setActiveSummary(null)} className="p-2 hover:bg-black/5 rounded-full text-slate-400 transition-colors">
+                                <button onClick={() => setActiveSummary(null)} className="p-2 hover:bg-black/5 rounded-full text-slate-400 transition-colors cursor-pointer">
                                     <XIcon className="w-5 h-5" />
                                 </button>
                             </div>
@@ -602,7 +977,7 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
                             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
                                 <button 
                                     onClick={() => setActiveSummary(null)}
-                                    className="px-8 py-2.5 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-all active:scale-95"
+                                    className="px-8 py-2.5 bg-purple-600 text-white font-bold rounded-xl shadow-lg hover:bg-purple-700 transition-all active:scale-95 cursor-pointer"
                                 >
                                     Đã hiểu
                                 </button>

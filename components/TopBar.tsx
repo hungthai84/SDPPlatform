@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { SearchIcon, LogoutIcon, NotificationScreenIcon } from './icons';
+import { SearchIcon, LogoutIcon, NotificationScreenIcon, UserIcon } from './icons';
 import WeatherClock from './WeatherClock';
 import { User } from '../App';
 
@@ -12,14 +12,6 @@ interface UserMenuProps {
 const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const getInitials = (name: string) => {
-    const names = name.split(' ');
-    if (names.length > 1) {
-      return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -35,20 +27,20 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout }) => {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-10 h-10 rounded-full bg-[--color-accent-500] text-white flex items-center justify-center font-bold text-sm ring-2 ring-[--color-surface-secondary]/50 hover:ring-[--color-accent-400] transition-all"
+        className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center ring-2 ring-[--color-surface-secondary]/50 hover:ring-[--color-accent-400] transition-all"
         aria-label="Open user menu"
       >
-        {user.avatar ? <img src={user.avatar} alt={user.name} className="rounded-full w-full h-full object-cover" /> : getInitials(user.name)}
+        <UserIcon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
       </button>
       {isOpen && (
         <div className="absolute left-0 mt-2 w-64 bg-[--color-surface-secondary]/80 backdrop-blur-xl rounded-lg shadow-2xl ring-1 ring-[--color-border-secondary] z-[9999] animate-fade-in-down">
           <div className="p-4 border-b border-[--color-border-secondary]">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-[--color-accent-500] text-white flex items-center justify-center font-bold text-lg">
-                {user.avatar ? <img src={user.avatar} alt={user.name} className="rounded-full w-full h-full object-cover" /> : getInitials(user.name)}
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center">
+                <UserIcon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
               </div>
               <div>
-                <p className="font-semibold text-[--color-text-primary] truncate">{user.name}</p>
+                <p className="font-semibold text-[--color-text-primary] truncate">Tài khoản người dùng</p>
                 <p className="text-sm text-[--color-text-secondary] truncate">{user.email}</p>
               </div>
             </div>

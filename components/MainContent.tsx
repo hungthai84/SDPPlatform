@@ -13,7 +13,7 @@ import { mockClasses } from './TrainingDashboardView';
 import { SettingsIcon, XIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon, FileTextIcon, GripVerticalIcon, RssIcon, FolderIcon, ChecklistIcon, CalendarIcon, StickyNoteIcon, BookOpenIcon, GraduationCapIcon, MailIcon, ChatIcon, ZapIcon, ClockIcon, FilterIcon, LightningIcon } from './icons';
 import { motion, Reorder, AnimatePresence } from 'motion/react';
 import { auth, db } from '../firebase';
-import { collection, query, orderBy, limit, getDocs, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, onSnapshot, where } from 'firebase/firestore';
 import { Post } from './NewsfeedView';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -265,10 +265,16 @@ const RecentTasksWidget: React.FC<{ onNavigate: () => void }> = ({ onNavigate })
     const [recentTasks, setRecentTasks] = useState<Task[]>([]);
 
     useEffect(() => {
-        if (!auth.currentUser) return;
+        const currentUser = auth.currentUser;
+        if (!currentUser) return;
         const fetchRecentTasks = async () => {
             try {
-                const q = query(collection(db, 'tasks'), orderBy('updatedAt', 'desc'), limit(5));
+                const q = query(
+                    collection(db, 'tasks'), 
+                    where('ownerId', '==', currentUser.uid),
+                    orderBy('updatedAt', 'desc'), 
+                    limit(5)
+                );
                 const snapshot = await getDocs(q);
                 const tasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Task));
                 setRecentTasks(tasks);
@@ -452,7 +458,10 @@ const TeamTaskKpiWidget: React.FC<{ onNavigate?: () => void }> = () => {
             const localTasks = mockTaskLists.flatMap(l => l.tasks);
             processTasksToStats(localTasks);
         } else {
-            const q = query(collection(db, 'tasks'));
+            const q = query(
+                collection(db, 'tasks'),
+                where('ownerId', '==', currentUser.uid)
+            );
             unsubscribe = onSnapshot(q, (snapshot) => {
                 const tasks = snapshot.docs.map(doc => ({
                     id: doc.id,

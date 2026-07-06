@@ -1,7 +1,56 @@
+// Unified Project Management View
+
+interface ProjectData {
+  id: string;
+  name: string;
+  description: string;
+  status: 'active' | 'completed' | 'on_hold';
+  dueDate: string;
+  startDate?: string;
+  parentProjectId?: string;
+  taskListIds?: string[];
+  department?: string;
+}
+
+const fallbackProjects: ProjectData[] = [
+  {
+    id: 'proj-1',
+    name: 'Nâng cấp Hệ thống Nhân sự Core',
+    description: 'Nâng cấp toàn diện cơ sở hạ tầng, tối ưu hóa các quy trình quản lý thông tin nhân viên.',
+    status: 'active',
+    dueDate: '2026-08-31',
+    department: 'HR'
+  },
+  {
+    id: 'proj-2',
+    name: 'Đo lường & Đồng bộ OKRs doanh nghiệp',
+    description: 'Xây dựng giải pháp phần mềm tự động giúp theo dõi mục tiêu then chốt của từng phòng ban.',
+    status: 'active',
+    dueDate: '2026-09-15',
+    department: 'IT'
+  },
+  {
+    id: 'proj-3',
+    name: 'Chiến dịch Quảng bá Sản phẩm 2026',
+    description: 'Phát triển thương hiệu số thông qua các kênh truyền thông trực tuyến và sự kiện khách hàng.',
+    status: 'on_hold',
+    dueDate: '2026-10-01',
+    department: 'Marketing'
+  },
+  {
+    id: 'proj-4',
+    name: 'Tối ưu hóa SLA kỹ thuật',
+    description: 'Giảm thời gian phản hồi yêu cầu hỗ trợ khách hàng từ 4 giờ xuống còn dưới 1 giờ.',
+    status: 'completed',
+    dueDate: '2026-06-30',
+    department: 'IT'
+  }
+];
+
 import React, { useState, useEffect } from 'react';
 import { User } from '../App';
 import { useLanguage } from './LanguageContext';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import jsPDF from 'jspdf';
@@ -22,27 +71,45 @@ import {
   FileText,
   X
 } from 'lucide-react';
+import TasklistView from './TasklistView';
+import { AppNotification } from '../types';
 
 interface ProjectManagementViewProps {
   user: User;
+  allUsers: User[];
   onNavigateToTasks?: (taskListId: string) => void;
+  onSendNotification: (notifData: Omit<AppNotification, 'id' | 'createdAt'>) => void;
+  initialTab?: 'projects' | 'tasks';
+  onTabChange?: (tab: 'projects' | 'tasks') => void;
+  initialListId?: string;
 }
 
-interface ProjectData {
-  id: string;
-  name: string;
-  description: string;
-  status: 'active' | 'completed' | 'on_hold';
-  dueDate: string;
-  startDate?: string;
-  parentProjectId?: string;
-  taskListIds?: string[];
-  department?: string;
-}
-
-const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user }) => {
+const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ 
+  user, 
+  allUsers, 
+  onSendNotification, 
+  initialTab = 'projects', 
+  onTabChange,
+  initialListId
+}) => {
   const { t } = useLanguage();
-  const [projects, setProjects] = useState<ProjectData[]>([]);
+  const [projects, setProjects] = useState<ProjectData[]>(() => {
+    const saved = localStorage.getItem('mock_projects');
+    return saved ? JSON.parse(saved) : fallbackProjects;
+  });
+  const [activeTab, setActiveTab] = useState<'projects' | 'tasks'>(initialTab);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  const handleTabChange = (tab: 'projects' | 'tasks') => {
+    setActiveTab(tab);
+    if (onTabChange) {
+      onTabChange(tab);
+    }
+  };
+
   const [toastMessage, setToastMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
@@ -62,12 +129,18 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user }) =
   });
 
   useEffect(() => {
+    if (!auth || !auth.currentUser || (user && user.id.startsWith('user-'))) {
+      return;
+    }
+
     const unsub = onSnapshot(collection(db, 'projects'), (snapshot) => {
       const projs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ProjectData));
       setProjects(projs);
+    }, (error) => {
+      console.error('Error fetching projects:', error);
     });
     return () => unsub();
-  }, []);
+  }, [user?.id]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -76,17 +149,46 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user }) =
 
   const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
+    const isMock = !auth || !auth.currentUser || (user && user.id.startsWith('user-'));
     try {
       if (modalMode === 'add') {
-        await addDoc(collection(db, 'projects'), {
+        const newProj: ProjectData = {
           ...currentProject,
-          createdAt: new Date().toISOString(),
-          userId: user.id
-        });
-        showToast('Đã thêm dự án mới thành công!');
+          id: isMock ? `proj-${Date.now()}` : '',
+          dueDate: currentProject.dueDate || new Date().toISOString().split('T')[0],
+          status: currentProject.status || 'active',
+          name: currentProject.name || '',
+          description: currentProject.description || '',
+          department: currentProject.department || 'None'
+        } as ProjectData;
+
+        if (isMock) {
+          const updated = [...projects, newProj];
+          setProjects(updated);
+          localStorage.setItem('mock_projects', JSON.stringify(updated));
+          showToast('Đã thêm dự án mới thành công!');
+        } else {
+          await addDoc(collection(db, 'projects'), {
+            name: newProj.name,
+            description: newProj.description,
+            status: newProj.status,
+            dueDate: newProj.dueDate,
+            department: newProj.department,
+            createdAt: new Date().toISOString(),
+            userId: user.id
+          });
+          showToast('Đã thêm dự án mới thành công!');
+        }
       } else if (currentProject.id) {
-        await updateDoc(doc(db, 'projects', currentProject.id), currentProject);
-        showToast('Đã cập nhật dự án thành công!');
+        if (isMock) {
+          const updated = projects.map(p => p.id === currentProject.id ? { ...p, ...currentProject } as ProjectData : p);
+          setProjects(updated);
+          localStorage.setItem('mock_projects', JSON.stringify(updated));
+          showToast('Đã cập nhật dự án thành công!');
+        } else {
+          await updateDoc(doc(db, 'projects', currentProject.id), currentProject);
+          showToast('Đã cập nhật dự án thành công!');
+        }
       }
       setShowAddModal(false);
     } catch (error) {
@@ -97,9 +199,17 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user }) =
 
   const handleDeleteProject = async (id: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa dự án này?')) {
+      const isMock = !auth || !auth.currentUser || (user && user.id.startsWith('user-'));
       try {
-        await deleteDoc(doc(db, 'projects', id));
-        showToast('Đã xóa dự án.');
+        if (isMock) {
+          const updated = projects.filter(p => p.id !== id);
+          setProjects(updated);
+          localStorage.setItem('mock_projects', JSON.stringify(updated));
+          showToast('Đã xóa dự án.');
+        } else {
+          await deleteDoc(doc(db, 'projects', id));
+          showToast('Đã xóa dự án.');
+        }
       } catch (error) {
         console.error('Error deleting project:', error);
         showToast('Có lỗi xảy ra khi xóa dự án.');
@@ -185,21 +295,50 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user }) =
   return (
     <StandardPageLayout>
       <PageBanner 
-        title="Quản lý Dự án & Tiến độ"
-        subtitle="Theo dõi, quản lý và tối ưu hóa hiệu suất các dự án chiến lược của doanh nghiệp."
-        icon={<LayoutGrid className="w-full h-full text-white" />}
+        title={activeTab === 'projects' ? "Quản lý Dự án & Tiến độ" : "Quản lý công việc"}
+        subtitle={activeTab === 'projects' ? "Theo dõi, quản lý và tối ưu hóa hiệu suất các dự án chiến lược của doanh nghiệp." : "“Việc nhỏ – nhưng nhớ kỹ. Đồng bộ, nhắc đúng, xử lý gọn.”"}
+        icon={activeTab === 'projects' ? <LayoutGrid className="w-full h-full text-white" /> : <CheckCircle2 className="w-full h-full text-white" />}
         gradient="from-indigo-600 to-blue-700"
         actions={
-          <button 
-            onClick={() => openAddModal()}
-            className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all"
-          >
-            <Plus className="w-4 h-4" /> Tạo dự án mới
-          </button>
+          activeTab === 'projects' ? (
+            <button 
+              onClick={() => openAddModal()}
+              className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Tạo dự án mới
+            </button>
+          ) : undefined
         }
       />
 
-      <div className="flex flex-col gap-6">
+      {/* Sub-navigation Tabs */}
+      <div className="flex border-b border-gray-200 dark:border-slate-800 mb-6 bg-white dark:bg-slate-900 rounded-xl p-1.5 shadow-sm border">
+        <button
+          onClick={() => handleTabChange('projects')}
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+            activeTab === 'projects'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+          }`}
+        >
+          <LayoutGrid className="w-4 h-4" />
+          <span>Dự án</span>
+        </button>
+        <button
+          onClick={() => handleTabChange('tasks')}
+          className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg text-xs font-bold transition-all ${
+            activeTab === 'tasks'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+          }`}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          <span>Công việc</span>
+        </button>
+      </div>
+
+      {activeTab === 'projects' ? (
+        <div className="flex flex-col gap-6">
         {/* Statistics Section */}
         <ContentCard>
           <div className="flex flex-col gap-4">
@@ -484,6 +623,9 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user }) =
           </div>
         </ContentCard>
       </div>
+      ) : (
+        <TasklistView user={user} allUsers={allUsers} onSendNotification={onSendNotification} isEmbedded={true} initialListId={initialListId} />
+      )}
 
       {/* Add/Edit Project Modal */}
       {showAddModal && (

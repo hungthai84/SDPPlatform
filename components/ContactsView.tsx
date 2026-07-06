@@ -6,7 +6,6 @@ import ContactCard, { Contact } from './ContactCard';
 import { UsersIcon, SitemapIcon, ChatIcon, XIcon, MailIcon } from './icons';
 import { useLanguage } from './LanguageContext';
 import CreateContactModal from './CreateContactModal';
-import OrgChartView from './OrgChartView';
 import { Search, Filter, Plus, Download, Upload, Grid, List, Share2 } from 'lucide-react';
 
 // MOCK DATA
@@ -36,7 +35,7 @@ interface ContactsViewProps {
 }
 
 const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate }) => {
-    const [view, setView] = useState<'card' | 'list' | 'org'>('card');
+    const [view, setView] = useState<'card' | 'list'>('card');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDept, setSelectedDept] = useState<string>('all');
     const [contacts, setContacts] = useState<Contact[]>(initialContacts);
@@ -139,7 +138,6 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate })
                         <div className="flex bg-white/10 p-1 rounded-xl shadow-sm border border-white/20 mr-2">
                             <button onClick={() => setView('card')} className={`p-2 rounded-lg transition-all ${view === 'card' ? 'bg-white text-purple-600 shadow-sm' : 'text-white hover:bg-white/10'}`}><Grid className="w-4 h-4" /></button>
                             <button onClick={() => setView('list')} className={`p-2 rounded-lg transition-all ${view === 'list' ? 'bg-white text-purple-600 shadow-sm' : 'text-white hover:bg-white/10'}`}><List className="w-4 h-4" /></button>
-                            <button onClick={() => setView('org')} className={`p-2 rounded-lg transition-all ${view === 'org' ? 'bg-white text-purple-600 shadow-sm' : 'text-white hover:bg-white/10'}`}><SitemapIcon className="w-4 h-4" /></button>
                         </div>
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".csv" />
                         <button onClick={handleImportClick} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
@@ -245,11 +243,7 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate })
                             </div>
                         )}
 
-                        {view === 'org' && (
-                            <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 min-h-[500px]">
-                                <OrgChartView />
-                            </div>
-                        )}
+
 
                         {filteredContacts.length === 0 && (
                             <div className="text-center py-20 bg-gray-50 rounded-3xl border border-gray-100 border-dashed">

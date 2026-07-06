@@ -4,12 +4,8 @@ import PageBanner from './PageBanner';
 import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import { 
     FolderIcon, ChevronLeftIcon, 
-    FileTextIcon, FileImageIcon, FileVideoIcon, FilePdfIcon, TrashIcon, InfoIcon,
-    GoogleIcon, SyncIcon
+    FileTextIcon, FileImageIcon, FileVideoIcon, FilePdfIcon, TrashIcon, InfoIcon
 } from './icons';
-import { useLanguage } from './LanguageContext';
-import GooglePickerButton from './GooglePickerButton';
-import { getAccessToken } from '../firebase';
 import { Search, Plus, Download, Grid, List, Share2 } from 'lucide-react';
 
 // --- TYPES ---
@@ -60,10 +56,8 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
     const [currentFolderId, setCurrentFolderId] = useState('root');
     const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-    const [isSyncing, setIsSyncing] = useState(false);
     const [toastMessage, setToastMessage] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    const { t } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const showToast = (msg: string) => {
@@ -118,51 +112,6 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
         }
     };
 
-interface GoogleDriveFile {
-    id: string;
-    name: string;
-    mimeType: string;
-    size?: string;
-    modifiedTime?: string;
-    owners?: { displayName: string }[];
-}
-
-    const handleSync = async () => {
-        setIsSyncing(true);
-        showToast(t('syncing'));
-        try {
-            const token = await getAccessToken();
-            if (!token) throw new Error('No access token available');
-            const response = await fetch('https://www.googleapis.com/drive/v3/files?fields=files(id,name,mimeType,size,modifiedTime,owners)&q=mimeType!="application/vnd.google-apps.folder" and trashed=false', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (!response.ok) throw new Error('Drive sync failed');
-            const data = await response.json();
-            if (data.files) {
-                const newFiles: FileSystemItem[] = data.files.map((file: GoogleDriveFile) => ({
-                    id: file.id,
-                    name: file.name,
-                    type: file.mimeType.includes('pdf') ? 'pdf' : file.mimeType.includes('image') ? 'png' : file.mimeType.includes('video') ? 'mp4' : 'docx',
-                    size: file.size ? (parseInt(file.size) > 1024 * 1024 ? (parseInt(file.size) / (1024 * 1024)).toFixed(1) + ' MB' : (parseInt(file.size) / 1024).toFixed(0) + ' KB') : '-',
-                    modifiedAt: file.modifiedTime ? new Date(file.modifiedTime).toLocaleDateString() : '',
-                    owner: file.owners?.[0]?.displayName || 'Me',
-                    parentId: currentFolderId,
-                    source: 'google'
-                }));
-                setMockFileSystem(prev => {
-                    const existingIds = new Set(prev.map(i => i.id));
-                    return [...prev, ...newFiles.filter(f => !existingIds.has(f.id))];
-                });
-                showToast(`Đã đồng bộ ${newFiles.length} tệp từ Google Drive!`);
-            }
-        } catch (err) {
-            console.error(err);
-            showToast('Lỗi đồng bộ Google Drive.');
-        } finally {
-            setIsSyncing(false);
-        }
-    };
-
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files) return;
@@ -178,24 +127,6 @@ interface GoogleDriveFile {
         setMockFileSystem(prev => [...prev, ...newFiles]);
     };
 
-    const handlePickedFromDrive = (docs: GoogleDriveFile[]) => {
-        const newFiles: FileSystemItem[] = docs.map(doc => ({
-            id: doc.id,
-            name: doc.name,
-            type: doc.mimeType?.includes('pdf') ? 'pdf' : doc.mimeType?.includes('image') ? 'png' : doc.mimeType?.includes('video') ? 'mp4' : 'docx',
-            size: doc.sizeBytes ? `${(doc.sizeBytes / 1024).toFixed(0)} KB` : '-',
-            modifiedAt: new Date().toISOString().split('T')[0],
-            owner: 'Google Drive',
-            parentId: currentFolderId,
-            source: 'google'
-        }));
-        setMockFileSystem(prev => {
-            const existingIds = new Set(prev.map(i => i.id));
-            return [...prev, ...newFiles.filter(f => !existingIds.has(f.id))];
-        });
-        showToast(`Đã thêm ${newFiles.length} tệp từ Google Drive!`);
-    };
-
     return (
         <StandardPageLayout>
             <PageBanner 
@@ -209,10 +140,6 @@ interface GoogleDriveFile {
                             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-white hover:bg-white/10'}`}><Grid className="w-4 h-4" /></button>
                             <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-white hover:bg-white/10'}`}><List className="w-4 h-4" /></button>
                         </div>
-                        <button onClick={handleSync} disabled={isSyncing} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
-                            <SyncIcon className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} /> Đồng bộ
-                        </button>
-                        <GooglePickerButton onPicked={handlePickedFromDrive} className="!bg-white/20 !hover:bg-white/30 !text-white !border-none !shadow-none !px-3 !py-1.5 !rounded-lg !text-xs !font-semibold" />
                         <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 bg-white text-blue-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all">
                             <Plus className="w-4 h-4" /> Tải lên
                         </button>

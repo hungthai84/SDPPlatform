@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Database connection is disabled as requested by the user.
 // Mock database interface to prevent crashes while maintaining the expected API structure.
 const mockDbCall = {

@@ -3,7 +3,7 @@ import PageBanner from './PageBanner';
 import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 import { FileTextIcon, XIcon, ClipboardListIcon, TrashIcon, ClockIcon, PlusIcon, DownloadIcon } from './icons';
 import { RecentItem, AppNotification } from '../App';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -584,6 +584,11 @@ const TaskView: React.FC<TaskViewProps> = ({ onItemViewed, onSendNotification })
     const [notifiedTasks, setNotifiedTasks] = useState<Set<string>>(new Set());
 
     useEffect(() => {
+        if (!auth || !auth.currentUser) {
+            setTasks(mockTasks);
+            return;
+        }
+
         const unsubscribe = onSnapshot(collection(db, 'kanban_tasks'), (snapshot) => {
             if (snapshot.empty) {
                 // Seed mock data if collection is completely empty
@@ -597,6 +602,9 @@ const TaskView: React.FC<TaskViewProps> = ({ onItemViewed, onSendNotification })
                 fetchedTasks.push({ id: docSnap.id, ...docSnap.data() } as Task);
             });
             setTasks(fetchedTasks);
+        }, (error) => {
+            console.error('Error listening to kanban_tasks:', error);
+            setTasks(mockTasks);
         });
         return () => unsubscribe();
     }, []);
