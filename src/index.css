@@ -1,13 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-display: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 *, *::before, *::after {
-  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif !important;
+  font-family: inherit;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -37,13 +38,19 @@
   --btn-size: 18px;
   --caption-size: 16.5px;
 
+  /* Glassmorphism specs from framework */
+  --sidebar-blur: 10px;
+  --card-blur: 10px;
+  --content-blur: 12px;
+  --radius: 10px;
+
   /* Theme variables (Muted, Primary, Borders, etc.) */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
   --ring: 222.2 84% 4.9%;
-  --radius: 0.5rem;
+  --radius: 10px;
   --primary: 222.2 47.4% 11.2%;
   --primary-foreground: 210 40% 98%;
   --muted: 210 40% 96.1%;
@@ -106,7 +113,7 @@
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
   --ring: 212.7 26.8% 83.9%;
-  --radius: 0.5rem;
+  --radius: 10px;
   --muted: 217.2 32.6% 17.5%;
   --muted-foreground: 215 20.2% 65.1%;
   --codebg: #030608;
@@ -397,7 +404,7 @@ button, .btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 8px !important;
+  border-radius: 999px !important;
   transition: all 0.2s ease !important;
 }
 
@@ -408,7 +415,18 @@ input, select, textarea {
   height: calc(44px * var(--layout-spacing-factor, 1)) !important; /* Exact 44px height */
   min-height: calc(44px * var(--layout-spacing-factor, 1)) !important;
   padding: calc(8px * var(--layout-spacing-factor, 1)) calc(16px * var(--layout-spacing-factor, 1)) !important;
-  border-radius: 8px !important;
+  border-radius: 10px !important;
+}
+
+/* Global card and container radius overrides */
+.rounded-md:not(button), .rounded-lg:not(button), .rounded-xl:not(button), .rounded-2xl:not(button), .rounded-3xl:not(button) {
+  border-radius: 10px !important;
+}
+
+/* Specific override for any rounded classes on buttons to remain full rounded */
+button.rounded-md, button.rounded-lg, button.rounded-xl, button.rounded-2xl, button.rounded-3xl,
+.btn.rounded-md, .btn.rounded-lg, .btn.rounded-xl, .btn.rounded-2xl, .btn.rounded-3xl {
+  border-radius: 999px !important;
 }
 
 input::placeholder {

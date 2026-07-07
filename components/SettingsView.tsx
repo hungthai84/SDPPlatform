@@ -165,8 +165,12 @@ interface SettingsViewProps {
     setWallpaper: (wallpaper: { type: string; value: string; bgColor?: string; size?: string; thumbnail?: string }) => void;
     sidebarOpacity: number;
     setSidebarOpacity: (opacity: number) => void;
+    contentOpacity: number;
+    setContentOpacity: (opacity: number) => void;
     cardOpacity: number;
     setCardOpacity: (opacity: number) => void;
+    cardBgColor: string;
+    setCardBgColor: (color: string) => void;
 }
 type Theme = 'light' | 'dark' | 'system';
 const THEMES: { name: Theme, icon: React.ReactNode }[] = [
@@ -270,6 +274,39 @@ const PATTERN_WALLPAPERS = [
   }
 ];
 
+const THEME_PRESETS = [
+    { id: 'slate', name: 'Mặc định (Slate)', lightBg: '255, 255, 255', darkBg: '15, 23, 42' },
+    { id: 'midnight', name: 'Huyền bí (Midnight)', lightBg: '241, 245, 249', darkBg: '3, 7, 18' },
+    { id: 'amber', name: 'Ấm áp (Amber)', lightBg: '254, 243, 199', darkBg: '20, 12, 3' },
+    { id: 'ocean', name: 'Biển khơi (Ocean)', lightBg: '204, 251, 241', darkBg: '2, 14, 18' },
+];
+
+const CARD_COLORS = [
+    { name: 'white', color: '255, 255, 255', hex: '#ffffff' },
+    { name: 'slate', color: '248, 250, 252', hex: '#f8fafc' },
+    { name: 'gray', color: '249, 250, 251', hex: '#f9fafb' },
+    { name: 'zinc', color: '250, 250, 250', hex: '#fafafa' },
+    { name: 'stone', color: '250, 250, 249', hex: '#fafaf9' },
+    { name: 'cream', color: '255, 253, 245', hex: '#fffdf5' },
+    { name: 'blue-tint', color: '240, 249, 255', hex: '#f0f9ff' },
+    { name: 'rose-tint', color: '255, 241, 242', hex: '#fff1f2' },
+    { name: 'emerald-tint', color: '236, 253, 245', hex: '#ecfdf5' },
+];
+
+const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 255, 255';
+};
+
+const rgbToHex = (rgb: string) => {
+    const parts = rgb.split(',').map(p => parseInt(p.trim()));
+    if (parts.length !== 3 || parts.some(isNaN)) return '#ffffff';
+    return '#' + parts.map(x => {
+        const hex = x.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+};
+
 const mockFetchedArticles = [
     {
       id: 'blogger-1',
@@ -299,8 +336,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     setWallpaper,
     sidebarOpacity,
     setSidebarOpacity,
+    contentOpacity,
+    setContentOpacity,
     cardOpacity,
-    setCardOpacity
+    setCardOpacity,
+    cardBgColor,
+    setCardBgColor
 }) => {
     const { t } = useLanguage();
     const [activeSection, setActiveSection] = useState('profile');
@@ -398,6 +439,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         setIsSoundEffectsEnabled(localStorage.getItem('soundEffectsEnabled') !== 'false');
         setIsCursorTrailsEnabled(localStorage.getItem('cursorTrailsEnabled') === 'true');
         setSelectedVoiceURI(localStorage.getItem('selectedVoiceURI'));
+        setSidebarOpacity(Number(localStorage.getItem('sidebarOpacity') || '90'));
+        setContentOpacity(Number(localStorage.getItem('contentOpacity') || '30'));
+        setCardOpacity(Number(localStorage.getItem('cardOpacity') || '95'));
+        setCardBgColor(localStorage.getItem('cardBgColor') || '255, 255, 255');
         setBlogUrl(localStorage.getItem('blog_settings_url') || '');
         setBlogFrequency(localStorage.getItem('blog_settings_frequency') || 'manual');
         setDriveUrl(localStorage.getItem('drive_settings_url') || '');
@@ -712,6 +757,110 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 <span className="text-md font-mono font-bold text-[--color-text-primary] bg-[--color-surface-primary] px-3 py-1 rounded-md shadow-sm border border-[--color-border-secondary]">
                                     {cardOpacity}%
                                 </span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-[--color-border-secondary] pt-6 space-y-6">
+                            <div>
+                                <label className="text-lg font-bold text-[--color-text-primary]">Chủ đề màu sắc (Framework Presets)</label>
+                                <p className="text-sm text-[--color-text-subtle] mb-4">Chọn các bảng màu chuẩn theo khung kiến trúc Universal UX/UI.</p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                    {THEME_PRESETS.map(preset => {
+                                        const isActive = cardBgColor === (theme === 'dark' ? preset.darkBg : preset.lightBg);
+                                        return (
+                                            <button 
+                                                key={preset.id}
+                                                onClick={() => setCardBgColor(theme === 'dark' ? preset.darkBg : preset.lightBg)}
+                                                className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${isActive ? 'border-[--color-accent-500] bg-[--color-accent-500]/5' : 'border-transparent bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                                            >
+                                                <div className="w-full h-12 rounded-lg shadow-sm" style={{ backgroundColor: `rgb(${theme === 'dark' ? preset.darkBg : preset.lightBg})` }} />
+                                                <span className="text-xs font-bold text-center leading-tight">{preset.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-lg font-bold text-[--color-text-primary]">Tùy chọn màu nền</label>
+                                <p className="text-sm text-[--color-text-subtle] mb-4">Hoặc tự chọn màu nền thủ công.</p>
+                                <div className="flex flex-wrap gap-3 mb-4">
+                                    {CARD_COLORS.map(c => (
+                                        <button 
+                                            key={c.name} 
+                                            onClick={() => setCardBgColor(c.color)} 
+                                            className={`w-10 h-10 rounded-full flex items-center justify-center ring-2 ring-offset-2 dark:ring-offset-slate-800 transition-all border ${cardBgColor === c.color ? 'ring-[--color-accent-500]' : 'ring-transparent border-slate-200 dark:border-slate-700'}`} 
+                                            style={{ backgroundColor: c.hex }}
+                                            title={c.name}
+                                        >
+                                            {cardBgColor === c.color && <CheckIcon className="w-5 h-5 text-slate-600" />}
+                                        </button>
+                                    ))}
+                                    <div className="relative group">
+                                        <input 
+                                            type="color" 
+                                            value={rgbToHex(cardBgColor)}
+                                            onChange={(e) => setCardBgColor(hexToRgb(e.target.value))}
+                                            className="w-10 h-10 rounded-full cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-600 p-0 overflow-hidden bg-transparent"
+                                        />
+                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                                            Tùy chỉnh
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <label className="text-base font-bold text-[--color-text-primary]">Độ trong suốt Menu (Sidebar)</label>
+                                            <p className="text-xs text-[--color-text-subtle]">Khuyến nghị: 80% - 95%</p>
+                                        </div>
+                                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{sidebarOpacity}%</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="10" max="100" 
+                                        value={sidebarOpacity} 
+                                        onChange={(e) => setSidebarOpacity(parseInt(e.target.value))}
+                                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                    />
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <label className="text-base font-bold text-[--color-text-primary]">Độ trong suốt Nền bao quanh (Content)</label>
+                                            <p className="text-xs text-[--color-text-subtle]">Khuyến nghị: 15% - 40%</p>
+                                        </div>
+                                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{contentOpacity}%</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="0" max="100" 
+                                        value={contentOpacity} 
+                                        onChange={(e) => setContentOpacity(parseInt(e.target.value))}
+                                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                    />
+                                </div>
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <label className="text-base font-bold text-[--color-text-primary]">Độ trong suốt Thẻ (Card)</label>
+                                            <p className="text-xs text-[--color-text-subtle]">Khuyến nghị: 70% - 90%</p>
+                                        </div>
+                                        <span className="text-sm font-black text-indigo-600 dark:text-indigo-400">{cardOpacity}%</span>
+                                    </div>
+                                    <input 
+                                        type="range" 
+                                        min="10" max="100" 
+                                        value={cardOpacity} 
+                                        onChange={(e) => setCardOpacity(parseInt(e.target.value))}
+                                        className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                                    />
+                                </div>
                             </div>
                         </div>
                      </ContentCard>

@@ -473,17 +473,78 @@ const AppContent: React.FC = () => {
   const [sidebarOpacity, setSidebarOpacity] = useState<number>(() => {
     return Number(localStorage.getItem('sidebarOpacity') || '90');
   });
+  const [contentOpacity, setContentOpacity] = useState<number>(() => {
+    return Number(localStorage.getItem('contentOpacity') || '30');
+  });
   const [cardOpacity, setCardOpacity] = useState<number>(() => {
     return Number(localStorage.getItem('cardOpacity') || '95');
   });
+  const [cardBgColor, setCardBgColor] = useState<string>(() => {
+    return localStorage.getItem('cardBgColor') || '255, 255, 255';
+  });
+
+  const playClickSound = React.useCallback(() => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const audioCtx = new AudioContextClass();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(950, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1400, audioCtx.currentTime + 0.04);
+      
+      gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.04);
+      
+      // Cleanup
+      setTimeout(() => audioCtx.close(), 100);
+    } catch (e) {
+      console.warn('Audio feedback failed', e);
+    }
+  }, []);
+
+  // Global click listener for tactile feedback
+  React.useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.closest('button') || 
+        target.closest('[role="button"]') || 
+        target.closest('input[type="checkbox"]') ||
+        target.closest('input[type="radio"]') ||
+        target.closest('.interactive')
+      ) {
+        playClickSound();
+      }
+    };
+
+    window.addEventListener('mousedown', handleGlobalClick);
+    return () => window.removeEventListener('mousedown', handleGlobalClick);
+  }, [playClickSound]);
 
   React.useEffect(() => {
     localStorage.setItem('sidebarOpacity', sidebarOpacity.toString());
   }, [sidebarOpacity]);
 
   React.useEffect(() => {
+    localStorage.setItem('contentOpacity', contentOpacity.toString());
+  }, [contentOpacity]);
+
+  React.useEffect(() => {
     localStorage.setItem('cardOpacity', cardOpacity.toString());
   }, [cardOpacity]);
+
+  React.useEffect(() => {
+    localStorage.setItem('cardBgColor', cardBgColor);
+  }, [cardBgColor]);
 
   const borderColors = [
     'border-[#4f46e5]', // Indigo
@@ -947,8 +1008,12 @@ const AppContent: React.FC = () => {
             setWallpaper={setWallpaper} 
             sidebarOpacity={sidebarOpacity}
             setSidebarOpacity={setSidebarOpacity}
+            contentOpacity={contentOpacity}
+            setContentOpacity={setContentOpacity}
             cardOpacity={cardOpacity}
             setCardOpacity={setCardOpacity}
+            cardBgColor={cardBgColor}
+            setCardBgColor={setCardBgColor}
           />
         );
       case 'personnel':
@@ -979,6 +1044,7 @@ const AppContent: React.FC = () => {
       className="h-screen w-screen bg-transparent p-0 sm:p-[15px] font-sans text-[--color-text-primary] overflow-hidden relative"
       style={{
         '--sidebar-opacity': sidebarOpacity / 100,
+        '--content-opacity': contentOpacity / 100,
         '--card-opacity': cardOpacity / 100,
       } as React.CSSProperties}
     >
@@ -1029,11 +1095,11 @@ const AppContent: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -5 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300"
+              className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 rounded-[10px]"
               style={{
                 boxShadow: '0 4px 30px rgba(0, 0, 0, 0.05)',
-                backgroundColor: 'rgba(var(--color-card-bg-rgb, 255, 255, 255), var(--card-opacity, 1))',
-                backdropFilter: 'blur(12px)',
+                backgroundColor: `rgba(${cardBgColor}, ${contentOpacity / 100})`,
+                backdropFilter: 'blur(var(--content-blur, 12px))',
               }}
             >
               {renderMainView()}

@@ -7,7 +7,7 @@ import {
 // --- Reusable Components for Standard Layout ---
 
 export const Banner: React.FC<{ title: string; icon: React.ReactNode; description: string }> = ({ title, icon, description }) => (
-  <div className="flex flex-col md:flex-row items-start justify-between gap-6 mb-8 bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/50 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative">
+  <div className="flex flex-col md:flex-row items-start justify-between gap-6 mb-8 bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-900/50 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden relative" style={{ backgroundColor: 'rgba(var(--color-card-bg-rgb, 255, 255, 255), var(--card-opacity, 0.9))', backdropFilter: 'blur(var(--card-blur, 10px))' }}>
     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 blur-[120px] rounded-full -mr-20 -mt-20" />
     
     {/* Left Column (70%) */}
@@ -16,8 +16,8 @@ export const Banner: React.FC<{ title: string; icon: React.ReactNode; descriptio
         {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
       </div>
       <div>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">{title}</h1>
-        <p className="text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl">{description}</p>
+        <h1 className="text-3xl font-display font-black text-slate-900 dark:text-white tracking-tight mb-2">{title}</h1>
+        <p className="text-base text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl font-sans">{description}</p>
       </div>
     </div>
 
@@ -52,16 +52,16 @@ export const Tabs: React.FC<{ items: string[]; activeTab: string; onTabChange: (
 export const StatsGrid: React.FC<{ stats: Array<{ label: string; value: string; trend?: string; color?: string }> }> = ({ stats }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
     {stats.map((stat, i) => (
-      <div key={i} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:border-indigo-100 dark:hover:border-indigo-900/50 transition-all group">
+      <div key={i} className="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:border-indigo-100 dark:hover:border-indigo-900/50 transition-all group" style={{ backgroundColor: 'rgba(var(--color-card-bg-rgb, 255, 255, 255), var(--card-opacity, 0.9))', backdropFilter: 'blur(var(--card-blur, 10px))' }}>
         <div className="flex items-center justify-between mb-2">
-          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">{stat.label}</p>
+          <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider font-sans">{stat.label}</p>
           {stat.trend && (
-            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-500 font-mono">
               <TrendingUp className="w-3 h-3" /> {stat.trend}
             </span>
           )}
         </div>
-        <p className={`text-2xl font-black ${stat.color || 'text-slate-900 dark:text-white'}`}>{stat.value}</p>
+        <p className={`text-2xl font-black font-mono ${stat.color || 'text-slate-900 dark:text-white'}`}>{stat.value}</p>
       </div>
     ))}
   </div>
@@ -75,7 +75,7 @@ export const MainContentWrapper: React.FC<{
   viewMode?: 'grid' | 'list';
   setViewMode?: (mode: 'grid' | 'list') => void;
 }> = ({ children, onSearch, onCreate, createLabel, viewMode, setViewMode }) => (
-  <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+  <div className="rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden" style={{ backgroundColor: 'rgba(var(--color-card-bg-rgb, 255, 255, 255), var(--card-opacity, 0.9))', backdropFilter: 'blur(var(--card-blur, 10px))' }}>
     {/* Toolbar */}
     <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
       <div className="flex items-center gap-4 w-full md:w-auto">

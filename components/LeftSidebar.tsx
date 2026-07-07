@@ -94,7 +94,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
       <aside 
         style={{ 
           backgroundColor: 'rgba(var(--color-card-bg-rgb, 255, 255, 255), var(--sidebar-opacity, 0.9))',
-          backdropFilter: 'blur(12px)'
+          backdropFilter: 'blur(var(--sidebar-blur, 10px))'
         }}
         className={`relative flex flex-col p-3 h-full border-r border-gray-100 dark:border-gray-800 transition-all duration-300 ease-in-out shrink-0 ${isCollapsed ? 'w-16' : 'w-[200px]'}`}
       >
