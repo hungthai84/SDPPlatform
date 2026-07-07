@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { User, View } from '../App';
 import { useLanguage } from './LanguageContext';
 import { initialContacts } from './ContactsView';
-import { ClassBannerBg, mockClasses, ClassInfo } from './TrainingDashboardView';
+import { ClassBannerBg, mockClasses, ClassInfo } from './TrainingData';
 import { OnlineLearningView } from './OnlineLearningView';
 import { 
   MessageSquare, 

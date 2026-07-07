@@ -12,7 +12,7 @@ import {
 import UserManagementView from './UserManagementView';
 import WebsiteDataView from './WebsiteDataView';
 import PageBanner from './PageBanner';
-import StandardPageLayout from './StandardPageLayout';
+import StandardPageLayout, { ContentCard } from './StandardPageLayout';
 
 enum OperationType {
   CREATE = 'create',
@@ -180,6 +180,12 @@ const ACCENT_COLORS = [
     { name: 'orange', color: '#f97316' },
     { name: 'green', color: '#22c55e' },
     { name: 'purple', color: '#a855f7' },
+    { name: 'indigo', color: '#4f46e5' },
+    { name: 'blue', color: '#3b82f6' },
+    { name: 'emerald', color: '#10b981' },
+    { name: 'amber', color: '#f59e0b' },
+    { name: 'pink', color: '#ec4899' },
+    { name: 'teal', color: '#14b8a6' },
 ];
 
 const IMAGE_WALLPAPERS = [
@@ -296,7 +302,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     cardOpacity,
     setCardOpacity
 }) => {
-    const { language, setLanguage, t } = useLanguage();
+    const { t } = useLanguage();
     const [activeSection, setActiveSection] = useState('profile');
 
     // Profile States
@@ -358,6 +364,25 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const [isSyncingZimbra, setIsSyncingZimbra] = useState(false);
     const [zimbraSyncMessage, setZimbraSyncMessage] = useState('');
 
+    const [fontSize, setLocalFontSize] = useState('medium');
+    const [layoutDensity, setLocalLayoutDensity] = useState('standard');
+
+    const applyFontSize = (size: string) => {
+        const sizeScaleMap: Record<string, string> = { 'small': '0.9', 'medium': '1.0', 'large': '1.15', 'xlarge': '1.3' };
+        const scale = sizeScaleMap[size] || '1.0';
+        document.documentElement.style.setProperty('--user-font-scale', scale);
+        localStorage.setItem('userFontSize', size);
+        setLocalFontSize(size);
+    };
+
+    const applyLayoutDensity = (density: string) => {
+        const densityScaleMap: Record<string, string> = { 'compact': '0.75', 'standard': '1.0', 'spacious': '1.25' };
+        const scale = densityScaleMap[density] || '1.0';
+        document.documentElement.style.setProperty('--layout-spacing-factor', scale);
+        localStorage.setItem('userLayoutDensity', density);
+        setLocalLayoutDensity(density);
+    };
+
     useEffect(() => {
         if(initialSection) {
             setActiveSection(initialSection);
@@ -381,6 +406,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
         setZimbraPassword(localStorage.getItem('zimbra_password') || '');
         setZimbraServer(localStorage.getItem('zimbra_server') || '');
         setZimbraFrequency(localStorage.getItem('zimbra_frequency') || 'manual');
+
+        const savedFontSize = localStorage.getItem('userFontSize') || 'medium';
+        const savedLayoutDensity = localStorage.getItem('userLayoutDensity') || 'standard';
+        applyFontSize(savedFontSize);
+        applyLayoutDensity(savedLayoutDensity);
 
         const loadVoices = () => {
             const availableVoices = window.speechSynthesis.getVoices();
@@ -410,8 +440,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     // Effects for other settings
     useEffect(() => { localStorage.setItem('aiSpeechEnabled', String(isSpeechEnabled)); }, [isSpeechEnabled]);
     useEffect(() => { localStorage.setItem('aiRobotEffectEnabled', String(isRobotEffectEnabled)); }, [isRobotEffectEnabled]);
-    useEffect(() => { localStorage.setItem('soundEffectsEnabled', String(isSoundEffectsEnabled)); }, [isSoundEffectsEnabled]);
-    useEffect(() => { localStorage.setItem('cursorTrailsEnabled', String(isCursorTrailsEnabled)); }, [isCursorTrailsEnabled]);
+    useEffect(() => { 
+        localStorage.setItem('soundEffectsEnabled', String(isSoundEffectsEnabled)); 
+        window.dispatchEvent(new Event('settings_changed'));
+    }, [isSoundEffectsEnabled]);
+    useEffect(() => { 
+        localStorage.setItem('cursorTrailsEnabled', String(isCursorTrailsEnabled)); 
+        window.dispatchEvent(new Event('settings_changed'));
+    }, [isCursorTrailsEnabled]);
     useEffect(() => { if (selectedVoiceURI) localStorage.setItem('selectedVoiceURI', selectedVoiceURI); }, [selectedVoiceURI]);
 
     // Blog Settings Logic
@@ -510,7 +546,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const sections = [
         { id: 'profile', label: t('profile'), icon: <UserCircleIcon className="w-5 h-5"/>, description: t('manageYourProfile') },
         { id: 'appearance', label: t('appearance') || 'Tùy chỉnh Giao diện', icon: <SunIcon className="w-5 h-5"/>, description: t('customizeAppearance') || 'Tùy chỉnh chủ đề và màu sắc của ứng dụng' },
-        { id: 'language', label: t('language'), icon: <GlobeIcon className="w-5 h-5"/>, description: t('chooseLanguage') },
         { id: 'effects', label: t('effectsAndSound'), icon: <ZapIcon className="w-5 h-5"/>, description: t('manageEffects') },
         { id: 'ai_voice', label: t('aiVoiceSettings'), icon: <RobotIcon className="w-5 h-5"/>, description: t('configureAiAssistant') },
         { id: 'zimbra', label: t('zimbraSettings'), icon: <MailIcon className="w-5 h-5"/>, description: t('zimbraSettingsDesc') },
@@ -520,7 +555,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({
     const renderSectionContent = () => {
         switch (activeSection) {
             case 'profile': return (
-                <div className="flex flex-col items-center gap-6 p-8 bg-[--color-surface-secondary] rounded-xl shadow-inner border border-[--color-border-primary]">
+                <ContentCard className="flex flex-col items-center gap-6 p-8">
                     <div className="relative group">
                         <div className="w-28 h-28 rounded-full bg-[--color-accent-500] text-white flex items-center justify-center font-bold text-4xl ring-4 ring-white shadow-xl overflow-hidden">
                             {isEditingProfile ? (
@@ -616,11 +651,11 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             {profileMessage}
                         </div>
                     )}
-                </div>
+                </ContentCard>
             );
             case 'appearance': return (
                 <div className="space-y-6">
-                    <div className="p-6 bg-[--color-surface-secondary] rounded-xl">
+                    <ContentCard className="p-6">
                         <label className="text-lg font-bold text-[--color-text-primary]">{t('mode')}</label>
                         <p className="text-sm text-[--color-text-subtle] mb-4">Chọn giao diện sáng, tối hoặc theo hệ thống.</p>
                         <div className="flex items-center bg-[--color-surface-primary] p-1 rounded-lg">
@@ -630,20 +665,20 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 </button>
                             ))}
                         </div>
-                    </div>
-                     <div className="p-6 bg-[--color-surface-secondary] rounded-xl">
+                    </ContentCard>
+                     <ContentCard className="p-6">
                         <label className="text-lg font-bold text-[--color-text-primary]">{t('accent')}</label>
                          <p className="text-sm text-[--color-text-subtle] mb-4">Chọn màu nhấn cho ứng dụng.</p>
                         <div className="flex justify-around p-2">
                             {ACCENT_COLORS.map(c => (
-                                <button key={c.name} onClick={() => setAccentColor(c.name)} className="w-10 h-10 rounded-full flex items-center justify-center ring-2 ring-offset-2 dark:ring-offset-slate-800 transition-all" style={{ backgroundColor: c.color, borderColor: accentColor === c.name ? c.color : 'transparent'}}>
+                                <button key={c.name} onClick={() => setAccentColor(c.name)} className="w-10 h-10 rounded-full flex items-center justify-center ring-2 ring-offset-2 dark:ring-offset-slate-800 transition-all animate-fade-in" style={{ backgroundColor: c.color, borderColor: accentColor === c.name ? c.color : 'transparent'}}>
                                     {accentColor === c.name && <CheckIcon className="w-6 h-6 text-white" />}
                                 </button>
                             ))}
                         </div>
-                    </div>
+                    </ContentCard>
 
-                     <div className="p-6 bg-[--color-surface-secondary] rounded-xl space-y-6">
+                     <ContentCard className="p-6 space-y-6">
                         <div>
                             <label className="text-lg font-bold text-[--color-text-primary]">Độ trong suốt thanh menu bên trái (Sidebar)</label>
                             <p className="text-sm text-[--color-text-subtle] mb-4">Điều chỉnh mức độ hiển thị trong suốt cho thanh menu.</p>
@@ -679,9 +714,62 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                                 </span>
                             </div>
                         </div>
-                     </div>
+                     </ContentCard>
+
+                     <ContentCard className="p-6 space-y-6">
+                        <div>
+                            <label className="text-lg font-bold text-[--color-text-primary]">Kích thước chữ hệ thống</label>
+                            <p className="text-sm text-[--color-text-subtle] mb-4">Căn chỉnh cỡ chữ để tối ưu hóa khả năng đọc trên màn hình lớn hoặc thiết bị di động.</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                {[
+                                    { id: 'small', label: 'Nhỏ', desc: '90%', scale: '0.9' },
+                                    { id: 'medium', label: 'Tiêu chuẩn', desc: '100%', scale: '1.0' },
+                                    { id: 'large', label: 'Lớn', desc: '115%', scale: '1.15' },
+                                    { id: 'xlarge', label: 'Rất lớn', desc: '130%', scale: '1.3' }
+                                ].map((sizeItem) => (
+                                    <button
+                                        key={sizeItem.id}
+                                        onClick={() => applyFontSize(sizeItem.id)}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                                            fontSize === sizeItem.id
+                                                ? 'bg-[--color-accent-100]/50 border-[--color-accent-500] text-[--color-accent-700] ring-1 ring-[--color-accent-500]'
+                                                : 'border-[--color-border-primary] hover:bg-black/5 dark:hover:bg-white/5 text-[--color-text-secondary]'
+                                        }`}
+                                    >
+                                        <span className="font-bold text-sm">{sizeItem.label}</span>
+                                        <span className="text-xs opacity-70 font-mono mt-1">{sizeItem.desc}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="border-t border-[--color-border-secondary] pt-6">
+                            <label className="text-lg font-bold text-[--color-text-primary]">Mật độ bố cục hiển thị</label>
+                            <p className="text-sm text-[--color-text-subtle] mb-4">Điều chỉnh khoảng cách, độ giãn dòng và mật độ thông tin hiển thị trên bảng biểu và danh sách.</p>
+                            <div className="grid grid-cols-3 gap-2">
+                                {[
+                                    { id: 'compact', label: 'Thu gọn (Compact)', desc: '75% Spacing' },
+                                    { id: 'standard', label: 'Mặc định (Standard)', desc: '100% Spacing' },
+                                    { id: 'spacious', label: 'Thoải mái (Spacious)', desc: '125% Spacing' }
+                                ].map((densityItem) => (
+                                    <button
+                                        key={densityItem.id}
+                                        onClick={() => applyLayoutDensity(densityItem.id)}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                                            layoutDensity === densityItem.id
+                                                ? 'bg-[--color-accent-100]/50 border-[--color-accent-500] text-[--color-accent-700] ring-1 ring-[--color-accent-500]'
+                                                : 'border-[--color-border-primary] hover:bg-black/5 dark:hover:bg-white/5 text-[--color-text-secondary]'
+                                        }`}
+                                    >
+                                        <span className="font-bold text-sm">{densityItem.label}</span>
+                                        <span className="text-xs opacity-70 font-mono mt-1">{densityItem.desc}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                     </ContentCard>
                     
-                    <div className="p-6 bg-[--color-surface-secondary] rounded-xl">
+                     <ContentCard className="p-6">
                         <div className="flex justify-between items-center mb-4">
                             <div>
                                 <label className="text-lg font-bold text-[--color-text-primary]">Hình nền</label>
@@ -808,271 +896,273 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             </div>
                             
                         </div>
-                    </div>
+                     </ContentCard>
                 </div>
             );
-             case 'language': return (
-                 <div className="p-6 bg-[--color-surface-secondary] rounded-xl space-y-2">
-                    <button onClick={() => setLanguage('vi')} className={`w-full text-left flex items-center justify-between p-3 rounded-lg text-md transition-colors ${language === 'vi' ? 'bg-[--color-surface-solid] text-[--color-text-primary] font-semibold shadow-sm' : 'text-[--color-text-secondary] hover:bg-[--color-surface-secondary]'}`}>
-                        <span>Tiếng Việt</span> {language === 'vi' && <CheckIcon className="w-5 h-5 text-[--color-accent-500]" />}
-                    </button>
-                    <button onClick={() => setLanguage('en')} className={`w-full text-left flex items-center justify-between p-3 rounded-lg text-md transition-colors ${language === 'en' ? 'bg-[--color-surface-solid] text-[--color-text-primary] font-semibold shadow-sm' : 'text-[--color-text-secondary] hover:bg-[--color-surface-secondary]'}`}>
-                        <span>English</span> {language === 'en' && <CheckIcon className="w-5 h-5 text-[--color-accent-500]" />}
-                    </button>
-                 </div>
-            );
             case 'effects': return (
-                <>
-                    <h3 className="text-xl font-bold text-[--color-text-primary] mb-4">{t('visualEffects')}</h3>
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-[--color-surface-secondary]">
-                        <div>
-                            <p className="font-medium text-[--color-text-primary]">{t('cursorTrails')}</p>
-                            <p className="text-sm text-[--color-text-subtle]">{t('cursorTrailsDesc')}</p>
+                <div className="space-y-6 animate-fade-in">
+                    <ContentCard className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-[--color-text-primary] mb-1">{t('visualEffects') || 'Hiệu ứng hiển thị'}</h3>
+                                <p className="text-sm text-[--color-text-subtle]">{t('cursorTrailsDesc') || 'Bật hiệu ứng con trỏ bám theo chuột và vòng tròn lan tỏa khi click chuột.'}</p>
+                            </div>
+                            <ToggleSwitch checked={isCursorTrailsEnabled} onChange={setIsCursorTrailsEnabled} />
                         </div>
-                        <ToggleSwitch checked={isCursorTrailsEnabled} onChange={setIsCursorTrailsEnabled} />
-                    </div>
-                     <h3 className="text-xl font-bold text-[--color-text-primary] mt-6 mb-4">{t('soundEffects')}</h3>
-                     <div className="flex items-center justify-between p-4 rounded-xl bg-[--color-surface-secondary]">
-                        <div>
-                            <p className="font-medium text-[--color-text-primary]">{t('enableSoundEffects')}</p>
-                            <p className="text-sm text-[--color-text-subtle]">{t('enableSoundEffectsDesc')}</p>
+                    </ContentCard>
+                    <ContentCard className="p-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-[--color-text-primary] mb-1">{t('soundEffects') || 'Hiệu ứng âm thanh'}</h3>
+                                <p className="text-sm text-[--color-text-subtle]">{t('enableSoundEffectsDesc') || 'Bật phản hồi âm thanh cơ học tinh tế khi click hoặc rà chuột qua nút bấm.'}</p>
+                            </div>
+                            <ToggleSwitch checked={isSoundEffectsEnabled} onChange={setIsSoundEffectsEnabled} />
                         </div>
-                        <ToggleSwitch checked={isSoundEffectsEnabled} onChange={setIsSoundEffectsEnabled} />
-                    </div>
-                </>
+                    </ContentCard>
+                </div>
             );
             case 'ai_voice': return (
-                 <div className="space-y-4">
-                     <div className="flex items-center justify-between p-4 rounded-xl bg-[--color-surface-secondary]">
-                        <div>
-                            <p className="font-medium text-[--color-text-primary]">{t('enableAiVoice')}</p>
-                            <p className="text-sm text-[--color-text-subtle]">{t('enableAiVoiceDesc')}</p>
+                <div className="space-y-6">
+                    <ContentCard className="p-6 space-y-4">
+                        <div className="flex items-center justify-between gap-4 pb-4 border-b border-[--color-border-secondary]/40">
+                            <div>
+                                <p className="font-bold text-md text-[--color-text-primary]">{t('enableAiVoice')}</p>
+                                <p className="text-sm text-[--color-text-subtle]">{t('enableAiVoiceDesc')}</p>
+                            </div>
+                            <ToggleSwitch checked={isSpeechEnabled} onChange={setIsSpeechEnabled} />
                         </div>
-                        <ToggleSwitch checked={isSpeechEnabled} onChange={setIsSpeechEnabled} />
-                    </div>
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-[--color-surface-secondary]">
-                        <div>
-                            <p className="font-medium text-[--color-text-primary]">{t('robotEffect')}</p>
-                            <p className="text-sm text-[--color-text-subtle]">{t('robotEffectDesc')}</p>
+                        <div className="flex items-center justify-between gap-4 pt-2">
+                            <div>
+                                <p className="font-bold text-md text-[--color-text-primary]">{t('robotEffect')}</p>
+                                <p className="text-sm text-[--color-text-subtle]">{t('robotEffectDesc')}</p>
+                            </div>
+                            <ToggleSwitch checked={isRobotEffectEnabled} onChange={setIsRobotEffectEnabled} />
                         </div>
-                        <ToggleSwitch checked={isRobotEffectEnabled} onChange={setIsRobotEffectEnabled} />
-                    </div>
-                     <div className="p-4 rounded-xl bg-[--color-surface-secondary]">
-                        <label htmlFor="voice-select" className="font-medium text-[--color-text-primary]">{t('voiceModel')}</label>
-                        <p className="text-sm text-[--color-text-subtle] mb-2">{t('voiceModelDesc')}</p>
+                    </ContentCard>
+                    <ContentCard className="p-6">
+                        <label htmlFor="voice-select" className="font-bold text-md text-[--color-text-primary]">{t('voiceModel')}</label>
+                        <p className="text-sm text-[--color-text-subtle] mb-4">{t('voiceModelDesc')}</p>
                         <select
                             id="voice-select"
                             value={selectedVoiceURI || ''}
                             onChange={(e) => setSelectedVoiceURI(e.target.value)}
-                            className="w-full mt-1 bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] focus:ring-1 focus:ring-[--color-accent-500] focus:outline-none"
+                            className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none font-medium text-sm"
                         >
                             {voices.length > 0 ? voices.map(voice => (
                                 <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} ({voice.lang})</option>
                             )) : <option disabled>{t('loadingVoices')}</option>}
                         </select>
-                    </div>
+                    </ContentCard>
                 </div>
             );
             case 'zimbra':
                 return (
-                 <div className="bg-[--color-surface-secondary] rounded-xl shadow-lg p-6 space-y-6">
-                    <div className="flex items-center gap-3 mb-2">
-                        <MailIcon className="w-8 h-8 text-[--color-accent-600]"/>
+                 <div className="space-y-6">
+                    <ContentCard className="p-6 space-y-6">
+                        <div className="flex items-center gap-4 border-b border-[--color-border-secondary]/40 pb-4">
+                            <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center text-orange-600">
+                                <MailIcon className="w-6 h-6"/>
+                            </div>
+                            <div>
+                                 <h2 className="text-lg font-bold text-[--color-text-primary]">{t('zimbraSettings')}</h2>
+                                 <p className="text-sm text-[--color-text-subtle]">{t('zimbraSettingsDesc')}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label htmlFor="zimbra-email" className="text-sm font-semibold text-[--color-text-secondary]">{t('zimbraEmail')}</label>
+                                <input
+                                    id="zimbra-email"
+                                    type="email"
+                                    value={zimbraEmail}
+                                    onChange={e => setZimbraEmail(e.target.value)}
+                                    placeholder="user@zimbra.example.com"
+                                    className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all text-sm font-medium"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label htmlFor="zimbra-password" className="text-sm font-semibold text-[--color-text-secondary]">{t('zimbraPassword')}</label>
+                                <input
+                                    id="zimbra-password"
+                                    type="password"
+                                    value={zimbraPassword}
+                                    onChange={e => setZimbraPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all text-sm font-medium"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label htmlFor="zimbra-server" className="text-sm font-semibold text-[--color-text-secondary]">{t('zimbraServer')}</label>
+                            <input
+                                id="zimbra-server"
+                                type="url"
+                                value={zimbraServer}
+                                onChange={e => setZimbraServer(e.target.value)}
+                                placeholder="https://mail.zimbra.example.com"
+                                className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all text-sm font-medium"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <label htmlFor="zimbra-frequency" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('fetchFrequency')}</label>
+                            <select
+                                id="zimbra-frequency"
+                                value={zimbraFrequency}
+                                onChange={e => setZimbraFrequency(e.target.value)}
+                                className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all text-sm font-medium"
+                            >
+                                <option value="manual">{t('manual')}</option>
+                                <option value="daily">{t('daily')}</option>
+                                <option value="weekly">{t('weekly')}</option>
+                            </select>
+                        </div>
+
+                        <div className="border-t border-[--color-border-secondary] pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <button
+                                onClick={handleSaveZimbraSettings}
+                                className="w-full sm:w-auto text-sm font-bold py-3 px-8 rounded-xl text-white bg-gradient-to-r from-slate-600 to-slate-800 shadow-lg shadow-slate-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            >
+                                {t('saveSettings')}
+                            </button>
+                            <button
+                                onClick={handleSyncZimbra}
+                                disabled={isSyncingZimbra || !zimbraEmail}
+                                className="w-full sm:w-auto text-sm font-bold py-3 px-8 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSyncingZimbra ? t('syncing') : 'Sync Zimbra Now'}
+                            </button>
+                        </div>
+                        
+                        {zimbraSyncMessage && (
+                            <div className="p-4 text-center rounded-xl bg-cyan-50 text-cyan-800 font-bold border border-cyan-100 animate-fade-in text-sm">
+                                {zimbraSyncMessage}
+                            </div>
+                        )}
+                    </ContentCard>
+                 </div>
+             );
+              case 'drive':
+                 const driveService = services.find(s => s.id === 'Drive');
+                 return (
+                  <div className="space-y-6">
+                     {driveService && (
+                         <ServiceCard service={driveService} onToggleSync={onToggleSync} onToggleConnection={onToggleConnection} />
+                     )}
+                     <ContentCard className="p-6 space-y-6">
                         <div>
-                             <h2 className="text-xl font-bold text-[--color-text-primary]">{t('zimbraSettings')}</h2>
-                             <p className="text-sm text-[--color-text-subtle]">{t('zimbraSettingsDesc')}</p>
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label htmlFor="zimbra-email" className="text-sm font-semibold text-[--color-text-secondary]">{t('zimbraEmail')}</label>
+                            <label htmlFor="drive-url" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('driveFolderUrl') || 'Drive Folder URL'}</label>
                             <input
-                                id="zimbra-email"
-                                type="email"
-                                value={zimbraEmail}
-                                onChange={e => setZimbraEmail(e.target.value)}
-                                placeholder="user@zimbra.example.com"
-                                className="w-full bg-[--color-surface-primary] p-2.5 rounded-lg border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all"
+                                id="drive-url"
+                                type="url"
+                                value={driveUrl}
+                                onChange={e => setDriveUrl(e.target.value)}
+                                placeholder="https://drive.google.com/drive/folders/..."
+                                className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none text-sm font-medium"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <label htmlFor="zimbra-password" className="text-sm font-semibold text-[--color-text-secondary]">{t('zimbraPassword')}</label>
-                            <input
-                                id="zimbra-password"
-                                type="password"
-                                value={zimbraPassword}
-                                onChange={e => setZimbraPassword(e.target.value)}
-                                placeholder="••••••••"
-                                className="w-full bg-[--color-surface-primary] p-2.5 rounded-lg border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all"
-                            />
+                        <div>
+                            <label htmlFor="drive-fetch-frequency" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('fetchFrequency')}</label>
+                            <select
+                                id="drive-fetch-frequency"
+                                value={driveFrequency}
+                                onChange={e => setDriveFrequency(e.target.value)}
+                                className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none text-sm font-medium"
+                            >
+                                <option value="manual">{t('manual')}</option>
+                                <option value="daily">{t('daily')}</option>
+                                <option value="weekly">{t('weekly')}</option>
+                            </select>
                         </div>
-                    </div>
 
-                    <div className="space-y-2">
-                        <label htmlFor="zimbra-server" className="text-sm font-semibold text-[--color-text-secondary]">{t('zimbraServer')}</label>
-                        <input
-                            id="zimbra-server"
-                            type="url"
-                            value={zimbraServer}
-                            onChange={e => setZimbraServer(e.target.value)}
-                            placeholder="https://mail.zimbra.example.com"
-                            className="w-full bg-[--color-surface-primary] p-2.5 rounded-lg border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <label htmlFor="zimbra-frequency" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('fetchFrequency')}</label>
-                        <select
-                            id="zimbra-frequency"
-                            value={zimbraFrequency}
-                            onChange={e => setZimbraFrequency(e.target.value)}
-                            className="w-full bg-[--color-surface-primary] p-2.5 rounded-lg border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none transition-all"
-                        >
-                            <option value="manual">{t('manual')}</option>
-                            <option value="daily">{t('daily')}</option>
-                            <option value="weekly">{t('weekly')}</option>
-                        </select>
-                    </div>
-
-                    <div className="border-t border-[--color-border-secondary] pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <button
-                            onClick={handleSaveZimbraSettings}
-                            className="w-full sm:w-auto text-sm font-bold py-2.5 px-8 rounded-xl text-white bg-gradient-to-r from-slate-600 to-slate-800 shadow-lg shadow-slate-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                        >
-                            {t('saveSettings')}
-                        </button>
-                        <button
-                            onClick={handleSyncZimbra}
-                            disabled={isSyncingZimbra || !zimbraEmail}
-                            className="w-full sm:w-auto text-sm font-bold py-2.5 px-8 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isSyncingZimbra ? t('syncing') : 'Sync Zimbra Now'}
-                        </button>
-                    </div>
-                    
-                    {zimbraSyncMessage && (
-                        <div className="p-4 text-center rounded-xl bg-cyan-50 text-cyan-800 font-bold border border-cyan-100 animate-fade-in">
-                            {zimbraSyncMessage}
+                        <div className="border-t border-[--color-border-secondary] pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <button
+                                onClick={handleSaveDriveSettings}
+                                className="w-full sm:w-auto text-sm font-bold py-3 px-8 rounded-xl text-[--color-text-primary] bg-[--color-surface-primary] hover:bg-[--color-surface-tertiary] transition-colors border border-[--color-border-primary]"
+                            >
+                                {t('saveSettings')}
+                            </button>
+                            <button
+                                onClick={handleFetchDriveFiles}
+                                disabled={isFetchingDrive || !driveService?.isConnected}
+                                className="w-full sm:w-auto text-sm font-bold py-3 px-8 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isFetchingDrive ? (t('fetchingFiles') || 'Fetching...') : (t('fetchFiles') || 'Fetch Files')}
+                            </button>
                         </div>
-                    )}
-                </div>
-            );
-             case 'drive':
-                const driveService = services.find(s => s.id === 'Drive');
-                return (
-                 <div className="bg-[--color-surface-secondary] rounded-xl shadow-lg p-6 space-y-6">
-                    {driveService && (
-                        <ServiceCard service={driveService} onToggleSync={onToggleSync} onToggleConnection={onToggleConnection} />
-                    )}
-                    <div>
-                        <label htmlFor="drive-url" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('driveFolderUrl') || 'Drive Folder URL'}</label>
-                        <input
-                            id="drive-url"
-                            type="url"
-                            value={driveUrl}
-                            onChange={e => setDriveUrl(e.target.value)}
-                            placeholder="https://drive.google.com/drive/folders/..."
-                            className="w-full bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] focus:ring-1 focus:ring-[--color-accent-500] focus:outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="drive-fetch-frequency" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('fetchFrequency')}</label>
-                        <select
-                            id="drive-fetch-frequency"
-                            value={driveFrequency}
-                            onChange={e => setDriveFrequency(e.target.value)}
-                            className="w-full bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] focus:ring-1 focus:ring-[--color-accent-500] focus:outline-none"
-                        >
-                            <option value="manual">{t('manual')}</option>
-                            <option value="daily">{t('daily')}</option>
-                            <option value="weekly">{t('weekly')}</option>
-                        </select>
-                    </div>
-
-                    <div className="border-t border-[--color-border-secondary] pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <button
-                            onClick={handleSaveDriveSettings}
-                            className="w-full sm:w-auto text-sm font-semibold py-2.5 px-6 rounded-lg text-[--color-text-primary] bg-[--color-surface-primary] hover:bg-[--color-surface-tertiary] transition-colors"
-                        >
-                            {t('saveSettings')}
-                        </button>
-                        <button
-                            onClick={handleFetchDriveFiles}
-                            disabled={isFetchingDrive || !driveService?.isConnected}
-                            className="w-full sm:w-auto text-sm font-semibold py-2.5 px-6 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isFetchingDrive ? (t('fetchingFiles') || 'Fetching...') : (t('fetchFiles') || 'Fetch Files')}
-                        </button>
-                    </div>
-                    
-                    {fetchDriveMessage && (
-                        <div className="p-3 text-center rounded-md bg-[--color-surface-primary] text-[--color-text-primary] font-medium">
-                            {fetchDriveMessage}
-                        </div>
-                    )}
-                </div>
-            );
+                        
+                        {fetchDriveMessage && (
+                            <div className="p-4 text-center rounded-xl bg-[--color-surface-primary] text-[--color-text-primary] font-semibold border border-[--color-border-secondary] text-sm">
+                                {fetchDriveMessage}
+                            </div>
+                        )}
+                     </ContentCard>
+                  </div>
+             );
              case 'blog':
                 const bloggerService = services.find(s => s.id === 'Blogger');
                 return (
-                 <div className="bg-[--color-surface-secondary] rounded-xl shadow-lg p-6 space-y-6">
-                    {bloggerService && (
-                        <div className="flex items-center gap-2 p-3 rounded-md bg-slate-100 dark:bg-slate-800/50">
-                            <div className={`w-3 h-3 rounded-full ${bloggerService.isConnected ? 'bg-green-500' : 'bg-slate-400'}`}></div>
-                            <p className="text-sm font-semibold text-[--color-text-secondary]">
-                                Blogger Status: <span className={bloggerService.isConnected ? 'text-green-600 dark:text-green-400' : 'text-slate-500'}>
-                                    {bloggerService.isConnected ? t('connected') : t('notConnected')}
-                                </span>
-                            </p>
+                 <div className="space-y-6">
+                     <ContentCard className="p-6 space-y-6">
+                        {bloggerService && (
+                            <div className="flex items-center gap-3 p-3 rounded-xl bg-orange-50 dark:bg-orange-950/20 border border-orange-100/30">
+                                <div className={`w-3 h-3 rounded-full ${bloggerService.isConnected ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`}></div>
+                                <p className="text-sm font-semibold text-[--color-text-secondary]">
+                                    Blogger Status: <span className={bloggerService.isConnected ? 'text-green-600 dark:text-green-400 font-bold' : 'text-slate-500 font-bold'}>
+                                        {bloggerService.isConnected ? t('connected') : t('notConnected')}
+                                    </span>
+                                </p>
+                            </div>
+                        )}
+                        <div>
+                            <label htmlFor="blogger-url" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('bloggerUrl')}</label>
+                            <input
+                                id="blogger-url"
+                                type="url"
+                                value={blogUrl}
+                                onChange={e => setBlogUrl(e.target.value)}
+                                placeholder="https://yourblog.blogspot.com"
+                                className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none text-sm font-medium"
+                            />
                         </div>
-                    )}
-                    <div>
-                        <label htmlFor="blogger-url" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('bloggerUrl')}</label>
-                        <input
-                            id="blogger-url"
-                            type="url"
-                            value={blogUrl}
-                            onChange={e => setBlogUrl(e.target.value)}
-                            placeholder="https://yourblog.blogspot.com"
-                            className="w-full bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] focus:ring-1 focus:ring-[--color-accent-500] focus:outline-none"
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="fetch-frequency" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('fetchFrequency')}</label>
-                        <select
-                            id="fetch-frequency"
-                            value={blogFrequency}
-                            onChange={e => setBlogFrequency(e.target.value)}
-                            className="w-full bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] focus:ring-1 focus:ring-[--color-accent-500] focus:outline-none"
-                        >
-                            <option value="manual">{t('manual')}</option>
-                            <option value="daily">{t('daily')}</option>
-                            <option value="weekly">{t('weekly')}</option>
-                        </select>
-                    </div>
+                        <div>
+                            <label htmlFor="fetch-frequency" className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('fetchFrequency')}</label>
+                            <select
+                                id="fetch-frequency"
+                                value={blogFrequency}
+                                onChange={e => setBlogFrequency(e.target.value)}
+                                className="w-full bg-[--color-surface-primary] p-3 rounded-xl border border-[--color-border-secondary] focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none text-sm font-medium"
+                            >
+                                <option value="manual">{t('manual')}</option>
+                                <option value="daily">{t('daily')}</option>
+                                <option value="weekly">{t('weekly')}</option>
+                            </select>
+                        </div>
 
-                    <div className="border-t border-[--color-border-secondary] pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <button
-                            onClick={handleSaveBlogSettings}
-                            className="w-full sm:w-auto text-sm font-semibold py-2.5 px-6 rounded-lg text-[--color-text-primary] bg-[--color-surface-primary] hover:bg-[--color-surface-tertiary] transition-colors"
-                        >
-                            {t('saveSettings')}
-                        </button>
-                        <button
-                            onClick={handleFetchBlogPosts}
-                            disabled={isFetching || !bloggerService?.isConnected}
-                            className="w-full sm:w-auto text-sm font-semibold py-2.5 px-6 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isFetching ? t('fetchingPosts') : t('fetchNow')}
-                        </button>
-                    </div>
-                    
-                    {fetchMessage && (
-                        <div className="p-3 text-center rounded-md bg-[--color-surface-primary] text-[--color-text-primary] font-medium">
-                            {fetchMessage}
+                        <div className="border-t border-[--color-border-secondary] pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+                            <button
+                                onClick={handleSaveBlogSettings}
+                                className="w-full sm:w-auto text-sm font-bold py-3 px-8 rounded-xl text-[--color-text-primary] bg-[--color-surface-primary] hover:bg-[--color-surface-tertiary] transition-colors border border-[--color-border-primary]"
+                            >
+                                {t('saveSettings')}
+                            </button>
+                            <button
+                                onClick={handleFetchBlogPosts}
+                                disabled={isFetching || !bloggerService?.isConnected}
+                                className="w-full sm:w-auto text-sm font-bold py-3 px-8 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isFetching ? t('fetchingPosts') : t('fetchNow')}
+                            </button>
                         </div>
-                    )}
+                        
+                        {fetchMessage && (
+                            <div className="p-4 text-center rounded-xl bg-[--color-surface-primary] text-[--color-text-primary] font-semibold border border-[--color-border-secondary] text-sm">
+                                {fetchMessage}
+                            </div>
+                        )}
+                     </ContentCard>
                 </div>
             );
             case 'website-admin':

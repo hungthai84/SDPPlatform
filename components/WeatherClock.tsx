@@ -5,7 +5,7 @@ import { useLanguage } from './LanguageContext';
 
 const WeatherClock: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [locationName, setLocationName] = useState<string>('Detecting location...');
+  const [locationName] = useState<string>('Hà Nội, Việt Nam');
   const { language } = useLanguage();
 
   useEffect(() => {
@@ -15,65 +15,6 @@ const WeatherClock: React.FC = () => {
 
     return () => clearInterval(timer);
   }, []);
-
-  const fetchLocation = () => {
-    if (navigator.geolocation) {
-      setLocationName(language === 'vi' ? 'Đang xác định vị trí...' : 'Detecting location...');
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const { latitude, longitude } = position.coords;
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
-            if (!response.ok) {
-              throw new Error('Failed to fetch location');
-            }
-            const data = await response.json();
-            const city = data.address.city || data.address.town || data.address.village || data.address.county;
-            const country = data.address.country;
-            
-            if (city && country) {
-              setLocationName(`${city}, ${country}`);
-            } else if (country) {
-              setLocationName(country);
-            }
-            else {
-              setLocationName(language === 'vi' ? 'Không rõ vị trí' : 'Location unknown');
-            }
-          } catch {
-            setLocationName(language === 'vi' ? 'Không thể lấy vị trí' : 'Location unavailable');
-          }
-        },
-        (error: GeolocationPositionError) => {
-          let userMessage;
-          if (language === 'vi') {
-            switch (error.code) {
-              case 1: userMessage = 'Truy cập vị trí bị từ chối'; break;
-              case 2: userMessage = 'Vị trí không khả dụng'; break;
-              case 3: userMessage = 'Yêu cầu hết thời gian'; break;
-              default: userMessage = 'Lỗi vị trí không xác định'; break;
-            }
-          } else {
-            switch (error.code) {
-              case 1: userMessage = 'Location access denied'; break;
-              case 2: userMessage = 'Location unavailable'; break;
-              case 3: userMessage = 'Location request timed out'; break;
-              default: userMessage = 'An unknown location error occurred'; break;
-            }
-          }
-          setLocationName(userMessage);
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
-      );
-    } else {
-      setLocationName(language === 'vi' ? 'Không hỗ trợ định vị' : 'Geolocation not supported');
-    }
-  };
-
-  useEffect(() => {
-    // We no longer fetch location automatically on mount to avoid immediate permission prompts.
-    // The user can click to fetch it if needed.
-    setLocationName(language === 'vi' ? 'Bấm để xem vị trí' : 'Click to see location');
-  }, [language]);
 
   const formattedDate = currentTime.toLocaleDateString(language, {
     weekday: 'long',
@@ -100,9 +41,8 @@ const WeatherClock: React.FC = () => {
             <span>{formattedDate}</span>
             <span className="opacity-50" aria-hidden="true">&bull;</span>
             <div 
-                className="flex items-center gap-1 cursor-pointer hover:text-[--color-accent-500] transition-colors" 
+                className="flex items-center gap-1 text-slate-500" 
                 title={locationName}
-                onClick={fetchLocation}
             >
                 <MapPinIcon className="w-3 h-3 shrink-0" />
                 <span className="truncate max-w-[150px]">{locationName}</span>

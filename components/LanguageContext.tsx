@@ -894,15 +894,13 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguageState] = useState<Language>('vi');
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Language;
-    if (savedLang && (savedLang === 'vi' || savedLang === 'en')) {
-      setLanguageState(savedLang);
-    }
+    setLanguageState('vi');
+    localStorage.setItem('language', 'vi');
   }, []);
 
-  const setLanguage = (lang: Language) => {
-    localStorage.setItem('language', lang);
-    setLanguageState(lang);
+  const setLanguage = () => {
+    setLanguageState('vi');
+    localStorage.setItem('language', 'vi');
   };
 
   const t = useCallback((key: string, replacements?: Record<string, string | number>): string => {

@@ -16,21 +16,26 @@ import { LanguageProvider } from './components/LanguageContext';
 import NewBlogPostView from './components/NewBlogPostView';
 import BlogArticleView from './components/BlogArticleView';
 import TaskView from './components/TaskView';
-import TrainingDashboardView from './components/TrainingDashboardView';
+import { TrainingView } from './components/TrainingView';
+
+
+
+
+import { ERPView } from './components/ERPView';
 import ClassDetailView from './components/ClassDetailView';
 import SettingsView from './components/SettingsView';
 import CheckInView from './components/CheckInView';
 import UserManagementView from './components/UserManagementView';
-import RequestsView from './components/RequestsView';
 import ProjectManagementView from './components/ProjectManagementView';
-import ProcessWorkflowView from './components/ProcessWorkflowView';
-import ObjectivesView from './components/ObjectivesView';
+import { ProcessView } from './components/ProcessViews';
+import { ObjectivesView } from './components/ObjectivesView';
 import CommandPalette from './components/CommandPalette';
 import { FolderIcon, StickyNoteIcon, ChecklistIcon, MailIcon, CalendarIcon, GraduationCapIcon, BloggerIcon, ChatIcon, VideoIcon } from './components/icons';
 import EventModal from './components/EventModal';
 import MobileBottomNav from './components/MobileBottomNav';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, X } from 'lucide-react';
+import { PersonnelView } from './components/HRViews';
 import { db, auth, getAccessToken } from './firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, addDoc } from 'firebase/firestore';
@@ -59,9 +64,218 @@ const mockActivityLog: ActivityItem[] = [
 ];
 
 
+
+let audioCtx: AudioContext | null = null;
+
+const playSynthSound = (type: 'click' | 'hover' | 'success') => {
+  try {
+    if (localStorage.getItem('soundEffectsEnabled') === 'false') return;
+    
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
+    }
+    
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    const now = audioCtx.currentTime;
+    
+    if (type === 'click') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(350, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.1);
+      
+      gainNode.gain.setValueAtTime(0.08, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } else if (type === 'hover') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(650, now);
+      
+      gainNode.gain.setValueAtTime(0.015, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      
+      osc.start(now);
+      osc.stop(now + 0.04);
+    } else if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now); // A4
+      osc.frequency.setValueAtTime(554.37, now + 0.08); // C#5
+      osc.frequency.setValueAtTime(659.25, now + 0.16); // E5
+      
+      gainNode.gain.setValueAtTime(0.08, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+      
+      osc.start(now);
+      osc.stop(now + 0.4);
+    }
+  } catch (error) {
+    console.warn('AudioContext not supported or blocked:', error);
+  }
+};
+
+
 const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(mockUsers[1]);
   const [allUsers, setAllUsers] = useState<User[]>(mockUsers);
+  const [isCursorTrailsEnabled, setIsCursorTrailsEnabled] = useState(() => localStorage.getItem('cursorTrailsEnabled') === 'true');
+  const [isSoundEffectsEnabled, setIsSoundEffectsEnabled] = useState(() => localStorage.getItem('soundEffectsEnabled') !== 'false');
+
+  // Sync cursor trails and sound effects toggles
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      setIsCursorTrailsEnabled(localStorage.getItem('cursorTrailsEnabled') === 'true');
+      setIsSoundEffectsEnabled(localStorage.getItem('soundEffectsEnabled') !== 'false');
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('settings_changed', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('settings_changed', handleStorageChange);
+    };
+  }, []);
+
+  // Global cursor trails effect
+  React.useEffect(() => {
+    if (!isCursorTrailsEnabled) return;
+    
+    const trailLength = 8;
+    const dots: HTMLDivElement[] = [];
+    const mouse = { x: 0, y: 0 };
+    const coords = Array(trailLength).fill({ x: 0, y: 0 });
+    
+    for (let i = 0; i < trailLength; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'pointer-events-none fixed rounded-full z-[99999] transition-opacity duration-200';
+      dot.style.width = `${10 - i}px`;
+      dot.style.height = `${10 - i}px`;
+      dot.style.opacity = `${0.65 - i * 0.07}`;
+      dot.style.transform = 'translate(-50%, -50%)';
+      dot.style.backgroundColor = 'var(--color-accent-500, #4f46e5)';
+      document.body.appendChild(dot);
+      dots.push(dot);
+    }
+    
+    const handleMouseMove = (e: MouseEvent) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    };
+    
+    let animFrame: number;
+    const updateTrails = () => {
+      coords.forEach((coord, index) => {
+        const nextCoord = coords[index + 1] || mouse;
+        coord.x += (nextCoord.x - coord.x) * 0.35;
+        coord.y += (nextCoord.y - coord.y) * 0.35;
+        
+        const dot = dots[index];
+        if (dot) {
+          dot.style.left = `${coord.x}px`;
+          dot.style.top = `${coord.y}px`;
+          dot.style.backgroundColor = 'var(--color-accent-500, #4f46e5)';
+        }
+      });
+      animFrame = requestAnimationFrame(updateTrails);
+    };
+    
+    const handleMouseClick = (e: MouseEvent) => {
+      const ripple = document.createElement('div');
+      ripple.className = 'pointer-events-none fixed rounded-full z-[99999] opacity-80';
+      ripple.style.left = `${e.clientX}px`;
+      ripple.style.top = `${e.clientY}px`;
+      ripple.style.width = '10px';
+      ripple.style.height = '10px';
+      ripple.style.border = '2px solid var(--color-accent-500, #4f46e5)';
+      ripple.style.transform = 'translate(-50%, -50%)';
+      ripple.style.transition = 'all 0.4s cubic-bezier(0.1, 0.8, 0.3, 1)';
+      
+      document.body.appendChild(ripple);
+      
+      requestAnimationFrame(() => {
+        ripple.style.width = '60px';
+        ripple.style.height = '60px';
+        ripple.style.opacity = '0';
+      });
+      
+      setTimeout(() => {
+        ripple.remove();
+      }, 400);
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('click', handleMouseClick);
+    animFrame = requestAnimationFrame(updateTrails);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('click', handleMouseClick);
+      cancelAnimationFrame(animFrame);
+      dots.forEach(dot => dot.remove());
+    };
+  }, [isCursorTrailsEnabled]);
+
+  // Global sound feedback effect
+  React.useEffect(() => {
+    if (!isSoundEffectsEnabled) return;
+    
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+      
+      const isInteractive = 
+        target.tagName === 'BUTTON' || 
+        target.tagName === 'A' || 
+        target.tagName === 'INPUT' || 
+        target.tagName === 'SELECT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.closest('button') || 
+        target.closest('a') || 
+        target.closest('[role="button"]') ||
+        target.closest('[role="switch"]');
+        
+      if (isInteractive) {
+        playSynthSound('click');
+      }
+    };
+    
+    const handleGlobalMouseOver = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target) return;
+      
+      const isInteractive = 
+        target.tagName === 'BUTTON' || 
+        target.tagName === 'A' || 
+        target.closest('button') || 
+        target.closest('a') || 
+        target.closest('[role="button"]') ||
+        target.closest('[role="switch"]');
+        
+      if (isInteractive) {
+        const lastHover = (window as unknown as { _lastHoverSoundTime?: number })._lastHoverSoundTime || 0;
+        const now = Date.now();
+        if (now - lastHover > 150) {
+          playSynthSound('hover');
+          (window as unknown as { _lastHoverSoundTime?: number })._lastHoverSoundTime = now;
+        }
+      }
+    };
+    
+    window.addEventListener('click', handleGlobalClick);
+    window.addEventListener('mouseover', handleGlobalMouseOver);
+    return () => {
+      window.removeEventListener('click', handleGlobalClick);
+      window.removeEventListener('mouseover', handleGlobalMouseOver);
+    };
+  }, [isSoundEffectsEnabled]);
 
   // Listen for all users
   React.useEffect(() => {
@@ -96,7 +310,7 @@ const AppContent: React.FC = () => {
     fetchUsers();
   }, [user?.id]);
 
-  const [isLeftSidebarCollapsed, setLeftSidebarCollapsed] = useState(true);
+  const [isLeftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   
   // Auth listener disabled as login is bypassed
 
@@ -654,8 +868,6 @@ const AppContent: React.FC = () => {
         return <CheckInView user={user} log={checkInLog} activityLog={activityLog} onCheckIn={handleCheckIn} onCheckOut={handleCheckOut} />;
       case 'objectives':
         return <ObjectivesView user={user} />;
-      case 'requests':
-        return <RequestsView user={user} users={allUsers} onSaveEvent={handleSaveEvent} />;
       case 'projects':
         return (
           <ProjectManagementView 
@@ -671,7 +883,7 @@ const AppContent: React.FC = () => {
       case 'user-management':
         return <UserManagementView currentUser={user} users={allUsers} onUsersChange={handleUsersChange} />;
       case 'process':
-        return <ProcessWorkflowView user={user} onNavigate={handleNavigate} />;
+        return <ProcessView user={user} users={allUsers} onNavigate={handleNavigate} onSaveEvent={handleSaveEvent} />;
       case 'drive':
         return <DriveView user={user} onItemViewed={handleItemViewed} onSync={() => handleSyncService('Drive')} />;
       case 'meeting':
@@ -711,7 +923,9 @@ const AppContent: React.FC = () => {
        case 'tasks':
         return <TaskView onItemViewed={handleItemViewed} onSendNotification={handleSendNotification} />;
       case 'training':
-        return <TrainingDashboardView user={user} onNavigate={handleNavigate} />;
+        return <TrainingView />;
+      case 'erp':
+        return <ERPView />;
       case 'class-detail':
         return <ClassDetailView user={user} classId={activeClassId} onNavigate={handleNavigate} />;
       case 'settings':
@@ -737,6 +951,8 @@ const AppContent: React.FC = () => {
             setCardOpacity={setCardOpacity}
           />
         );
+      case 'personnel':
+        return <PersonnelView />;
       case 'dashboard':
       default:
         return <MainContent user={user} recentlyViewed={recentlyViewed} events={events} onNavigate={handleNavigate} checkInLog={checkInLog} activityLog={activityLog} />;

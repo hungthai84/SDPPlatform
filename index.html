@@ -215,6 +215,66 @@
         --color-accent-shadow: rgba(168, 85, 247, 0.25);
       }
 
+      [data-accent-color="indigo"] {
+        --color-accent-100: #e0e7ff;
+        --color-accent-400: #818cf8;
+        --color-accent-500: #4f46e5;
+        --color-accent-600: #4338ca;
+        --color-accent-700: #3730a3;
+        --color-accent-gradient-secondary: #8b5cf6;
+        --color-accent-shadow: rgba(79, 70, 229, 0.25);
+      }
+
+      [data-accent-color="blue"] {
+        --color-accent-100: #dbeafe;
+        --color-accent-400: #60a5fa;
+        --color-accent-500: #3b82f6;
+        --color-accent-600: #2563eb;
+        --color-accent-700: #1d4ed8;
+        --color-accent-gradient-secondary: #06b6d4;
+        --color-accent-shadow: rgba(59, 130, 246, 0.25);
+      }
+
+      [data-accent-color="emerald"] {
+        --color-accent-100: #d1fae5;
+        --color-accent-400: #34d399;
+        --color-accent-500: #10b981;
+        --color-accent-600: #059669;
+        --color-accent-700: #047857;
+        --color-accent-gradient-secondary: #06b6d4;
+        --color-accent-shadow: rgba(16, 185, 129, 0.25);
+      }
+
+      [data-accent-color="amber"] {
+        --color-accent-100: #fef3c7;
+        --color-accent-400: #fbbf24;
+        --color-accent-500: #f59e0b;
+        --color-accent-600: #d97706;
+        --color-accent-700: #b45309;
+        --color-accent-gradient-secondary: #f97316;
+        --color-accent-shadow: rgba(245, 158, 11, 0.25);
+      }
+
+      [data-accent-color="pink"] {
+        --color-accent-100: #fce7f3;
+        --color-accent-400: #f472b6;
+        --color-accent-500: #ec4899;
+        --color-accent-600: #db2777;
+        --color-accent-700: #be185d;
+        --color-accent-gradient-secondary: #a855f7;
+        --color-accent-shadow: rgba(236, 72, 153, 0.25);
+      }
+
+      [data-accent-color="teal"] {
+        --color-accent-100: #ccfbf1;
+        --color-accent-400: #2dd4bf;
+        --color-accent-500: #14b8a6;
+        --color-accent-600: #0d9488;
+        --color-accent-700: #0f766e;
+        --color-accent-gradient-secondary: #06b6d4;
+        --color-accent-shadow: rgba(20, 184, 166, 0.25);
+      }
+
       /* Automatic Premium Glassmorphism Overrides */
       .bg-\[--color-surface-primary\],
       .bg-\[--color-surface-secondary\],
@@ -293,10 +353,12 @@
     }
   })();
 
-  // IIFE to set theme before React mounts
+  // IIFE to set theme, font size, and layout density before React mounts
   (function() {
     const theme = localStorage.getItem('theme') || 'system';
     const accent = localStorage.getItem('accentColor') || 'cyan';
+    const fontSize = localStorage.getItem('userFontSize') || 'medium';
+    const layoutDensity = localStorage.getItem('userLayoutDensity') || 'standard';
     const doc = document.documentElement;
 
     doc.setAttribute('data-accent-color', accent);
@@ -306,6 +368,12 @@
     } else {
       doc.classList.remove('dark');
     }
+
+    const sizeScaleMap = { 'small': '0.9', 'medium': '1.0', 'large': '1.15', 'xlarge': '1.3' };
+    const densityScaleMap = { 'compact': '0.75', 'standard': '1.0', 'spacious': '1.25' };
+
+    doc.style.setProperty('--user-font-scale', sizeScaleMap[fontSize] || '1.0');
+    doc.style.setProperty('--layout-spacing-factor', densityScaleMap[layoutDensity] || '1.0');
   })();
 </script>
 </head>

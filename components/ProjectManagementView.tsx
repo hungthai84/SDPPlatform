@@ -69,7 +69,8 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import TasklistView from './TasklistView';
 import { AppNotification } from '../types';
@@ -111,6 +112,7 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({
   };
 
   const [toastMessage, setToastMessage] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [dueDateFilter, setDueDateFilter] = useState<'all' | 'overdue' | 'this_week' | 'this_month'>('all');
@@ -299,16 +301,7 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({
         subtitle={activeTab === 'projects' ? "Theo dõi, quản lý và tối ưu hóa hiệu suất các dự án chiến lược của doanh nghiệp." : "“Việc nhỏ – nhưng nhớ kỹ. Đồng bộ, nhắc đúng, xử lý gọn.”"}
         icon={activeTab === 'projects' ? <LayoutGrid className="w-full h-full text-white" /> : <CheckCircle2 className="w-full h-full text-white" />}
         gradient="from-indigo-600 to-blue-700"
-        actions={
-          activeTab === 'projects' ? (
-            <button 
-              onClick={() => openAddModal()}
-              className="flex items-center gap-2 bg-white text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-white/90 transition-all"
-            >
-              <Plus className="w-4 h-4" /> Tạo dự án mới
-            </button>
-          ) : undefined
-        }
+        onGuideClick={() => setShowGuide(true)}
       />
 
       {/* Sub-navigation Tabs */}
@@ -484,80 +477,122 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({
           </div>
         </ContentCard>
 
-        {/* Project List Section */}
+        {/* NEW FEATURE CARD: Control Center (Tìm kiếm, Dạng view, Filters, Tạo dự án mới, Tài liệu hướng dẫn) */}
         <ContentCard>
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                <h2 className="text-lg font-bold text-slate-800">{t('projectList') || 'Danh sách dự án'}</h2>
-                <div className="bg-gray-100 p-1 rounded-xl flex items-center gap-1 border border-gray-200 shadow-inner">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 ${
-                      viewMode === 'list' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    <List className="w-3.5 h-3.5" /> Bảng
-                  </button>
-                  <button
-                    onClick={() => setViewMode('timeline')}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5 ${
-                      viewMode === 'timeline' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                  >
-                    <Clock className="w-3.5 h-3.5" /> Gantt
-                  </button>
-                </div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <LayoutGrid className="w-4 h-4 text-indigo-600" />
+                  Bảng điều khiển tính năng & Thao tác nhanh
+                </h3>
+                <p className="text-[11px] text-slate-500 font-medium">Tìm kiếm, lọc danh mục, đổi chế độ hiển thị và quản lý vòng đời dự án.</p>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button onClick={handleExportPDF} className="bg-red-50 text-red-600 border border-red-100 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all flex items-center gap-1.5">
-                  <Download className="w-3.5 h-3.5" /> PDF
+              
+              {/* Actions container: Tạo dự án mới & Tài liệu hướng dẫn side-by-side */}
+              <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                <button 
+                  onClick={() => setShowGuide(true)}
+                  className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95 border border-slate-200/50"
+                >
+                  <BookOpen className="w-4 h-4 text-indigo-500" /> Tài liệu hướng dẫn
                 </button>
-                <button onClick={handleExportCSV} className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5" /> CSV
+                <button 
+                  onClick={() => openAddModal()}
+                  className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm transition-all active:scale-95"
+                >
+                  <Plus className="w-4 h-4" /> Tạo dự án mới
                 </button>
               </div>
             </div>
 
-            {/* Search & Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="relative md:col-span-1">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+            {/* Row with Filters, Search, and View Mode Switcher */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+              {/* Search Box */}
+              <div className="relative md:col-span-4">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Tìm kiếm dự án..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-2 px-10 text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-10 text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all"
                 />
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Phòng ban:</span>
+
+              {/* Department Filter */}
+              <div className="flex items-center gap-2 md:col-span-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0">Bộ phận:</span>
                 <select
                   value={selectedDepartment}
                   onChange={(e) => setSelectedDepartment(e.target.value)}
-                  className="bg-white border border-gray-200 rounded-xl py-2 px-3 text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 cursor-pointer"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 cursor-pointer"
                 >
-                  <option value="all">Tất cả</option>
-                  <option value="IT">IT</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="HR">HR</option>
-                  <option value="None">Khác</option>
+                  <option value="all">Tất cả phòng ban</option>
+                  <option value="IT">Công nghệ thông tin (IT)</option>
+                  <option value="Marketing">Truyền thông & Marketing</option>
+                  <option value="HR">Nguồn nhân lực (HR)</option>
+                  <option value="None">Khác / Chưa phân loại</option>
                 </select>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Thời hạn:</span>
+
+              {/* Due Date Filter */}
+              <div className="flex items-center gap-2 md:col-span-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 shrink-0">Hạn chót:</span>
                 <select
                   value={dueDateFilter}
                   onChange={(e) => setDueDateFilter(e.target.value as 'all' | 'overdue' | 'this_week' | 'this_month')}
-                  className="bg-white border border-gray-200 rounded-xl py-2 px-3 text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 cursor-pointer"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-2 px-3 text-[11px] font-bold focus:outline-none focus:ring-4 focus:ring-indigo-500/10 cursor-pointer"
                 >
-                  <option value="all">Tất cả</option>
-                  <option value="overdue">Quá hạn</option>
-                  <option value="this_week">Tuần này</option>
-                  <option value="this_month">Tháng này</option>
+                  <option value="all">Tất cả thời gian</option>
+                  <option value="overdue">Đã quá hạn</option>
+                  <option value="this_week">Trong tuần này</option>
+                  <option value="this_month">Trong tháng này</option>
                 </select>
+              </div>
+
+              {/* View Mode Switcher */}
+              <div className="flex items-center justify-end gap-2 md:col-span-2">
+                <div className="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center gap-1 border border-slate-200 dark:border-slate-700 shadow-inner">
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 ${
+                      viewMode === 'list' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                    }`}
+                    title="Dạng bảng biểu"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('timeline')}
+                    className={`p-1.5 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1 ${
+                      viewMode === 'timeline' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                    }`}
+                    title="Dạng Gantt timeline"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ContentCard>
+
+        {/* Project List Section */}
+        <ContentCard>
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t('projectList') || 'Danh sách dự án'}</h2>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button onClick={handleExportPDF} className="bg-red-50 text-red-600 border border-red-100 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all flex items-center gap-1.5">
+                  <Download className="w-3.5 h-3.5" /> Xuất PDF
+                </button>
+                <button onClick={handleExportCSV} className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-all flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> Xuất CSV
+                </button>
               </div>
             </div>
 
@@ -707,6 +742,66 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({
         <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[2000] bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 animate-fade-in-up">
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
           <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Interactive Operational Guide Modal */}
+      {showGuide && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full shadow-2xl p-6 relative overflow-hidden">
+            {/* Header decor */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-indigo-600 to-blue-600" />
+            
+            <button 
+              onClick={() => setShowGuide(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4 mt-2">
+              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                <BookOpen className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
+                Tài liệu hướng dẫn vận hành dự án
+              </h3>
+            </div>
+
+            <div className="space-y-4 my-4">
+              <p className="text-slate-500 dark:text-slate-400 text-sm">
+                Chào mừng bạn đến với tài liệu hướng dẫn nhanh cho phân hệ Quản trị Dự án & Tiến độ. Quy trình chuẩn để vận hành tối ưu gồm có:
+              </p>
+
+              <div className="space-y-3">
+                {[
+                  "Xác định mục tiêu lớn và thiết lập cơ cấu phòng ban chịu trách nhiệm.",
+                  "Tạo dự án mới, chọn phân loại phòng ban (IT, HR, Marketing) và áp thời hạn chót.",
+                  "Liên kết danh sách công việc (Tasklist) và các nhiệm vụ (Tasks) trực tiếp vào tiến trình dự án.",
+                  "Theo dõi biểu đồ tròn phân tích tỷ lệ hoàn thành dự án để cập nhật kịp thời với quản lý."
+                ].map((step, index) => (
+                  <div key={index} className="flex gap-3 items-start">
+                    <div className="w-5 h-5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
+                      {index + 1}
+                    </div>
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                      {step}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-6 flex justify-between items-center">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">POWER SERVICE AUTOMATION</span>
+              <button 
+                onClick={() => setShowGuide(false)}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-md"
+              >
+                Đồng ý, Đã hiểu
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </StandardPageLayout>

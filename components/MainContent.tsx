@@ -9,7 +9,7 @@ import { mockNotes } from './NotesView';
 import { initialFileSystem } from './DriveView';
 import { mockEmails } from './EmailClient';
 import { initialMeetings } from './MeetingView';
-import { mockClasses } from './TrainingDashboardView';
+import { mockClasses } from './TrainingData';
 import { SettingsIcon, XIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon, FileTextIcon, GripVerticalIcon, RssIcon, FolderIcon, ChecklistIcon, CalendarIcon, StickyNoteIcon, BookOpenIcon, GraduationCapIcon, MailIcon, ChatIcon, ZapIcon, ClockIcon, FilterIcon, LightningIcon } from './icons';
 import { motion, Reorder, AnimatePresence } from 'motion/react';
 import { auth, db } from '../firebase';

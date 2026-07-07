@@ -21,7 +21,7 @@ import {
   FileEdit
 } from 'lucide-react';
 import { User } from '../App';
-import { ClassInfo } from './TrainingDashboardView';
+import { ClassInfo } from './TrainingData';
 
 export interface CourseScenarioStep {
   id: string;

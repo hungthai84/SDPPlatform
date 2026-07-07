@@ -16,7 +16,7 @@ export interface ThemeSettings {
   accentColor: string;
 }
 
-export type View = 'dashboard' | 'drive' | 'meeting' | 'tasklist' | 'contacts' | 'calendar' | 'notes' | 'blog' | 'blog-article' | 'email' | 'chat' | 'newsfeed' | 'tasks' | 'new-blog-post' | 'training' | 'class-detail' | 'settings' | 'check-in' | 'user-management' | 'requests' | 'website-data' | 'projects' | 'team-chat' | 'process' | 'objectives';
+export type View = 'course-library' | 'learning-path' | 'exam' | 'certificate' | 'dashboard' | 'drive' | 'meeting' | 'tasklist' | 'contacts' | 'calendar' | 'notes' | 'blog' | 'blog-article' | 'email' | 'chat' | 'newsfeed' | 'tasks' | 'new-blog-post' | 'training' | 'class-detail' | 'settings' | 'check-in' | 'user-management' | 'requests' | 'website-data' | 'projects' | 'team-chat' | 'process' | 'objectives' | 'bpm' | 'personnel' | 'recruitment' | 'onboarding' | 'leave' | 'timekeeping' | 'payroll' | 'benefits' | 'erp';
 
 export type ServiceName = 'Drive' | 'Keep' | 'Tasks' | 'Gmail' | 'Calendar' | 'Classroom' | 'Blogger' | 'Chat' | 'Meet';
 

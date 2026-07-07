@@ -1,8 +1,7 @@
 {
-  "name": "Remix: Power Service SDP Platfrom ",
+  "name": "Remix: Power Service SDP Platform",
   "description": "Website làm việc Service Desk của nhân viên chăm sóc khách hàng dùng để hỗ trợ và phân công công việc",
   "requestFramePermissions": [
-    "geolocation",
     "publickey-credentials-get"
   ],
   "prompt": "",
